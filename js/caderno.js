@@ -190,7 +190,7 @@
   var btnSair = null, btnTema = null;
   function pintaTema() {
     var escuro = window.MisterioTema && window.MisterioTema.atual() === "dark";
-    if (btnTema) comIcone(btnTema, escuro ? "sol" : "lua", escuro ? "Claro" : "Escuro");
+    if (btnTema) comIcone(btnTema, escuro ? "sol" : "lua", escuro ? "Modo claro" : "Modo escuro");
   }
   // um botão só: "Sair" quando há conta ativa, "Entrar" quando não há
   function atualizaSair() {
@@ -239,6 +239,7 @@
     var folha = el("div", "cad-folha");
     var topo = el("div", "cad-topo");
     topo.appendChild(el("h2", "cad-titulo", "Caderno do detetive"));
+    topo.appendChild(el("span", "cad-carimbo", "Confidencial"));
     var fechar = el("button", "cad-fechar", "×"); fechar.type = "button";
     fechar.title = "Fechar"; fechar.setAttribute("aria-label", "Fechar o caderno");
     fechar.addEventListener("click", function () { dlg.close(); });
@@ -246,6 +247,7 @@
     corpo = el("div", "cad-pagina");
     folha.appendChild(topo); folha.appendChild(corpo);
     livro.appendChild(folha);
+    livro.appendChild(el("div", "cad-etiqueta"));
     var abas = el("nav", "cad-abas"); abas.setAttribute("aria-label", "Seções do caderno");
     [["detetive", "Detetive", "amarela"], ["missoes", "Missões", "coral"], ["comandos", "Comandos", "verde"]].forEach(function (a) {
       var bt = el("button", "cad-aba " + a[2], a[1]); bt.type = "button"; bt.setAttribute("data-aba", a[0]);
@@ -262,6 +264,7 @@
     if (!dlg) monta();
     abaAtual = aba || abaAtual;
     var r = resumo();
+    dlg.querySelector(".cad-etiqueta").textContent = "ARQUIVO DO DETETIVE · " + (jog.nome ? jog.nome.toUpperCase() : "SEM NOME");
     [].forEach.call(dlg.querySelectorAll(".cad-aba"), function (b) {
       b.classList.toggle("ativa", b.getAttribute("data-aba") === abaAtual);
     });
@@ -330,6 +333,8 @@
       var f = cs.fases.filter(function (fa) { return r.st[fa.id]; }).length;
       var ok = cs.fases.length && f === cs.fases.length;
       var s = el("div", "cad-selo" + (ok ? " ok" : ""));
+      s.title = "Caso " + cs.n + ": " + cs.titulo;
+      s.style.setProperty("--r", ((cs.n * 7) % 11 - 5) + "deg");
       s.appendChild(el("div", "cad-selo-i", ok ? "🏅" : "○"));
       s.appendChild(el("div", "cad-selo-n", "Caso " + cs.n));
       s.appendChild(el("div", "cad-selo-t", cs.titulo));

@@ -60,7 +60,7 @@
     voltar.className="syncbtn";voltar.id="btnCasos";voltar.href="index.html";
     voltar.className="syncbtn icone";
     voltar.title="Todos os casos";voltar.setAttribute("aria-label","Todos os casos");
-    voltar.innerHTML="<span class='ic' aria-hidden='true'><svg viewBox='0 0 24 24' aria-hidden='true'><path d='M3 11l9-8 9 8'/><path d='M5 10v10h5v-6h4v6h5V10'/></svg></span><span class='rot'>Todos os casos</span>";
+    voltar.innerHTML="<span class='ic' aria-hidden='true'><svg viewBox='0 0 24 24' aria-hidden='true'><path d='M3 11l9-8 9 8'/><path d='M5 10v10h5v-6h4v6h5V10'/></svg></span><span class='rot'>Casos</span>";
     topBox.appendChild(voltar);
   }
   var chips=fases.map(function(sec){
@@ -203,14 +203,15 @@
 
   function rotulo(){
     syncBtn.dataset.on=logado()?"1":"0";
-    var txt=logado()?(sessao.email||"Conectado"):(configurado()?"Entrar":"Salvar na nuvem");
+    var txt=logado()?"Salvo na nuvem":(configurado()?"Entrar para salvar":"Salvar na nuvem");
+    var dica=logado()?("Salvo na nuvem como "+(sessao.email||"usuário")):txt;
     var svgNuvem="<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/><path d='M9 14.5l2.2 2.2L15.5 12'/></svg>";
     syncBtn.textContent="";
     var ic=document.createElement("span");ic.className="ic";ic.setAttribute("aria-hidden","true");
     ic.innerHTML=logado()?svgNuvem:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/></svg>";
     var rt=document.createElement("span");rt.className="rot";rt.textContent=txt;
     syncBtn.appendChild(ic);syncBtn.appendChild(rt);
-    syncBtn.title=txt;syncBtn.setAttribute("aria-label",txt);syncBtn.classList.add("icone");
+    syncBtn.title=dica;syncBtn.setAttribute("aria-label",dica);syncBtn.classList.add("icone");
   }
   function painel(){
     $("sbConnGrp").hidden=configurado();

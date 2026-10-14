@@ -626,3 +626,32 @@ dialog.caderno[open]{display:block}
   .quadro-caso .hero h1{font-size:clamp(20px,6vw,28px)}
   .quadro-caso .hero .pista{min-width:78px;font-size:14px}
 }
+
+/* barra com rótulos nas telas largas; só ícones no celular */
+@media (min-width:900px){
+  .trail-top .syncbtn.icone{width:auto;height:40px;padding:0 15px 0 11px;gap:8px;border-radius:999px}
+  .trail-top .syncbtn.icone .rot{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;font:600 13px var(--f-body);white-space:nowrap}
+  .trail-top .syncbtn .ic.av{margin-left:-4px}
+  .trail-top .count::before{content:"Progresso "}
+  .trail-top .count::after{content:" fases"}
+  .trail-top .count{font-size:12.5px}
+}
+.trail-top .count{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+
+/* caderno com a cara do jogo: dossiê de detetive em hospital */
+.cad-titulo::before{content:"";display:inline-block;width:.78em;height:.78em;margin-right:.3em;vertical-align:-.05em;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='9' y='2' width='6' height='20' rx='1.5' fill='%23c0392b'/%3E%3Crect x='2' y='9' width='20' height='6' rx='1.5' fill='%23c0392b'/%3E%3C/svg%3E") center/contain no-repeat}
+.cad-titulo::after{height:12px;margin-top:2px;width:min(300px,80%);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='12' viewBox='0 0 120 12'%3E%3Cpath d='M0 7 H34 L40 7 L44 2 L50 11 L55 4 L59 7 H120' fill='none' stroke='%23c0392b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") repeat-x left center/120px 12px}
+.cad-carimbo{flex:none;padding:3px 10px;border:3px solid #b3261e;border-radius:4px;color:#b3261e;font:800 13px var(--f-mono);letter-spacing:.14em;text-transform:uppercase;opacity:.85;transform:rotate(-7deg)}
+.cad-etiqueta{position:absolute;left:46px;bottom:-4px;z-index:3;max-width:60%;padding:5px 12px;background:#f7f3e4;border:1px solid #bdb48f;border-radius:2px;color:#4b4636;font:700 11px var(--f-mono);letter-spacing:.1em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:rotate(-1.5deg);box-shadow:0 3px 5px rgba(0,0,0,.4)}
+.cad-avatar::before{top:-9px;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff9a8a,#c0281c 60%,#7a1209);transform:none;box-shadow:0 3px 4px rgba(0,0,0,.45),inset -2px -2px 4px rgba(0,0,0,.35)}
+.cad-nivel{position:relative}
+.cad-nivel::before{content:"";position:absolute;top:-8px;left:50%;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#a5d0ff,#2b6fd1 60%,#133f85);box-shadow:0 3px 4px rgba(0,0,0,.45),inset -2px -2px 4px rgba(0,0,0,.35)}
+.cad-folha::after{content:"";position:absolute;right:30px;bottom:26px;width:92px;height:92px;border-radius:50%;pointer-events:none;border:5px solid rgba(120,78,40,.16);box-shadow:inset 0 0 0 3px rgba(120,78,40,.08);filter:blur(.4px)}
+.cad-selos{grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:14px}
+.cad-selo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:1;padding:8px;border:3px double #b3261e;border-radius:50%;background:transparent;color:#b3261e;text-align:center;opacity:.55;transform:rotate(var(--r,0deg))}
+.cad-selo.ok{border-color:#1f6b5b;color:#1f6b5b;background:rgba(31,107,91,.07);opacity:1}
+.cad-selo-i{font-size:20px;line-height:1}
+.cad-selo-n{color:inherit;font-size:13px}
+.cad-selo-t{display:none}
+.cad-selo .cad-nota{color:inherit;font-weight:700}
+.cad-stat span{font-family:var(--f-mono);text-transform:uppercase;letter-spacing:.06em;font-size:.68rem}
