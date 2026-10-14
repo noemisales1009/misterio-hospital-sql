@@ -51,7 +51,9 @@ SELECT verificar_solucao('Nome Completo');
 ## Bom saber
 
 - O progresso das fases (os ✅) fica salvo no navegador onde você abriu o guia.
-- **Salvar na nuvem (opcional):** rode o `banco_do_jogo.sql` atualizado, que cria a tabela `progresso`. No guia, clique em **☁ Salvar na nuvem** (barra do topo) e cole a *Project URL* e a chave *anon* (Supabase → Project Settings → API). Assim os ✅ valem em qualquer navegador ou computador. Nunca use a chave `service_role`. Rodar o banco de novo não apaga o progresso.
+- **Salvar na nuvem, com login (opcional):** rode o `banco_do_jogo.sql` atualizado, que cria a tabela `progresso` com regras por usuário. No guia, clique em **☁ Salvar na nuvem**, cole a *Project URL* e a chave *anon*, e depois **crie uma conta** (e-mail e senha) ou entre. Cada pessoa vê e altera só o próprio progresso. Nunca use a chave `service_role`.
+- **Confirmação de e-mail:** por padrão o Supabase pede para confirmar o e-mail antes do primeiro login. Para testar sem isso, desligue em Authentication → Providers → Email → *Confirm email*.
+- **Atualizando de uma versão antiga:** a tabela `progresso` sem login é recriada automaticamente ao rodar o SQL. O progresso de teste anterior é descartado.
 - Para recomeçar o jogo do zero, rode `banco_do_jogo.sql` de novo. Sua tabela `caderno` não é apagada.
 - O guia precisa de internet só para as fontes e os diagramas. Sem internet, ele funciona com letras e diagramas mais simples.
 - Personagens e dados são fictícios. Inspirado no SQL Murder Mystery do Knight Lab.

@@ -116,3 +116,5 @@ dialog.sync input{width:100%;box-sizing:border-box;padding:8px;border:1px solid 
 dialog.sync .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
 dialog.sync .msg{margin-top:10px;font-size:.9rem;color:var(--muted);min-height:1.2em}
 dialog.sync small{color:var(--muted)}
+dialog.sync [hidden]{display:none}
+dialog.sync #sbWho{margin:8px 0;word-break:break-all}
