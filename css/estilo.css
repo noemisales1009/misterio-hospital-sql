@@ -699,13 +699,11 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   .code .btn,.code .btn.pc-leva{position:static}
 }
 @media (max-width:720px){
-  body{font-size:16px}
   .wrap{padding-block:18px 56px;gap:20px}
-  .lead{font-size:17px}
   .trail{padding-block:8px}
-  th,td{padding:8px 10px;font-size:14px}
+  th,td{padding:8px 10px}
   td code{white-space:normal;overflow-wrap:break-word}
-  .code pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;padding:12px}
+  .code pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.6;padding:12px}
 }
 /* telas de toque: alvos maiores e sem zoom automático do iOS ao digitar */
 @media (pointer:coarse){
