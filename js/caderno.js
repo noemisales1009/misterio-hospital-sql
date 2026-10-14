@@ -56,7 +56,7 @@
     document.body.appendChild(f);
     f.click();
   }
-  var ICONES = {sair:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/><path d='M16 17l5-5-5-5'/><path d='M21 12H9'/></svg>",sol:"<svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='12' cy='12' r='4.5'/><path d='M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8'/></svg>",lua:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'/></svg>",caderno:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M5 3h12a2 2 0 0 1 2 2v16H7a2 2 0 0 1-2-2z'/><path d='M5 19a2 2 0 0 1 2-2h12'/><path d='M9 7h6M9 11h4'/></svg>",nuvem:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/></svg>"};
+  var ICONES = {play:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M8 5l11 7-11 7z'/></svg>",sair:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/><path d='M16 17l5-5-5-5'/><path d='M21 12H9'/></svg>",sol:"<svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='12' cy='12' r='4.5'/><path d='M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8'/></svg>",lua:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'/></svg>",caderno:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M5 3h12a2 2 0 0 1 2 2v16H7a2 2 0 0 1-2-2z'/><path d='M5 19a2 2 0 0 1 2-2h12'/><path d='M9 7h6M9 11h4'/></svg>",nuvem:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/></svg>"};
   // botão da barra: ícone desenhado + texto
   function comIcone(btn, nome, texto) {
     btn.textContent = "";
@@ -461,29 +461,45 @@
       card.insertBefore(linha, card.querySelector(".caso-go"));
     });
     var box = el("section", "boas-vindas"); box.id = "cadBoasVindas";
-    var titulo = el("h2");
-    titulo.appendChild(avatarNode(jog.foto, jog.nome));
-    titulo.appendChild(document.createTextNode(" " + (jog.nome ? "Olá, " + jog.nome : "Olá, detetive") + "!"));
-    box.appendChild(titulo);
-    box.appendChild(el("p", null, "Nível " + (r.nivel + 1) + " · " + NIVEIS[r.nivel].nome + " · " + r.feitas + " de " + r.total + " fases concluídas."));
+    var topo = el("div", "bv-topo");
+    var foto = el("div", "bv-foto");
+    foto.appendChild(avatarNode(jog.foto, jog.nome));
+    topo.appendChild(foto);
+    var idb = el("div", "bv-id");
+    idb.appendChild(el("h2", null, jog.nome ? "Olá, " + jog.nome + "!" : "Olá, detetive!"));
+    var linhaNivel = el("div", "bv-nivel");
+    linhaNivel.appendChild(el("span", "bv-pilula", "Nível " + (r.nivel + 1) + " · " + NIVEIS[r.nivel].nome));
+    linhaNivel.appendChild(el("span", "cad-nota", r.feitas + " de " + r.total + " fases concluídas"));
+    idb.appendChild(linhaNivel);
+    idb.appendChild(barra(r.pct));
+    topo.appendChild(idb);
+    box.appendChild(topo);
+
+    var acoes = el("div", "bv-acoes");
     var prox = proximaFase(r.st);
-    var linha2 = el("div", "bv-form");
     if (prox) {
-      var go = el("a", "btn big", "Continuar: Caso " + prox.caso.n + " · " + (prox.fase.titulo || prox.fase.nome));
+      var go = el("a", "bt-primario");
       go.href = prox.caso.arq + "#" + prox.fase.id;
-      linha2.appendChild(go);
+      var ic = el("span", "ic"); ic.setAttribute("aria-hidden", "true"); ic.innerHTML = ICONES.play;
+      var tx = el("span", "bt-texto");
+      tx.appendChild(el("b", null, r.feitas > 0 ? "Continuar de onde parou" : "Começar a investigar"));
+      tx.appendChild(el("small", null, "Caso " + prox.caso.n + " · " + (prox.fase.titulo || prox.fase.nome)));
+      go.appendChild(ic); go.appendChild(tx);
+      acoes.appendChild(go);
     } else {
-      linha2.appendChild(el("p", null, "🏅 Você encerrou todos os casos. Parabéns!"));
+      acoes.appendChild(el("p", "cad-nota", "🏅 Você encerrou todos os casos. Parabéns!"));
     }
-    var cad = el("button", "btn", "Abrir o caderno"); cad.type = "button";
+    var cad = el("button", "bt-secundario"); cad.type = "button";
+    var ic2 = el("span", "ic"); ic2.setAttribute("aria-hidden", "true"); ic2.innerHTML = ICONES.caderno;
+    cad.appendChild(ic2); cad.appendChild(document.createTextNode("Meu caderno"));
     cad.addEventListener("click", function () { abrir("detetive"); });
-    linha2.appendChild(cad);
+    acoes.appendChild(cad);
+    box.appendChild(acoes);
     if (!jog.nome) {
-      var def = el("button", "btn", "Definir meu nome"); def.type = "button";
+      var def = el("button", "bt-link", "Definir meu nome"); def.type = "button";
       def.addEventListener("click", function () { abrirBoasVindas(); });
-      linha2.appendChild(def);
+      box.appendChild(def);
     }
-    box.appendChild(linha2);
     casos.parentNode.insertBefore(box, casos);
   }
 

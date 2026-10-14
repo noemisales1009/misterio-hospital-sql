@@ -430,3 +430,27 @@ dialog.caderno[open]{display:block}
 }
 
 .cad-aba.ativa{color:#2b2a26}
+
+/* cartão de boas-vindas da home */
+.boas-vindas{padding:20px 22px;gap:16px}
+.bv-topo{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.bv-foto{flex:none;width:64px;height:64px;border-radius:50%;overflow:hidden;border:2px solid var(--scrub)}
+.bv-foto .av-ini{font-size:24px}
+.bv-id{flex:1;min-width:220px;display:flex;flex-direction:column;gap:6px}
+.bv-id h2{margin:0;font-family:var(--f-display);font-size:36px;line-height:1;color:var(--ink)}
+.bv-nivel{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bv-pilula{font-size:.8rem;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--scrub-soft);color:var(--scrub)}
+.bv-id .cad-barra{margin:0;max-width:360px}
+.bv-acoes{display:flex;gap:12px;flex-wrap:wrap;align-items:stretch}
+.bt-primario{display:inline-flex;align-items:center;gap:14px;min-height:60px;padding:10px 24px 10px 12px;border:0;border-radius:16px;background:var(--scrub);color:#fff;text-decoration:none;font:inherit;text-align:left;cursor:pointer;box-shadow:0 8px 20px rgba(31,107,91,.35);transition:transform .12s,filter .12s,box-shadow .12s}
+.bt-primario:hover,.bt-primario:focus-visible{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 10px 24px rgba(31,107,91,.45)}
+.bt-primario .ic{flex:none;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center}
+.bt-primario .ic svg{width:18px;height:18px;fill:#fff;margin-left:2px}
+.bt-texto{display:flex;flex-direction:column;gap:1px}
+.bt-texto b{font-size:1.05rem}
+.bt-texto small{opacity:.92;font-size:.88rem}
+.bt-secundario{display:inline-flex;align-items:center;gap:10px;min-height:60px;padding:0 22px;border:1.5px solid var(--line);border-radius:16px;background:transparent;color:var(--ink);font:inherit;font-weight:700;cursor:pointer;transition:border-color .12s,color .12s}
+.bt-secundario:hover,.bt-secundario:focus-visible{border-color:var(--scrub);color:var(--scrub)}
+.bt-secundario .ic svg{width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bt-link{align-self:flex-start;background:none;border:0;padding:2px;color:var(--scrub);font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+@media (max-width:520px){.bt-primario,.bt-secundario{flex:1 1 100%}}
