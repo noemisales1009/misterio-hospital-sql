@@ -655,3 +655,15 @@ dialog.caderno[open]{display:block}
 .cad-selo-t{display:none}
 .cad-selo .cad-nota{color:inherit;font-weight:700}
 .cad-stat span{font-family:var(--f-mono);text-transform:uppercase;letter-spacing:.06em;font-size:.68rem}
+
+/* barra limpa: texto só em "Todos os casos" e no caderno; o resto vira ícone com dica */
+@media (min-width:900px){
+  .trail-top #btnTema,.trail-top #btnNuvem,.trail-top #btnSair{width:40px;padding:0;gap:0;justify-content:center;border-radius:50%}
+  .trail-top #btnTema .rot,.trail-top #btnNuvem .rot,.trail-top #btnSair .rot{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .trail-top .count::before{content:""}
+}
+.trail-top{flex-wrap:nowrap}
+.trail-top #btnCasos{flex:none}
+.trail-top .count{margin-left:auto}
+.trail-top #btnCaderno{margin-left:0}
+@media (max-width:520px){.trail-top .count::after{content:""}}

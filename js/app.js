@@ -60,7 +60,7 @@
     voltar.className="syncbtn";voltar.id="btnCasos";voltar.href="index.html";
     voltar.className="syncbtn icone";
     voltar.title="Todos os casos";voltar.setAttribute("aria-label","Todos os casos");
-    voltar.innerHTML="<span class='ic' aria-hidden='true'><svg viewBox='0 0 24 24' aria-hidden='true'><path d='M3 11l9-8 9 8'/><path d='M5 10v10h5v-6h4v6h5V10'/></svg></span><span class='rot'>Casos</span>";
+    voltar.innerHTML="<span class='ic' aria-hidden='true'><svg viewBox='0 0 24 24' aria-hidden='true'><path d='M3 11l9-8 9 8'/><path d='M5 10v10h5v-6h4v6h5V10'/></svg></span><span class='rot'>Todos os casos</span>";
     topBox.appendChild(voltar);
   }
   var chips=fases.map(function(sec){

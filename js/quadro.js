@@ -140,6 +140,9 @@
     q.classList.add("quadro-caso");
     hero.parentNode.insertBefore(q, hero);
     q.appendChild(hero);
+    // a barra com "Todos os casos", progresso e conta fica acima do quadro, sempre à mão
+    var barra = document.querySelector("nav.trail");
+    if (barra && barra.parentNode) barra.parentNode.insertBefore(barra, q);
 
     var pinoDossie = pino(0);
     dossie.appendChild(pinoDossie);
