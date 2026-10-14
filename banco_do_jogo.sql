@@ -4323,6 +4323,53 @@ CREATE POLICY "atualiza o proprio progresso" ON progresso
 REVOKE ALL ON progresso FROM anon;
 GRANT SELECT, INSERT, UPDATE ON progresso TO authenticated;
 
+-- Perfil do jogador (nome e avatar do Caderno do detetive), um por conta
+CREATE TABLE IF NOT EXISTS perfil (
+  user_id        uuid PRIMARY KEY DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  nome           text CHECK (char_length(nome) <= 40),
+  avatar         text CHECK (char_length(avatar) <= 16),
+  atualizado_em  timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE perfil ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "le o proprio perfil" ON perfil;
+DROP POLICY IF EXISTS "grava o proprio perfil" ON perfil;
+DROP POLICY IF EXISTS "atualiza o proprio perfil" ON perfil;
+CREATE POLICY "le o proprio perfil" ON perfil
+  FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid()));
+CREATE POLICY "grava o proprio perfil" ON perfil
+  FOR INSERT TO authenticated WITH CHECK (user_id = (SELECT auth.uid()));
+CREATE POLICY "atualiza o proprio perfil" ON perfil
+  FOR UPDATE TO authenticated USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+REVOKE ALL ON perfil FROM anon;
+GRANT SELECT, INSERT, UPDATE ON perfil TO authenticated;
+-- Foto do jogador (JPEG reduzido, em texto). Ficam só na linha da própria conta.
+ALTER TABLE perfil ADD COLUMN IF NOT EXISTS foto text;
+ALTER TABLE perfil DROP CONSTRAINT IF EXISTS perfil_foto_tamanho;
+ALTER TABLE perfil ADD CONSTRAINT perfil_foto_tamanho CHECK (foto IS NULL OR char_length(foto) <= 150000);
+
+-- Anotações do diário de missões, uma por fase
+CREATE TABLE IF NOT EXISTS anotacao (
+  user_id        uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  fase           text NOT NULL CHECK (char_length(fase) <= 40),
+  texto          text NOT NULL DEFAULT '' CHECK (char_length(texto) <= 4000),
+  atualizado_em  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, fase)
+);
+ALTER TABLE anotacao ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "le as proprias anotacoes" ON anotacao;
+DROP POLICY IF EXISTS "grava as proprias anotacoes" ON anotacao;
+DROP POLICY IF EXISTS "atualiza as proprias anotacoes" ON anotacao;
+CREATE POLICY "le as proprias anotacoes" ON anotacao
+  FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid()));
+CREATE POLICY "grava as proprias anotacoes" ON anotacao
+  FOR INSERT TO authenticated WITH CHECK (user_id = (SELECT auth.uid()));
+CREATE POLICY "atualiza as proprias anotacoes" ON anotacao
+  FOR UPDATE TO authenticated USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+REVOKE ALL ON anotacao FROM anon;
+GRANT SELECT, INSERT, UPDATE ON anotacao TO authenticated;
+
 -- Conferir a resposta:  SELECT verificar_solucao('Nome Completo');
 CREATE FUNCTION verificar_solucao(suspeito text) RETURNS text
 LANGUAGE sql AS $$

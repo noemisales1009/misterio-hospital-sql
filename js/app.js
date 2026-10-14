@@ -52,13 +52,24 @@
   var trail=document.getElementById("trail"), bar=document.getElementById("bar");
   var KEY="misterio-sql-progresso", state={};
   try{state=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}
+  var topBox=document.createElement("div");topBox.className="trail-top";
+  var chipsBox=document.createElement("div");chipsBox.className="trail-chips";
+  if(trail){trail.appendChild(topBox);trail.appendChild(chipsBox)}
+  if(trail&&!document.querySelector(".casos")){
+    var voltar=document.createElement("a");
+    voltar.className="syncbtn";voltar.id="btnCasos";voltar.href="index.html";
+    voltar.className="syncbtn icone";
+    voltar.title="Todos os casos";voltar.setAttribute("aria-label","Todos os casos");
+    voltar.innerHTML="<span class='ic' aria-hidden='true'><svg viewBox='0 0 24 24' aria-hidden='true'><path d='M3 11l9-8 9 8'/><path d='M5 10v10h5v-6h4v6h5V10'/></svg></span><span class='rot'>Todos os casos</span>";
+    topBox.appendChild(voltar);
+  }
   var chips=fases.map(function(sec){
     var a=document.createElement("a");a.className="chip";a.href="#"+sec.id;
     var n={"7":"★","8":"✎","9":"A","10":"B","11":"C","12":"D"}[sec.dataset.fase]||sec.dataset.fase;
     a.innerHTML='<span>'+n+'</span><span>'+sec.dataset.nome+'</span>';
-    trail.appendChild(a);return a;
+    chipsBox.appendChild(a);return a;
   });
-  var cnt=document.createElement("span");cnt.className="count";if(fases.length) trail.appendChild(cnt);
+  var cnt=document.createElement("span");cnt.className="count";if(fases.length) topBox.appendChild(cnt);
   function render(){
     var total=0;
     fases.forEach(function(sec,i){
@@ -86,6 +97,18 @@
     var resto=[];
     for(k=0;k<sec.children.length;k++){ if(sec.children[k]!==head) resto.push(sec.children[k]); }
     resto.forEach(function(el){corpo.appendChild(el)});
+    if(sec.hasAttribute("data-fase")){
+      var nav=document.createElement("div");
+      nav.className="fase-nav";
+      nav.innerHTML='<button type="button" class="btn" data-dir="-1">← Fase anterior</button><button type="button" class="btn" data-dir="1">Próxima fase →</button>';
+      nav.addEventListener("click",function(ev){
+        var b=ev.target.closest("button");
+        if(!b||b.disabled) return;
+        var alvo=fases[fases.indexOf(sec)+parseInt(b.getAttribute("data-dir"),10)];
+        if(alvo) abrirPorId(alvo.id,true);
+      });
+      corpo.appendChild(nav);
+    }
     sec.appendChild(corpo);
     head.classList.add("acordeao-cabeca");
     head.setAttribute("role","button");
@@ -115,6 +138,9 @@
       sec.classList.toggle("bloqueada",trava);
       if(chips[i]) chips[i].classList.toggle("bloqueada",trava);
       if(sec._head) sec._head.setAttribute("aria-disabled",trava?"true":"false");
+      var ant=sec.querySelector('.fase-nav [data-dir="-1"]'),prox=sec.querySelector('.fase-nav [data-dir="1"]');
+      if(ant) ant.disabled=(i===0);
+      if(prox) prox.disabled=(i>=fases.length-1)||!liberada(i+1);
       if(trava&&sec.classList.contains("aberta")) setAberta(sec,false);
       if(atual===-1&&!trava&&!state[sec.id]) atual=i;
     });
@@ -153,6 +179,9 @@
     });
   });
   if(location.hash) abrirPorId(location.hash.slice(1),true);
+  window.addEventListener("hashchange",function(){
+    if(location.hash) abrirPorId(location.hash.slice(1),true);
+  });
   // nuvem: Supabase com login por usuário (opcional; sem configurar, tudo fica só no navegador)
   var CFG_KEY="misterio-sql-supabase", SES_KEY="misterio-sql-sessao", cfg={}, sessao=null;
   try{cfg=JSON.parse(localStorage.getItem(CFG_KEY)||"{}")}catch(e){}
@@ -162,7 +191,7 @@
   cfg=cfg||{};
 
   var syncBtn=document.createElement("button");syncBtn.type="button";syncBtn.className="syncbtn";syncBtn.id="btnNuvem";
-  trail.appendChild(syncBtn);
+  topBox.appendChild(syncBtn);
   function $(id){return document.getElementById(id)}
   var dlg=$("syncDlg"),sbMsg=$("sbMsg"),lgMsg=$("lgMsg"),tela=$("telaLogin");
   var SKIP_KEY="misterio-sql-sem-login";
@@ -174,7 +203,14 @@
 
   function rotulo(){
     syncBtn.dataset.on=logado()?"1":"0";
-    syncBtn.textContent=logado()?"☁ "+(sessao.email||"Conectado"):(configurado()?"☁ Entrar":"☁ Salvar na nuvem");
+    var txt=logado()?(sessao.email||"Conectado"):(configurado()?"Entrar":"Salvar na nuvem");
+    var svgNuvem="<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/><path d='M9 14.5l2.2 2.2L15.5 12'/></svg>";
+    syncBtn.textContent="";
+    var ic=document.createElement("span");ic.className="ic";ic.setAttribute("aria-hidden","true");
+    ic.innerHTML=logado()?svgNuvem:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/></svg>";
+    var rt=document.createElement("span");rt.className="rot";rt.textContent=txt;
+    syncBtn.appendChild(ic);syncBtn.appendChild(rt);
+    syncBtn.title=txt;syncBtn.setAttribute("aria-label",txt);syncBtn.classList.add("icone");
   }
   function painel(){
     $("sbConnGrp").hidden=configurado();
@@ -182,7 +218,14 @@
     $("sbClear").hidden=!configurado()||doBuild;
     $("sbWho").textContent=logado()?"Conectado como "+(sessao.email||"usuário")+". Seu progresso é salvo na nuvem.":"";
   }
-  function aviso(t){sbMsg.textContent=t;lgMsg.textContent=t}
+  function aviso(t){
+    sbMsg.textContent=t;lgMsg.textContent=t;
+    lgMsg.setAttribute("data-tipo",t.indexOf("❌")===0?"erro":(t.indexOf("✅")===0?"ok":"info"));
+  }
+  function ocupado(sim){
+    ["sbLogin","sbSignup","lgNova","lgEsqueci"].forEach(function(id){var b=$(id);if(b) b.disabled=sim});
+    tela.setAttribute("aria-busy",sim?"true":"false");
+  }
   function mostraLogin(){
     aviso("");tela.hidden=false;
     try{$("sbEmail").focus()}catch(e){}
@@ -196,10 +239,12 @@
         email:(r.user&&r.user.email)||(sessao&&sessao.email)||"",
         uid:(r.user&&r.user.id)||(sessao&&sessao.uid)||""};
       try{localStorage.setItem(SES_KEY,JSON.stringify(sessao))}catch(e){}
+      try{document.dispatchEvent(new Event("misterio:sessao"))}catch(e){}
     }
   }
   function limpaSessao(){
     sessao=null;try{localStorage.removeItem(SES_KEY)}catch(e){}
+    try{document.dispatchEvent(new Event("misterio:sessao"))}catch(e){}
   }
   function authReq(path,corpo,token){
     var h={apikey:cfg.key,"Content-Type":"application/json"};
@@ -278,22 +323,86 @@
   function aposAutenticar(r){
     $("sbPass").value="";
     if(r&&r.access_token){
-      guardaSessao(r);rotulo();painel();escondeLogin();sincroniza(true);
+      guardaSessao(r);rotulo();painel();escondeLogin();sincroniza(true);try{document.dispatchEvent(new Event("misterio:login"))}catch(x){}
     }else{
-      aviso("Conta criada. Confirme seu e-mail (veja a caixa de entrada) e depois clique em Entrar.");
+      aviso("✅ Conta criada. Confirme seu e-mail (veja a caixa de entrada) e depois clique em Entrar.");
     }
   }
   $("sbLogin").addEventListener("click",function(){
     var c=credenciais();if(!c) return;
-    aviso("Entrando...");
-    authReq("token?grant_type=password",c).then(aposAutenticar).catch(function(e){aviso("❌ "+msgAuth(e))});
+    ocupado(true);aviso("Entrando...");
+    authReq("token?grant_type=password",c).then(aposAutenticar).catch(function(e){aviso("❌ "+msgAuth(e))}).then(function(){ocupado(false)});
   });
   $("sbSignup").addEventListener("click",function(){
     var c=credenciais();if(!c) return;
-    aviso("Criando conta...");
-    authReq("signup",c).then(aposAutenticar).catch(function(e){aviso("❌ "+msgAuth(e))});
+    ocupado(true);aviso("Criando conta...");
+    authReq("signup",c).then(aposAutenticar).catch(function(e){aviso("❌ "+msgAuth(e))}).then(function(){ocupado(false)});
   });
-  $("sbPass").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();$("sbLogin").click()}});
+  // ---- tela de login: abas, ver senha, esqueci a senha e link recebido por e-mail
+  var modoLogin="entrar";
+  function lgModo(m){
+    modoLogin=m;
+    var ent=(m==="entrar"), cri=(m==="criar"), nov=(m==="nova");
+    $("lgTabEntrar").setAttribute("aria-selected",ent?"true":"false");
+    $("lgTabCriar").setAttribute("aria-selected",cri?"true":"false");
+    $("lgAbas").hidden=nov;
+    $("sbLogin").hidden=!ent;$("sbSignup").hidden=!cri;$("lgNova").hidden=!nov;
+    $("lgEsqueci").hidden=!ent;
+    $("lgCampoEmail").hidden=nov;
+    $("lgRotSenha").firstChild.textContent=nov?"Nova senha ":"Senha ";
+    $("sbPass").setAttribute("autocomplete",ent?"current-password":"new-password");
+    $("lgSubtitulo").textContent=nov?"Escolha uma nova senha":(cri?"Crie sua conta para guardar o progresso":"Entre para continuar de onde parou");
+    aviso("");
+  }
+  $("lgTabEntrar").addEventListener("click",function(){lgModo("entrar")});
+  $("lgTabCriar").addEventListener("click",function(){lgModo("criar")});
+  $("lgVer").addEventListener("click",function(){
+    var p=$("sbPass"),mostrar=p.type==="password";
+    p.type=mostrar?"text":"password";
+    this.setAttribute("aria-label",mostrar?"Ocultar senha":"Mostrar senha");
+    this.setAttribute("aria-pressed",mostrar?"true":"false");
+  });
+  $("sbPass").addEventListener("keydown",function(e){
+    if(e.key!=="Enter") return;
+    e.preventDefault();
+    $(modoLogin==="criar"?"sbSignup":(modoLogin==="nova"?"lgNova":"sbLogin")).click();
+  });
+  $("lgEsqueci").addEventListener("click",function(){
+    var em=$("sbEmail").value.trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){aviso("❌ Digite seu e-mail acima para receber o link.");$("sbEmail").focus();return}
+    ocupado(true);aviso("Enviando...");
+    authReq("recover",{email:em})
+      .then(function(){aviso("✅ Se esse e-mail tiver conta, enviamos um link para criar uma nova senha.")})
+      .catch(function(e){aviso("❌ "+msgAuth(e))})
+      .then(function(){ocupado(false)});
+  });
+  var tokenRecuperacao="";
+  $("lgNova").addEventListener("click",function(){
+    var pw=$("sbPass").value;
+    if(pw.length<8||pw.length>72){aviso("❌ A senha precisa ter de 8 a 72 caracteres.");return}
+    ocupado(true);aviso("Salvando...");
+    fetch(base()+"/auth/v1/user",{method:"PUT",headers:{apikey:cfg.key,Authorization:"Bearer "+tokenRecuperacao,"Content-Type":"application/json"},body:JSON.stringify({password:pw})})
+      .then(function(r){if(!r.ok) throw new Error("falha");return r.json()})
+      .then(function(){$("sbPass").value="";tokenRecuperacao="";lgModo("entrar");aviso("✅ Senha alterada. Entre com a nova senha.")})
+      .catch(function(){aviso("❌ Não foi possível alterar a senha. Peça um novo link.")})
+      .then(function(){ocupado(false)});
+  });
+  (function(){
+    var h=location.hash.replace(/^#/,"");
+    if(h.indexOf("access_token=")===-1||!configurado()) return;
+    var p={};
+    h.split("&").forEach(function(kv){var i=kv.indexOf("=");if(i>0) p[kv.slice(0,i)]=decodeURIComponent(kv.slice(i+1))});
+    try{history.replaceState(null,"",location.pathname+location.search)}catch(e){}
+    if(!p.access_token) return;
+    if(p.type==="recovery"){tokenRecuperacao=p.access_token;mostraLogin();lgModo("nova");return}
+    fetch(base()+"/auth/v1/user",{headers:{apikey:cfg.key,Authorization:"Bearer "+p.access_token}})
+      .then(function(r){return r.ok?r.json():Promise.reject()})
+      .then(function(u){
+        guardaSessao({access_token:p.access_token,refresh_token:p.refresh_token,expires_in:parseInt(p.expires_in||"3600",10),user:u});
+        rotulo();painel();escondeLogin();sincroniza(true);
+        try{document.dispatchEvent(new Event("misterio:login"))}catch(x){}
+      }).catch(function(){});
+  })();
   $("sbLogout").addEventListener("click",function(){
     var tk=sessao&&sessao.access_token;
     if(tk) authReq("logout",{},tk).catch(function(){});
@@ -333,6 +442,15 @@
     if(e.key==="Escape"&&!tela.hidden) $("lgPular").click();
   });
   rotulo();painel();
+  window.MisterioNuvem={
+    logado:logado,
+    api:api,
+    uid:function(){return sessao&&sessao.uid||""},
+    email:function(){return sessao&&sessao.email||""},
+    toast:toast,
+    sair:function(){var b=document.getElementById("sbLogout");if(b) b.click()},
+    abrirLogin:function(){if(configurado()&&!logado()) mostraLogin(); else syncBtn.click()}
+  };
 
   fases.forEach(function(sec){
     sec.querySelector('input[type=checkbox]').addEventListener("change",function(e){

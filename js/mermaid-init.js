@@ -3,7 +3,7 @@
   if (typeof mermaid === "undefined") return;
 
   var escuro = false;
-  try { escuro = window.matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) {}
+  try { escuro = window.MisterioTema ? window.MisterioTema.atual() === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) {}
   try {
     mermaid.initialize({ startOnLoad: false, theme: escuro ? "dark" : "default" });
   } catch (e) { return; }

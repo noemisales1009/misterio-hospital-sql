@@ -4,9 +4,9 @@
   "private": true,
   "description": "Jogo de detetive para aprender SQL com o Supabase (site estatico em HTML, CSS e JavaScript).",
   "scripts": {
-    "build": "node scripts/gerar-config.js",
-    "start": "node scripts/gerar-config.js && serve .",
-    "dev": "node scripts/gerar-config.js && serve ."
+    "build": "node scripts/gerar-catalogo.js && node scripts/gerar-config.js",
+    "start": "node scripts/gerar-catalogo.js && node scripts/gerar-config.js && serve .",
+    "dev": "node scripts/gerar-catalogo.js && node scripts/gerar-config.js && serve ."
   },
   "dependencies": {
     "serve": "14.2.4"
