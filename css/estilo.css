@@ -667,3 +667,21 @@ dialog.caderno[open]{display:block}
 .trail-top .count{margin-left:auto}
 .trail-top #btnCaderno{margin-left:0}
 @media (max-width:520px){.trail-top .count::after{content:""}}
+
+/* caderno: acabamento */
+.cad-folha::after{display:none}
+.cad-pagina{background-image:radial-gradient(circle at calc(100% - 74px) calc(100% - 64px),transparent 0 34px,rgba(120,78,40,.13) 35px 40px,transparent 41px),linear-gradient(to right,transparent 52px,rgba(214,90,90,.5) 52px,rgba(214,90,90,.5) 54px,transparent 54px),repeating-linear-gradient(transparent 0 31px,#cbdde8 31px 32px)}
+.cad-pagina .btn{padding:8px 14px;border:1.5px solid #bdb48f;border-radius:10px;background:rgba(255,253,243,.85);color:#2b2a26;font:700 .85rem var(--f-body);text-decoration:none;transition:border-color .12s,color .12s,background .12s}
+.cad-pagina .btn:hover,.cad-pagina .btn:focus-visible{border-color:#1f6b5b;color:#1f6b5b;background:#fff}
+.cad-pagina .cad-perigo{border-color:#c0392b;color:#c0392b}
+.cad-pagina .cad-perigo:hover,.cad-pagina .cad-perigo:focus-visible{border-color:#c0392b;background:rgba(192,57,43,.08);color:#a52a1f}
+.cad-foto-botoes{gap:10px}
+.cad-conta{margin-top:22px;padding:14px 16px;border:1.5px dashed #bdb48f;border-radius:12px;background:rgba(255,253,243,.82)}
+.cad-conta p{font-size:.92rem;line-height:1.45}
+.cad-selos{margin-top:6px}
+.cad-selo{opacity:.85;border-width:3px}
+.cad-selo-n{font-size:14px;font-weight:800;letter-spacing:.1em}
+.cad-selo .cad-nota{font-size:15px}
+.cad-selo-i{font-size:18px;opacity:.8}
+.cad-selo.ok .cad-selo-i{opacity:1}
+.cad-nivel .cad-nota{font-size:.82rem}
