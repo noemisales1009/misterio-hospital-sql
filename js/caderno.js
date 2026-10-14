@@ -56,7 +56,7 @@
     document.body.appendChild(f);
     f.click();
   }
-  var ICONES = {play:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M8 5l11 7-11 7z'/></svg>",sair:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/><path d='M16 17l5-5-5-5'/><path d='M21 12H9'/></svg>",sol:"<svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='12' cy='12' r='4.5'/><path d='M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8'/></svg>",lua:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'/></svg>",caderno:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M5 3h12a2 2 0 0 1 2 2v16H7a2 2 0 0 1-2-2z'/><path d='M5 19a2 2 0 0 1 2-2h12'/><path d='M9 7h6M9 11h4'/></svg>",nuvem:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/></svg>"};
+  var ICONES = {entrar:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4'/><path d='M10 17l5-5-5-5'/><path d='M15 12H3'/></svg>",play:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M8 5l11 7-11 7z'/></svg>",sair:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'/><path d='M16 17l5-5-5-5'/><path d='M21 12H9'/></svg>",sol:"<svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='12' cy='12' r='4.5'/><path d='M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8L6 18M18 6l1.8-1.8'/></svg>",lua:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'/></svg>",caderno:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M5 3h12a2 2 0 0 1 2 2v16H7a2 2 0 0 1-2-2z'/><path d='M5 19a2 2 0 0 1 2-2h12'/><path d='M9 7h6M9 11h4'/></svg>",nuvem:"<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M18 10h-1.3A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/></svg>"};
   // botão da barra: ícone desenhado + texto
   function comIcone(btn, nome, texto) {
     btn.textContent = "";
@@ -192,8 +192,12 @@
     var escuro = window.MisterioTema && window.MisterioTema.atual() === "dark";
     if (btnTema) comIcone(btnTema, escuro ? "sol" : "lua", escuro ? "Claro" : "Escuro");
   }
+  // um botão só: "Sair" quando há conta ativa, "Entrar" quando não há
   function atualizaSair() {
-    if (btnSair) btnSair.hidden = !nuvem();
+    if (!btnSair) return;
+    btnSair.hidden = false;
+    if (nuvem()) comIcone(btnSair, "sair", "Sair da conta");
+    else comIcone(btnSair, "entrar", "Entrar na conta");
   }
   function criaBotao() {
     var topo = document.querySelector(".trail-top");
@@ -213,11 +217,12 @@
     topo.insertBefore(btnTema, nu || null);
 
     btnSair = el("button", "syncbtn");
-    comIcone(btnSair, "sair", "Sair");
+    comIcone(btnSair, "entrar", "Entrar na conta");
     btnSair.type = "button"; btnSair.id = "btnSair";
-    btnSair.setAttribute("aria-label", "Sair da conta");
     btnSair.addEventListener("click", function () {
-      if (window.MisterioNuvem) window.MisterioNuvem.sair();
+      var n = window.MisterioNuvem;
+      if (!n) return;
+      if (n.logado()) n.sair(); else n.abrirLogin();
     });
     topo.appendChild(btnSair);
     atualizaSair();

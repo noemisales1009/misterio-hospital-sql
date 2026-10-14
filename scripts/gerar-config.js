@@ -47,6 +47,10 @@ if (url || key) {
   cfg = { url, key };
   console.log('config.js gerado com a URL do Supabase e a chave anon.');
 } else {
+  if (fs.existsSync(saida)) {
+    console.log('Sem SUPABASE_URL/SUPABASE_ANON_KEY: mantendo o js/config.js que já existe.');
+    process.exit(0);
+  }
   console.log('Sem SUPABASE_URL/SUPABASE_ANON_KEY: config.js vazio, o guia usa só o navegador.');
 }
 
