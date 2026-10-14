@@ -4,7 +4,8 @@
 (function () {
   "use strict";
 
-  var CDN = "https://cdn.jsdelivr.net/npm/@electric-sql/pglite@0.2.17/dist/index.js";
+  // PGlite guardado em vendor/pglite: o computador funciona sem internet
+  var CDN = new URL("vendor/pglite/index.js", document.baseURI).href;
   var K_CODIGO = "misterio-sql-codigo";
   var K_CONF = "misterio-sql-conferido";
   var MAX_LINHAS = 100;

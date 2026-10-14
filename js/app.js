@@ -477,6 +477,6 @@
   if(logado()) sincroniza(false);
   else if(configurado()){
     var pulou=false;try{pulou=sessionStorage.getItem(SKIP_KEY)==="1"}catch(e){}
-    if(!pulou) mostraLogin();
+    if(!pulou&&navigator.onLine!==false) mostraLogin();
   }
 })();
