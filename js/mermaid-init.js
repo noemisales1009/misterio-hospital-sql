@@ -72,7 +72,11 @@
 
         var dica = document.createElement("div");
         dica.className = "foot zoom-dica";
-        dica.textContent = "Passe o mouse para ampliar. Clique para ver em tela cheia.";
+        var semMouse = false;
+        try { semMouse = window.matchMedia("(hover: none)").matches; } catch (e) {}
+        dica.textContent = semMouse
+          ? "Toque no diagrama para ver em tela cheia."
+          : "Passe o mouse para ampliar. Clique para ver em tela cheia.";
         if (pre.parentNode) pre.parentNode.insertBefore(dica, pre.nextSibling);
       })(pres[i]);
     }

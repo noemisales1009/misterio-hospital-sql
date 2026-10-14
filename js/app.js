@@ -30,7 +30,8 @@
     if(!el) return;
     var r=document.createRange();r.selectNodeContents(el);
     var s=getSelection();s.removeAllRanges();s.addRange(r);
-    toast("Texto selecionado: use Ctrl+C");
+    var toque=false;try{toque=matchMedia("(pointer:coarse)").matches}catch(e){}
+    toast(toque?"Texto selecionado: toque e segure para copiar":"Texto selecionado: use Ctrl+C");
   }
   document.querySelectorAll("pre[data-sql]").forEach(function(pre){
     var raw=pre.textContent;
@@ -69,6 +70,14 @@
     a.innerHTML='<span>'+n+'</span><span>'+sec.dataset.nome+'</span>';
     chipsBox.appendChild(a);return a;
   });
+  // celular e tablet: a fileira de fases desliza de lado; mantém a fase atual à vista
+  var chipVisto=false;
+  function mostraChip(i){
+    var c=chips[i];
+    if(!c||chipsBox.scrollWidth<=chipsBox.clientWidth) return;
+    var calmo=false;try{calmo=matchMedia("(prefers-reduced-motion:reduce)").matches}catch(e){}
+    chipsBox.scrollTo({left:c.offsetLeft-(chipsBox.clientWidth-c.offsetWidth)/2,behavior:calmo?"auto":"smooth"});
+  }
   var cnt=document.createElement("span");cnt.className="count";if(fases.length) topBox.appendChild(cnt);
   function render(){
     var total=0;
@@ -148,6 +157,7 @@
       sec.classList.toggle("atual",i===atual);
       if(chips[i]) chips[i].classList.toggle("atual",i===atual);
     });
+    if(!chipVisto&&atual>-1){chipVisto=true;mostraChip(atual)}
   }
   function setAberta(sec,sim){
     if(!sec._head) return;
@@ -163,6 +173,7 @@
     }
     sec.classList.toggle("aberta",sim);
     sec._head.setAttribute("aria-expanded",sim?"true":"false");
+    if(sim) mostraChip(fases.indexOf(sec));
   }
   function abrirPorId(id,rolar){
     var sec=document.getElementById(id);
