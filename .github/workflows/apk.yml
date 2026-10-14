@@ -63,7 +63,12 @@ jobs:
           --iconBackgroundColor "#1b5a4b" --iconBackgroundColorDark "#0b2e26"
           --splashBackgroundColor "#0f1715" --splashBackgroundColorDark "#0f1715"
 
-      - name: Assinatura e versão
+      - name: Ícones do launcher nos tamanhos do Android
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 scripts/icones-android.py assets android/app/src/main/res ../icons
+
+      - name: Versão
         run: node scripts/configurar-android.js
         env:
           NUMERO: ${{ github.run_number }}
@@ -75,9 +80,16 @@ jobs:
         working-directory: apk/android
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
+      - name: Alinhar e assinar
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          echo "build-tools: $BT"
+          "$BT/zipalign" -f -p 4 android/app/build/outputs/apk/release/app-release-unsigned.apk alinhado.apk
+          "$BT/apksigner" sign --min-sdk-version 23             --ks keystore/misterio-sql.p12 --ks-type PKCS12 --ks-key-alias misterio-sql             --ks-pass pass:misterio-sql --key-pass pass:misterio-sql             --out ../misterio-sql.apk alinhado.apk
+          "$BT/apksigner" verify --verbose --print-certs ../misterio-sql.apk | head -12
+
       - name: Conferir o arquivo
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk ../misterio-sql.apk
           ls -la ../misterio-sql.apk
           unzip -l ../misterio-sql.apk | grep -E "assets/public/(index.html|vendor/pglite/postgres.wasm)" || (echo "faltam arquivos do jogo no APK" && exit 1)
 

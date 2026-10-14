@@ -30,3 +30,9 @@ Sozinho, pelo GitHub (`.github/workflows/apk.yml`). A cada envio para a `main` q
 ## Aviso sobre a chave de assinatura
 
 A chave em `keystore/` está no repositório de propósito, para o APK novo poder atualizar o antigo. Isso serve para instalar direto (sideload). **Para publicar na Play Store** é preciso uma chave privada, que nunca fica no repositório, e a conta de desenvolvedora do Google.
+
+## Ícone e assinatura (importante)
+
+- Os ícones do launcher são gerados por `scripts/icones-android.py` nos tamanhos que o Android espera (camadas de 108 dp por densidade). Foi esse o formato que apareceu direito no celular.
+- O APK é compilado sem assinatura, alinhado com `zipalign` e assinado com `apksigner` (esquemas v1, v2 e v3), igual ao que foi feito à mão no computador.
+- O `versionCode` é 10 + o número da execução, então cada APK novo atualiza o anterior.

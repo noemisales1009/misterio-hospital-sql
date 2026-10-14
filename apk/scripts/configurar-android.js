@@ -1,7 +1,6 @@
-// Depois de "cap add android": define assinatura e versão no build.gradle do app.
-// - Assina com apk/keystore/misterio-sql.p12, a mesma chave em toda compilação.
-//   Assim o APK novo instala por cima do antigo, sem perder o progresso salvo no aparelho.
-// - versionCode sobe a cada compilação (número da execução no GitHub).
+// Depois de "cap add android": define o número da versão no build.gradle do app.
+// O versionCode sobe a cada compilação (10 + número da execução no GitHub), então o APK novo
+// atualiza o antigo. A assinatura é feita depois, com apksigner (veja .github/workflows/apk.yml).
 const fs = require('fs');
 const path = require('path');
 
@@ -12,28 +11,14 @@ if (!fs.existsSync(arq)) {
 }
 let g = fs.readFileSync(arq, 'utf8');
 const numero = parseInt(process.env.NUMERO || '1', 10) || 1;
+const codigo = 10 + numero;
 
 function troca(re, novo, nome) {
   if (!re.test(g)) { console.error(`configurar-android: não achei ${nome} no build.gradle`); process.exit(1); }
   g = g.replace(re, novo);
 }
-
-troca(/versionCode\s+\d+/, `versionCode ${numero}`, 'versionCode');
+troca(/versionCode\s+\d+/, `versionCode ${codigo}`, 'versionCode');
 troca(/versionName\s+"[^"]*"/, `versionName "1.0.${numero}"`, 'versionName');
 
-const assinatura = `
-    signingConfigs {
-        release {
-            storeFile file("../../keystore/misterio-sql.p12")
-            storeType "pkcs12"
-            storePassword "misterio-sql"
-            keyAlias "misterio-sql"
-            keyPassword "misterio-sql"
-        }
-    }
-`;
-troca(/\n(\s*)buildTypes\s*\{/, `${assinatura}\n    buildTypes {`, 'buildTypes');
-troca(/release\s*\{\s*\n(\s*)minifyEnabled/, (m, esp) => m.replace(/minifyEnabled/, `signingConfig signingConfigs.release\n${esp}minifyEnabled`), 'bloco release');
-
 fs.writeFileSync(arq, g, 'utf8');
-console.log(`configurar-android: versão 1.0.${numero}, assinatura configurada`);
+console.log(`configurar-android: versionCode ${codigo}, versionName 1.0.${numero}`);
