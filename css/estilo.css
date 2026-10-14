@@ -530,3 +530,99 @@ dialog.caderno[open]{display:block}
   .pc-dica{display:none}
 }
 @media (prefers-reduced-motion:reduce){.pc[data-estado="ligando"] .pc-led{animation:none}}
+
+/* quadro de detetive: cortiça, alfinetes e barbante */
+.quadro{--ink:#2b2a26;--muted:#6f6a5c;--line:#d8cfb6;--paper:#fbf7e8;--bg:#fffdf3;--scrub:#1f6b5b;--scrub-soft:#e0eee8;--stamp:#c03a28;--clue:#f3d64e;position:relative;margin:26px 0 38px;padding:36px 30px 42px;border:14px solid #6b4423;border-color:#80552f #5b3a1e #482e17 #6b4423;border-radius:16px;background:radial-gradient(circle at 18% 28%,rgba(255,255,255,.10) 0 2px,transparent 3px) 0 0/23px 23px,radial-gradient(circle at 72% 62%,rgba(0,0,0,.15) 0 1.6px,transparent 2.6px) 0 0/17px 17px,radial-gradient(circle at 42% 82%,rgba(0,0,0,.10) 0 2.2px,transparent 3.2px) 0 0/31px 31px,radial-gradient(circle at 60% 15%,rgba(255,235,200,.12) 0 1.4px,transparent 2.4px) 0 0/13px 13px,linear-gradient(135deg,#c89558 0%,#b07d45 55%,#9f6e3a 100%);box-shadow:inset 0 0 55px rgba(60,30,10,.5),0 18px 36px rgba(0,0,0,.5)}
+.quadro-fios{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:4}
+.quadro>*:not(.quadro-fios){position:relative;z-index:2}
+.quadro .hero{display:flex;flex-direction:column;align-items:flex-start;gap:20px;padding:0;margin:0}
+.quadro .hero .tag{display:inline-block;margin:0;padding:5px 12px;border-radius:3px;background:#2b2a26;color:#f3d64e;transform:rotate(-1deg);box-shadow:0 3px 6px rgba(0,0,0,.35)}
+.quadro .hero .tag a{color:#f3d64e}
+.quadro .hero h1{position:relative;display:inline-block;margin:6px 0 0;padding:.12em .4em .08em;border-radius:2px;background:#fbf7e8;color:#1c1a14;font-size:clamp(32px,6.4vw,70px);line-height:1;transform:rotate(-1.2deg);box-shadow:0 10px 18px rgba(0,0,0,.42)}
+.quadro .hero h1 span{color:#1f6b5b}
+.quadro .hero .lead{max-width:640px;margin:0;padding:14px 18px;border-radius:2px;background:#fff3a3;color:#2b2a26;transform:rotate(.7deg);box-shadow:0 8px 14px rgba(0,0,0,.36)}
+.quadro .hero .foot{padding:8px 12px;border-radius:2px;background:#fbf7e8;color:#2b2a26;box-shadow:0 5px 10px rgba(0,0,0,.3)}
+.quadro .hero .foot a{color:#1f6b5b}
+.quadro .case{position:relative;max-width:720px;margin:0;padding:24px 26px 20px;border:0;border-radius:2px;background:#fbf7e8;color:#2b2a26;transform:rotate(-.5deg);box-shadow:0 12px 22px rgba(0,0,0,.44)}
+.quadro .case h2,.quadro .case p{color:#2b2a26}
+.quadro .case mark{padding:0 3px;background:#f3d64e;color:#1c1a14}
+.pino{position:absolute;top:-10px;left:50%;z-index:5;width:20px;height:20px;margin-left:-10px;border-radius:50%;box-shadow:0 4px 5px rgba(0,0,0,.45),inset -3px -3px 5px rgba(0,0,0,.35),inset 3px 3px 5px rgba(255,255,255,.55)}
+.pino-vermelho{background:radial-gradient(circle at 35% 30%,#ff9a8a,#c0281c 60%,#7a1209)}
+.pino-azul{background:radial-gradient(circle at 35% 30%,#a5d0ff,#2b6fd1 60%,#133f85)}
+.pino-amarelo{background:radial-gradient(circle at 35% 30%,#fff0a0,#e0b100 60%,#8a6a00)}
+.pino-verde{background:radial-gradient(circle at 35% 30%,#aef5c0,#2c9b57 60%,#155c30)}
+.quadro .hero h1 .pino{left:30px}
+.quadro .boas-vindas{position:relative;max-width:780px;margin:34px 0 6px;padding:22px 24px;border:0;border-radius:2px;background:#fff3a3;color:#2b2a26;transform:rotate(-.6deg);box-shadow:0 10px 18px rgba(0,0,0,.4)}
+.quadro .casos{position:relative;gap:38px 26px;margin:38px 0 0}
+.quadro .caso-card{position:relative;padding:28px 20px 18px;border:0;border-radius:2px;background:#fbf7e8;color:#2b2a26;box-shadow:0 10px 18px rgba(0,0,0,.42);transform:rotate(var(--giro,0deg));transition:transform .18s,box-shadow .18s}
+.quadro .caso-card:hover,.quadro .caso-card:focus-visible{z-index:3;transform:rotate(0deg) translateY(-5px);box-shadow:0 18px 28px rgba(0,0,0,.5)}
+.quadro .caso-card h2{color:#1c1a14}
+.quadro .caso-card p{color:#524f43}
+.quadro .caso-meta{color:#6f6a5c}
+.quadro .caso-n{color:#b3261e}
+.quadro .caso-go{color:#1f6b5b}
+.quadro .caso-card.resolvido{background:#eaf5ea}
+.carimbo-ok{position:absolute;right:14px;top:34px;padding:2px 10px;border:3px solid #2c9b57;border-radius:4px;color:#2c9b57;font:800 14px var(--f-mono);letter-spacing:.1em;opacity:.92;transform:rotate(12deg)}
+.pistas{display:flex;flex-wrap:wrap;gap:26px 20px;margin:30px 0 4px 6px}
+.pista{position:relative;min-width:120px;max-width:220px;padding:22px 14px 12px;background:#fff3a3;color:#2b2a26;font:700 21px/1.1 var(--f-mao);transform:rotate(var(--giro,0deg));box-shadow:0 8px 14px rgba(0,0,0,.4)}
+.pista:nth-child(even){background:#ffd3cb}
+.pista:nth-child(3n){background:#cdeedd}
+@media (max-width:700px){
+  .quadro{padding:24px 14px 30px;border-width:10px}
+  .quadro .casos{gap:34px}
+  .quadro .hero h1{font-size:clamp(28px,9vw,44px)}
+}
+@media (prefers-reduced-motion:reduce){.quadro .caso-card{transition:none}}
+
+/* barbante por trás do papel: aparece nos vãos e chega aos alfinetes */
+.quadro-fios{z-index:1}
+.quadro .caso-card:hover,.quadro .caso-card:focus-visible{z-index:3}
+
+/* quadro das páginas dos casos: mais compacto (título e dossiê lado a lado) */
+.quadro-caso{margin:14px 0 22px;padding:22px 22px 26px;border-width:10px;border-radius:12px}
+.quadro-caso .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:14px 26px;align-items:start}
+.quadro-caso .hero .tag{grid-column:1;grid-row:1;justify-self:start;font-size:11px;padding:4px 10px}
+.quadro-caso .hero h1{grid-column:1;grid-row:2;justify-self:start;margin:4px 0 0;font-size:clamp(24px,3.3vw,42px);padding:.1em .34em .06em;line-height:1.02}
+.quadro-caso .hero .lead{grid-column:1;grid-row:3;max-width:none;margin:6px 0 0;padding:10px 14px;font-size:.92rem;line-height:1.45}
+.quadro-caso .hero .case{grid-column:2;grid-row:1 / span 3;max-width:none;padding:16px 18px 14px}
+.quadro-caso .hero .case h2{margin:0 0 6px;font-size:1.02rem;line-height:1.25;padding-right:96px}
+.quadro-caso .hero .case p{margin:0 0 6px;font-size:.9rem;line-height:1.5}
+.quadro-caso .hero .case .stamp{font-size:11px;padding:2px 8px;border-width:2px}
+.quadro-caso .hero .pistas{grid-column:1 / -1;grid-row:4;gap:16px 14px;margin:10px 0 0 4px}
+.quadro-caso .hero .pista{min-width:96px;max-width:170px;padding:16px 10px 8px;font-size:17px}
+.quadro-caso .hero .foot{grid-column:1 / -1;font-size:.85rem}
+.quadro-caso .pino{width:16px;height:16px;margin-left:-8px;top:-8px}
+.quadro-caso .hero h1 .pino{left:22px}
+@media (max-width:860px){
+  .quadro-caso{padding:18px 14px 22px;border-width:8px}
+  .quadro-caso .hero{grid-template-columns:1fr;gap:12px}
+  .quadro-caso .hero .tag,.quadro-caso .hero h1,.quadro-caso .hero .lead,.quadro-caso .hero .case,.quadro-caso .hero .pistas{grid-column:1;grid-row:auto}
+  .quadro-caso .hero .case h2{padding-right:0}
+  .quadro-caso .hero .case .stamp{position:static;display:inline-block;margin-bottom:6px}
+  .quadro-caso .hero h1{font-size:clamp(24px,7vw,34px)}
+}
+
+/* faixa compacta: ao entrar no caso o quadro ocupa pouco espaço */
+.quadro-caso{margin:10px 0 16px;padding:16px 18px 18px;border-width:8px}
+.quadro-caso .hero{gap:10px 22px}
+.quadro-caso .hero h1{font-size:clamp(20px,2.6vw,30px);margin:2px 0 0}
+.quadro-caso .hero .tag{font-size:10.5px;padding:3px 9px}
+.quadro-caso .hero .case{grid-row:1 / span 2;padding:12px 16px 10px}
+.quadro-caso .hero .case h2{font-size:.98rem;margin:0}
+.quadro-caso:not(.aberto) .hero .case p,
+.quadro-caso:not(.aberto) .hero .lead,
+.quadro-caso:not(.aberto) .hero .foot{display:none}
+.quadro-caso .hero .lead{grid-row:3}
+.quadro-caso .hero .pistas{grid-row:3;grid-column:1 / -1;margin:6px 0 0 2px;gap:12px 12px}
+.quadro-caso:not(.aberto) .hero .pistas{grid-row:3}
+.quadro-caso .hero .pista{min-width:84px;max-width:150px;padding:13px 9px 6px;font-size:15px}
+.quadro-caso.aberto .hero .lead{grid-row:3;grid-column:1}
+.quadro-caso.aberto .hero .pistas{grid-row:4}
+.quadro-caso.aberto .hero .case{grid-row:1 / span 3}
+.dossie-ler{display:block;margin:8px 0 0;padding:0;border:0;background:none;color:#1f6b5b;font:700 .85rem var(--f-body);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.quadro-caso .pino{width:14px;height:14px;margin-left:-7px;top:-7px}
+@media (max-width:860px){
+  .quadro-caso{padding:14px 12px 16px}
+  .quadro-caso .hero h1{font-size:clamp(20px,6vw,28px)}
+  .quadro-caso .hero .pista{min-width:78px;font-size:14px}
+}
