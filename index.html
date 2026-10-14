@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="css/estilo.css">
 </head>
 <body>
+<nav class="trail" aria-label="Conta"><div class="trail-inner" id="trail"></div></nav>
 <div class="wrap">
 <header class="hero">
   <div class="tag">Jogo de detetive · aprenda SQL no Supabase</div>
@@ -45,5 +46,47 @@
   <p class="foot">Inspirado no <a href="https://mystery.knightlab.com/walkthrough.html" target="_blank" rel="noopener">SQL Murder Mystery</a> do Knight Lab. Personagens e dados são fictícios.</p>
 </section>
 </div>
+<div class="tela-login" id="telaLogin" role="dialog" aria-modal="true" aria-labelledby="lgTitulo" hidden>
+  <div class="tela-card">
+    <div class="tela-sel">🕵️‍♀️</div>
+    <h1 id="lgTitulo">Mistério no Hospital SQL</h1>
+    <p class="tela-sub">Entre para guardar seu progresso e continuar de onde parou, em qualquer computador.</p>
+    <label for="sbEmail">E-mail</label>
+    <input id="sbEmail" type="email" placeholder="voce@exemplo.com" autocomplete="email" inputmode="email">
+    <label for="sbPass">Senha <span class="tela-min">(mínimo 8 caracteres)</span></label>
+    <input id="sbPass" type="password" autocomplete="current-password" maxlength="72">
+    <div class="tela-btns">
+      <button type="button" class="btn tela-primario" id="sbLogin">Entrar</button>
+      <button type="button" class="btn" id="sbSignup">Criar conta</button>
+    </div>
+    <div class="msg" id="lgMsg" role="status" aria-live="polite"></div>
+    <button type="button" class="tela-pular" id="lgPular">Continuar sem entrar</button>
+    <p class="tela-nota">Sem entrar, o progresso fica salvo só neste navegador.</p>
+  </div>
+</div>
+
+<dialog class="sync" id="syncDlg">
+  <h3>☁ Salvar progresso na nuvem</h3>
+  <div id="sbConnGrp">
+    <small>No Supabase: Project Settings → API. Use a <b>Project URL</b> e a chave <b>anon / public</b>. Nunca use a service_role. Rode antes o <code>banco_do_jogo.sql</code> atualizado.</small>
+    <label for="sbUrl">Project URL</label>
+    <input id="sbUrl" type="url" placeholder="https://xxxx.supabase.co" autocomplete="off">
+    <label for="sbKey">Chave anon (public)</label>
+    <input id="sbKey" type="text" placeholder="eyJ..." autocomplete="off">
+    <div class="row"><button type="button" class="btn" id="sbSave">Conectar</button></div>
+  </div>
+  <div id="sbUserGrp">
+    <p id="sbWho"></p>
+    <div class="row"><button type="button" class="btn" id="sbLogout">Sair</button></div>
+  </div>
+  <div class="msg" id="sbMsg" role="status"></div>
+  <div class="row">
+    <button type="button" class="btn" id="sbClear">Trocar projeto</button>
+    <button type="button" class="btn" id="sbClose">Fechar</button>
+  </div>
+</dialog>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

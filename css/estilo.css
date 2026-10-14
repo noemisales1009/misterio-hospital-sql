@@ -161,3 +161,17 @@ dialog.lupa .lupa-corpo{overflow:auto;max-height:calc(94vh - 70px);margin-top:8p
 .caso-meta{font-size:.85rem;color:var(--muted)}
 .caso-go{margin-top:auto;font-weight:700;color:var(--scrub)}
 @media (prefers-reduced-motion:reduce){.caso-card{transition:none}}
+
+/* acordeão: fases fechadas, abrem ao clicar no título */
+.fase{scroll-margin-top:130px}
+.acordeao .fase{gap:0}
+.acordeao .fase-corpo{display:flex;flex-direction:column;gap:16px;padding-top:16px}
+.acordeao .fase:not(.aberta) .fase-corpo{height:0;overflow:hidden;visibility:hidden;padding:0}
+.acordeao .fase:not(.aberta){padding-block:16px}
+.acordeao-cabeca{cursor:pointer;position:relative;padding-right:40px;-webkit-user-select:none;user-select:none}
+.acordeao-cabeca::after{content:"▸";position:absolute;right:6px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:1.3rem;transition:transform .15s}
+.fase.aberta .acordeao-cabeca::after{transform:translateY(-50%) rotate(90deg)}
+.acordeao-cabeca:hover .num{filter:brightness(1.1)}
+.acordeao-cabeca:focus-visible{outline:3px solid var(--clue);outline-offset:4px;border-radius:6px}
+.fase.feita .fase-head .sub::after{content:"  ·  ✓ concluída";color:var(--scrub);font-weight:600}
+@media (prefers-reduced-motion:reduce){.acordeao-cabeca::after{transition:none}}

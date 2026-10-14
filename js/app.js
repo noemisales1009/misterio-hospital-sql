@@ -39,7 +39,8 @@
     b.addEventListener("click",function(){copy(raw,pre)});
     pre.parentNode.appendChild(b);
   });
-  document.getElementById("copyAll").addEventListener("click",function(){
+  var copyAll=document.getElementById("copyAll");
+  if(copyAll) copyAll.addEventListener("click",function(){
     var t=document.getElementById("sqlsrc").textContent;
     try{
       navigator.clipboard.writeText(t).then(function(){toast("Banco copiado! Cole no SQL Editor e clique em Run")},function(){toast("Não deu para copiar aqui. Use o arquivo .sql da conversa")});
@@ -57,16 +58,82 @@
     a.innerHTML='<span>'+n+'</span><span>'+sec.dataset.nome+'</span>';
     trail.appendChild(a);return a;
   });
-  var cnt=document.createElement("span");cnt.className="count";trail.appendChild(cnt);
+  var cnt=document.createElement("span");cnt.className="count";if(fases.length) trail.appendChild(cnt);
   function render(){
     var total=0;
     fases.forEach(function(sec,i){
       var cb=sec.querySelector('input[type=checkbox]');
-      var on=!!state[sec.id];cb.checked=on;chips[i].classList.toggle("done",on);if(on) total++;
+      var on=!!state[sec.id];cb.checked=on;chips[i].classList.toggle("done",on);sec.classList.toggle("feita",on);if(on) total++;
     });
-    bar.style.width=(total/fases.length*100)+"%";
+    if(!fases.length) return;
+    if(bar) bar.style.width=(total/fases.length*100)+"%";
     cnt.textContent=total+"/"+fases.length;
   }
+
+  // acordeão: as fases ficam fechadas; clicar no título abre e fecha
+  document.documentElement.classList.add("acordeao");
+  var secoes=[].slice.call(document.querySelectorAll("section.fase")).filter(function(sec,i){
+    var head=null,k,c;
+    for(k=0;k<sec.children.length;k++){
+      c=sec.children[k];
+      if(c.classList.contains("fase-head")||c.tagName==="H2"){head=c;break}
+    }
+    if(!head) return false;
+    var corpo=document.createElement("div");
+    corpo.className="fase-corpo";
+    corpo.id=(sec.id||("sec"+i))+"-corpo";
+    var resto=[];
+    for(k=0;k<sec.children.length;k++){ if(sec.children[k]!==head) resto.push(sec.children[k]); }
+    resto.forEach(function(el){corpo.appendChild(el)});
+    sec.appendChild(corpo);
+    head.classList.add("acordeao-cabeca");
+    head.setAttribute("role","button");
+    head.setAttribute("tabindex","0");
+    head.setAttribute("aria-controls",corpo.id);
+    head.setAttribute("aria-expanded","false");
+    sec._head=head;
+    head.addEventListener("click",function(){setAberta(sec,!sec.classList.contains("aberta"))});
+    head.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();setAberta(sec,!sec.classList.contains("aberta"))}
+    });
+    return true;
+  });
+  var todasBtn=null;
+  function atualizaTudo(){
+    if(!todasBtn) return;
+    var n=secoes.filter(function(s){return s.classList.contains("aberta")}).length;
+    todasBtn.textContent=(n===secoes.length)?"Fechar tudo":"Abrir tudo";
+  }
+  function setAberta(sec,sim){
+    if(!sec._head) return;
+    sec.classList.toggle("aberta",sim);
+    sec._head.setAttribute("aria-expanded",sim?"true":"false");
+    atualizaTudo();
+  }
+  function abrirPorId(id,rolar){
+    var sec=document.getElementById(id);
+    if(!sec||!sec._head) return;
+    setAberta(sec,true);
+    if(rolar) setTimeout(function(){sec.scrollIntoView({behavior:"smooth",block:"start"})},40);
+  }
+  if(secoes.length){
+    todasBtn=document.createElement("button");
+    todasBtn.type="button";todasBtn.className="syncbtn";todasBtn.id="btnTodas";
+    todasBtn.addEventListener("click",function(){
+      var abrir=!(secoes.every(function(s){return s.classList.contains("aberta")}));
+      secoes.forEach(function(s){setAberta(s,abrir)});
+    });
+    trail.appendChild(todasBtn);
+    atualizaTudo();
+  }
+  chips.forEach(function(a,i){
+    a.addEventListener("click",function(e){
+      e.preventDefault();
+      abrirPorId(fases[i].id,true);
+      try{history.replaceState(null,"","#"+fases[i].id)}catch(x){}
+    });
+  });
+  if(location.hash) abrirPorId(location.hash.slice(1),true);
   // nuvem: Supabase com login por usuário (opcional; sem configurar, tudo fica só no navegador)
   var CFG_KEY="misterio-sql-supabase", SES_KEY="misterio-sql-sessao", cfg={}, sessao=null;
   try{cfg=JSON.parse(localStorage.getItem(CFG_KEY)||"{}")}catch(e){}
@@ -75,7 +142,7 @@
   if(!(cfg&&cfg.url&&cfg.key)&&doBuild){cfg={url:MC.url,key:MC.key}}
   cfg=cfg||{};
 
-  var syncBtn=document.createElement("button");syncBtn.type="button";syncBtn.className="syncbtn";
+  var syncBtn=document.createElement("button");syncBtn.type="button";syncBtn.className="syncbtn";syncBtn.id="btnNuvem";
   trail.appendChild(syncBtn);
   function $(id){return document.getElementById(id)}
   var dlg=$("syncDlg"),sbMsg=$("sbMsg"),lgMsg=$("lgMsg"),tela=$("telaLogin");
@@ -253,7 +320,7 @@
       state[sec.id]=e.target.checked;
       salvaLocal();
       render();
-      if(e.target.checked){var nx=sec.nextElementSibling; if(nx&&nx.dataset.fase) toast("Boa! Próxima fase liberada");}
+      if(e.target.checked){var nx=sec.nextElementSibling; if(nx&&nx.dataset.fase){toast("Boa! Próxima fase aberta");setAberta(sec,false);abrirPorId(nx.id,true)}}
       empurra([sec.id]).catch(function(){toast("Não foi para a nuvem. Ficou salvo neste navegador")});
     });
   });

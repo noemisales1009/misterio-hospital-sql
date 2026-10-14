@@ -4,6 +4,17 @@
 const fs = require('fs');
 const path = require('path');
 
+// Lê o arquivo .env (se existir) sem sobrescrever variáveis já definidas no ambiente.
+try {
+  const env = fs.readFileSync(path.join(__dirname, '..', '.env'), 'utf8');
+  env.split(String.fromCharCode(10)).forEach((linha) => {
+    const m = linha.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+    if (!m || linha.trim().startsWith('#')) return;
+    const valor = m[2].replace(/^["']|["']$/g, '');
+    if (process.env[m[1]] === undefined) process.env[m[1]] = valor;
+  });
+} catch (e) { /* sem .env: tudo bem */ }
+
 const url = (process.env.SUPABASE_URL || '').trim().replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
 const key = (process.env.SUPABASE_ANON_KEY || '').trim();
 const saida = path.join(__dirname, '..', 'js', 'config.js');
