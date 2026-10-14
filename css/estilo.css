@@ -150,3 +150,14 @@ dialog.lupa .lupa-corpo{overflow:auto;max-height:calc(94vh - 70px);margin-top:8p
 .tela-card .msg{margin-top:12px;min-height:1.3em;font-size:.92rem;color:var(--muted)}
 .tela-pular{display:block;margin:14px auto 0;background:none;border:0;color:var(--scrub);font:inherit;text-decoration:underline;cursor:pointer;padding:6px}
 .tela-nota{margin:4px 0 0;text-align:center;font-size:.82rem;color:var(--muted)}
+
+/* página inicial: escolha do caso */
+.casos{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin:8px 0 20px}
+.caso-card{display:flex;flex-direction:column;gap:8px;padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);text-decoration:none;transition:transform .15s,border-color .15s}
+.caso-card:hover,.caso-card:focus-visible{transform:translateY(-3px);border-color:var(--scrub);outline:none}
+.caso-n{font-family:var(--f-mono);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--stamp)}
+.caso-card h2{font-family:var(--f-display);font-size:30px;line-height:1.05;margin:0}
+.caso-card p{margin:0;color:var(--muted)}
+.caso-meta{font-size:.85rem;color:var(--muted)}
+.caso-go{margin-top:auto;font-weight:700;color:var(--scrub)}
+@media (prefers-reduced-motion:reduce){.caso-card{transition:none}}

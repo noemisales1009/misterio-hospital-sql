@@ -1,0 +1,1464 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Caso 3 · O sumiço da morfina</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+  <div class="tag"><a href="index.html">← Todos os casos</a> · Caso 3 · nível intermediário</div>
+  <h1>Caso 3: o sumiço da <span>morfina</span></h1>
+  <div class="case">
+    <div class="stamp">ALERTA</div>
+    <h2>Farmácia Central · agosto e setembro de 2026</h2>
+    <p>A contagem do cofre de controlados não fechou: <mark>faltam ampolas</mark> de um dos medicamentos. Todo movimento do cofre é registrado com o nome de quem retirou, e toda saída de rotina deveria ter uma <mark>receita</mark> médica atrás.</p>
+    <p>Você vai achar <strong>qual item</strong> está sumindo, <strong>como</strong> a retirada é escondida e <strong>quem</strong> faz isso de madrugada.</p>
+  </div>
+  <p class="lead">Neste caso você já conhece os comandos básicos. Aqui o desafio é <strong>combinar</strong>: somas por grupo, <code>IS NULL</code>, JOIN, <code>CASE</code> e <code>HAVING</code>. Faça uma etapa por vez. Travou? Abra a dica, depois a solução.</p>
+</header>
+<nav class="trail" aria-label="Etapas do caso">
+  <div class="trail-inner" id="trail"></div>
+  <div class="bar"><i id="bar"></i></div>
+</nav>
+<section class="fase" id="c3-f0" data-fase="0" data-nome="Montar">
+  <div class="fase-head"><div class="num">0</div><div class="t"><h2>Montar o caso</h2><div class="sub">Supabase · SQL Editor</div></div></div>
+  <div class="box"><b class="l">Para que serve</b><p>Cada caso tem as <strong>próprias tabelas</strong>, com nomes diferentes. Você pode instalar no mesmo projeto do Supabase onde está o Caso 1: nada se mistura e nada é apagado.</p></div>
+  <ol class="steps">
+    <li>No Supabase, abra o <strong>SQL Editor</strong> e clique em <strong>New query</strong>.</li>
+    <li>Clique no botão abaixo para copiar o banco do caso, cole no editor e clique em <strong>Run</strong>.</li>
+    <li>Deve aparecer: <code>✅ Caso 3 instalado!</code>. Para recomeçar, rode de novo.</li>
+  </ol>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <button class="btn big" id="copyAll" type="button">Copiar banco do Caso 3 (SQL)</button>
+    <span class="foot">São 4 tabelas e uns mil registros. O arquivo <code>caso3.sql</code> também está na pasta do projeto.</span>
+  </div>
+  <div class="mapa">
+    <div class="lbl" style="margin-bottom:8px">Mapa do banco · quem se liga com quem</div>
+<pre class="mermaid">
+erDiagram
+  colaborador { int id PK
+    text nome
+    text funcao
+    text setor }
+  item_controlado { int id PK
+    text nome
+    text unidade }
+  receita { int id PK
+    int medico_id FK
+    int item_id FK
+    text paciente_cod
+    int quantidade
+    int data }
+  movimento_estoque { int id PK
+    int data
+    int hora
+    int item_id FK
+    int colaborador_id FK
+    text tipo
+    int quantidade
+    int receita_id FK
+    text motivo
+    text destino }
+  colaborador ||--o{ receita : "medico_id"
+  item_controlado ||--o{ receita : "item_id"
+  item_controlado ||--o{ movimento_estoque : "item_id"
+  colaborador ||--o{ movimento_estoque : "colaborador_id"
+  receita ||--o{ movimento_estoque : "receita_id"
+</pre>
+  </div>
+  <ul class="list"><li><code>movimento_estoque</code>: cada <code>entrada</code> ou <code>saida</code> do cofre. Em saídas de rotina, <code>receita_id</code> aponta para a receita. Em urgências, ele fica vazio (<code>NULL</code>).</li><li><code>receita</code>: o que o médico prescreveu, com a <code>quantidade</code> autorizada.</li><li>A coluna <code>hora</code> vem como número HHMM. <code>215</code> é 02h15, <code>2230</code> é 22h30.</li></ul>
+  <div class="done-row"><input type="checkbox" id="c3-ok0"><label for="c3-ok0">Instalei o caso no Supabase</label></div>
+</section>
+<section class="fase" id="c3-f1" data-fase="1" data-nome="Balanço">
+  <div class="fase-head"><div class="num">1</div><div class="t"><h2>Qual item não fecha?</h2><div class="sub">SUM · GROUP BY · JOIN</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Tudo que sai do cofre deveria ter sido prescrito. Então, para cada item, o total <strong>retirado</strong> deveria ser parecido com o total <strong>prescrito</strong> nas receitas. Um item vai fugir desse padrão.</p></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Some a <strong>quantidade das saídas</strong> por item (<code>tipo = 'saida'</code>).</li><li>Some a <strong>quantidade prescrita</strong> nas receitas por item.</li><li>Compare e diga <strong>qual item</strong> tem a maior diferença, e de quanto é.</li></ul></div>
+  <details><summary>Dica</summary><div><p>São duas consultas com <code>GROUP BY item_id</code>, uma em <code>movimento_estoque</code> (com <code>WHERE tipo = 'saida'</code>) e outra em <code>receita</code>. Compare os números lado a lado. Desafio extra: juntar as duas num único resultado usando subconsultas no <code>FROM</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT item_id, SUM(quantidade) AS total_saida
+FROM movimento_estoque
+WHERE tipo = 'saida'
+GROUP BY item_id
+ORDER BY item_id;</pre></div>
+    <div class="code"><pre data-sql>SELECT item_id, SUM(quantidade) AS total_prescrito
+FROM receita
+GROUP BY item_id
+ORDER BY item_id;</pre></div>
+    <div class="code"><pre data-sql>-- desafio: tudo numa consulta só
+SELECT i.nome, s.total_saida, r.total_prescrito,
+       s.total_saida - r.total_prescrito AS diferenca
+FROM (SELECT item_id, SUM(quantidade) AS total_saida
+      FROM movimento_estoque WHERE tipo = 'saida'
+      GROUP BY item_id) s
+JOIN (SELECT item_id, SUM(quantidade) AS total_prescrito
+      FROM receita GROUP BY item_id) r ON r.item_id = s.item_id
+JOIN item_controlado i ON i.id = s.item_id
+ORDER BY diferenca DESC;</pre></div>
+    <p>Para conferir: a <strong>Morfina 10 mg/mL</strong> saiu <strong>254</strong> vezes e foi prescrita <strong>207</strong>, uma diferença de <strong>47</strong>. Os outros itens ficam entre 0 e 4.</p></div></details>
+  <div class="done-row"><input type="checkbox" id="c3-ok1"><label for="c3-ok1">Etapa 1 concluída</label></div>
+</section>
+<section class="fase" id="c3-f2" data-fase="2" data-nome="Sem receita">
+  <div class="fase-head"><div class="num">2</div><div class="t"><h2>Saídas sem receita</h2><div class="sub">IS NULL · SUM</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Uma parte da diferença pode ser inocente: em <strong>urgência</strong>, o médico manda retirar antes de prescrever, e a saída fica sem receita. Em SQL, “sem receita” é <code>receita_id IS NULL</code>.</p></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as saídas de <strong>morfina</strong> (<code>item_id = 1</code>) que não têm receita, com o nome de quem retirou e o motivo.</li><li>Some a quantidade. Isso explica os 47? Quanto <strong>sobra</strong>?</li></ul></div>
+  <details><summary>Dica</summary><div><p>Filtre <code>tipo = 'saida'</code>, <code>item_id = 1</code> e <code>receita_id IS NULL</code>. Para ver o nome, faça <code>JOIN colaborador</code> pelo <code>colaborador_id</code>. Nunca use <code>= NULL</code>: o certo é <code>IS NULL</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT m.id, m.data, m.hora, c.nome, m.quantidade, m.motivo
+FROM movimento_estoque m
+JOIN colaborador c ON c.id = m.colaborador_id
+WHERE m.tipo = 'saida'
+  AND m.item_id = 1
+  AND m.receita_id IS NULL;</pre></div>
+    <div class="code"><pre data-sql>SELECT SUM(quantidade) AS total_sem_receita
+FROM movimento_estoque
+WHERE tipo = 'saida' AND item_id = 1 AND receita_id IS NULL;</pre></div>
+    <p>Para conferir: <strong>4</strong> saídas, todas por <em>urgência</em>, somando <strong>9</strong>. Sobram <strong>47 − 9 = 38</strong> sem explicação.</p></div></details>
+  <div class="done-row"><input type="checkbox" id="c3-ok2"><label for="c3-ok2">Etapa 2 concluída</label></div>
+</section>
+<section class="fase" id="c3-f3" data-fase="3" data-nome="A mais">
+  <div class="fase-head"><div class="num">3</div><div class="t"><h2>Retirou mais do que o prescrito</h2><div class="sub">JOIN · comparar colunas · GROUP BY</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Se a saída tem receita, mas a quantidade retirada é <strong>maior</strong> que a prescrita, a diferença some no meio da papelada. É onde estão as 38 ampolas. Agora compare duas colunas de tabelas diferentes: <code>movimento_estoque.quantidade</code> e <code>receita.quantidade</code>.</p></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para a morfina, ache as saídas em que a quantidade retirada é <strong>maior</strong> que a da receita.</li><li>Agrupe por colaborador: quantas ocorrências e quanto <strong>excesso</strong> (retirado − prescrito) cada um acumulou? A soma bate com os 38?</li></ul></div>
+  <details><summary>Dica</summary><div><p><code>JOIN receita r ON r.id = m.receita_id</code> e <code>WHERE m.quantidade &gt; r.quantidade</code>. O excesso é <code>m.quantidade - r.quantidade</code>. Use <code>COUNT(*)</code> e <code>SUM(...)</code> com <code>GROUP BY c.nome</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT c.nome, COUNT(*) AS ocorrencias,
+       SUM(m.quantidade - r.quantidade) AS excesso
+FROM movimento_estoque m
+JOIN receita r      ON r.id = m.receita_id
+JOIN colaborador c  ON c.id = m.colaborador_id
+WHERE m.item_id = 1
+  AND m.quantidade &gt; r.quantidade
+GROUP BY c.nome
+ORDER BY excesso DESC;</pre></div>
+    <p>Para conferir: <strong>4</strong> pessoas. Edson Carvalhaes <strong>9</strong> ocorrências e excesso <strong>28</strong>; Marta Figueiredo 3 e 6; Sônia Lourenço 2 e 2; Lúcia Bittencourt 2 e 2. Total: <strong>38</strong>.</p></div></details>
+  <div class="done-row"><input type="checkbox" id="c3-ok3"><label for="c3-ok3">Etapa 3 concluída</label></div>
+</section>
+<section class="fase" id="c3-f4" data-fase="4" data-nome="Justificativa">
+  <div class="fase-head"><div class="num">4</div><div class="t"><h2>Justificado ou não?</h2><div class="sub">CASE · GROUP BY</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Nem todo excesso é desvio. Quando uma ampola quebra, o profissional registra o motivo <code>quebra de ampola</code> e retira outra. Isso é <strong>justificado</strong>. Qualquer outro motivo com excesso é <strong>sem justificativa</strong>. Use <code>CASE</code> para criar essa etiqueta.</p></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Repita a etapa 3, mas separe também por <strong>situação</strong>: <code>justificado</code> quando o motivo é <code>quebra de ampola</code>, e <code>sem justificativa</code> nos demais casos.</li><li>Quem sobra com excesso sem justificativa, e de quanto?</li></ul></div>
+  <details><summary>Dica</summary><div><p>No <code>SELECT</code>: <code>CASE WHEN m.motivo = 'quebra de ampola' THEN 'justificado' ELSE 'sem justificativa' END AS situacao</code>. Repita <code>c.nome, situacao</code> no <code>GROUP BY</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT c.nome,
+       CASE WHEN m.motivo = 'quebra de ampola' THEN 'justificado'
+            ELSE 'sem justificativa' END AS situacao,
+       SUM(m.quantidade - r.quantidade) AS excesso
+FROM movimento_estoque m
+JOIN receita r      ON r.id = m.receita_id
+JOIN colaborador c  ON c.id = m.colaborador_id
+WHERE m.item_id = 1
+  AND m.quantidade &gt; r.quantidade
+GROUP BY c.nome, situacao
+ORDER BY excesso DESC;</pre></div>
+    <p>Para conferir: sem justificativa ficam <strong>Edson Carvalhaes (28)</strong> e <strong>Lúcia Bittencourt (2)</strong>. Marta Figueiredo e Sônia Lourenço são justificadas.</p></div></details>
+  <div class="done-row"><input type="checkbox" id="c3-ok4"><label for="c3-ok4">Etapa 4 concluída</label></div>
+</section>
+<section class="fase" id="c3-f5" data-fase="5" data-nome="Madrugada">
+  <div class="fase-head"><div class="num">5</div><div class="t"><h2>Só de madrugada</h2><div class="sub">HAVING · COUNT(DISTINCT) · OR</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Restaram duas pessoas. Um erro acontece uma vez ou outra. Um desvio acontece <strong>sempre</strong>, e escondido: de madrugada, quando a farmácia tem menos gente olhando. Madrugada aqui é <code>hora &gt;= 2200</code> ou <code>hora &lt;= 459</code>.</p></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Entre as saídas de morfina com excesso <strong>sem justificativa</strong>, feitas de <strong>madrugada</strong>, conte em quantas <strong>noites diferentes</strong> cada pessoa fez isso.</li><li>Fique só com quem fez em <strong>5 noites ou mais</strong>. Esse é o culpado. Confira com <code>SELECT verificar_caso3('Nome Completo');</code>.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Filtre o motivo com <code>m.motivo &lt;&gt; 'quebra de ampola'</code> e a hora com <code>(m.hora &gt;= 2200 OR m.hora &lt;= 459)</code>. Agrupe por nome e use <code>HAVING COUNT(DISTINCT m.data) &gt;= 5</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT c.nome, COUNT(DISTINCT m.data) AS noites,
+       SUM(m.quantidade - r.quantidade) AS excesso
+FROM movimento_estoque m
+JOIN receita r      ON r.id = m.receita_id
+JOIN colaborador c  ON c.id = m.colaborador_id
+WHERE m.item_id = 1
+  AND m.quantidade &gt; r.quantidade
+  AND m.motivo &lt;&gt; 'quebra de ampola'
+  AND (m.hora &gt;= 2200 OR m.hora &lt;= 459)
+GROUP BY c.nome
+HAVING COUNT(DISTINCT m.data) &gt;= 5;</pre></div>
+    <p>Para conferir: <strong>Edson Carvalhaes</strong>, em <strong>8 noites</strong> e com excesso de <strong>28</strong>. A outra pessoa fez em só 2 noites. É um técnico de farmácia.</p></div></details>
+  <div class="done-row"><input type="checkbox" id="c3-ok5"><label for="c3-ok5">Etapa 5 concluída</label></div>
+</section>
+<section class="fase" id="c3-cola" style="gap:12px">
+  <h2 style="font-size:32px">Cola rápida</h2>
+  <div class="tw"><table>
+    <tr><th>Comando</th><th>Lembrete rápido</th></tr>
+    <tr><td><code>BETWEEN a AND b</code></td><td>faixa de valores, inclusive as pontas</td></tr>
+    <tr><td><code>JOIN … ON … AND …</code></td><td>pode ligar por mais de uma condição</td></tr>
+    <tr><td><code>LEFT JOIN</code> + <code>IS NULL</code></td><td>achar quem não tem par na outra tabela</td></tr>
+    <tr><td><code>CASE WHEN … THEN … ELSE … END</code></td><td>criar uma etiqueta</td></tr>
+    <tr><td><code>GROUP BY</code> + <code>HAVING</code></td><td>agrupar e filtrar os grupos</td></tr>
+    <tr><td><code>COUNT(DISTINCT x)</code></td><td>contar valores diferentes</td></tr>
+  </table></div>
+  <p class="foot"><a href="index.html">← Todos os casos</a> · Personagens e dados são fictícios.</p>
+</section>
+</div>
+<script type="text/plain" id="sqlsrc">-- =====================================================================
+--  MISTÉRIO NO HOSPITAL SQL  ·  CASO 3: O sumiço da morfina
+--  Cole tudo isto no SQL Editor do Supabase e clique em RUN.
+--  Pode rodar de novo quando quiser: recria só as tabelas deste caso.
+--  Não mexe nas tabelas dos Casos 1 e 2.
+-- =====================================================================
+
+DROP FUNCTION IF EXISTS verificar_caso3(text);
+DROP TABLE IF EXISTS movimento_estoque, receita, item_controlado, colaborador CASCADE;
+
+CREATE TABLE colaborador (
+  id      integer PRIMARY KEY,
+  nome    text,
+  funcao  text,
+  setor   text
+);
+
+CREATE TABLE item_controlado (
+  id       integer PRIMARY KEY,
+  nome     text,
+  unidade  text
+);
+
+-- Receitas emitidas pelos médicos
+CREATE TABLE receita (
+  id             integer PRIMARY KEY,
+  medico_id      integer REFERENCES colaborador(id),
+  item_id        integer REFERENCES item_controlado(id),
+  paciente_cod   text,      -- código do paciente (fictício)
+  quantidade     integer,   -- quantidade prescrita
+  data           integer    -- AAAAMMDD
+);
+
+-- Entradas e saídas do cofre da farmácia
+CREATE TABLE movimento_estoque (
+  id              integer PRIMARY KEY,
+  data            integer,   -- AAAAMMDD
+  hora            integer,   -- HHMM, ex: 215 = 02h15
+  item_id         integer REFERENCES item_controlado(id),
+  colaborador_id  integer REFERENCES colaborador(id),  -- quem registrou
+  tipo            text,      -- entrada ou saida
+  quantidade      integer,
+  receita_id      integer REFERENCES receita(id),      -- vazio quando não há receita
+  motivo          text,
+  destino         text
+);
+
+INSERT INTO colaborador (id,nome,funcao,setor) VALUES
+(1,'Edson Carvalhaes','Técnico de Farmácia','Farmácia Central'),
+(2,'Lúcia Bittencourt','Técnico de Farmácia','Farmácia Central'),
+(3,'Fabiana Ornelas','Técnico de Farmácia','Farmácia Central'),
+(4,'Lucas Salgado','Técnico de Farmácia','Farmácia Central'),
+(5,'Renata Ornelas','Técnico de Farmácia','Farmácia Central'),
+(6,'Talita Amaral','Técnico de Farmácia','Farmácia Central'),
+(7,'Karina Bastos','Técnico de Farmácia','Farmácia Central'),
+(8,'Priscila Peixoto','Farmacêutico','Farmácia Central'),
+(9,'Thiago Ferraz','Farmacêutico','Farmácia Central'),
+(10,'Renata Leite','Farmacêutico','Farmácia Central'),
+(11,'Viviane Azevedo','Farmacêutico','Farmácia Central'),
+(12,'Heitor Brandão','Médico','UTI'),
+(13,'Thiago Henriques','Médico','Centro Cirúrgico'),
+(14,'João Amaral','Médico','Emergência'),
+(15,'Isabela Holanda','Médico','Emergência'),
+(16,'Tatiane Almeida','Médico','Centro Cirúrgico'),
+(17,'Thiago Salgado','Médico','Emergência'),
+(18,'Igor Bastos','Médico','UTI'),
+(19,'Sabrina Coelho','Médico','Pronto Atendimento'),
+(20,'Lucas Cardoso','Médico','Pronto Atendimento'),
+(21,'Olívia Nogueira','Médico','UTI'),
+(22,'Bruna Jardim','Médico','Centro Cirúrgico'),
+(23,'Karina Nogueira','Médico','Pronto Atendimento'),
+(24,'Marta Figueiredo','Enfermeiro','UTI'),
+(25,'Gilson Albuquerque','Enfermeiro','UTI'),
+(26,'Paula Nascimento','Enfermeiro','Centro Cirúrgico'),
+(27,'Thiago Coelho','Enfermeiro','Emergência'),
+(28,'João Leite','Enfermeiro','Pronto Atendimento'),
+(29,'Gustavo Queiroz','Enfermeiro','Emergência'),
+(30,'Talita Pacheco','Enfermeiro','Enfermaria'),
+(31,'Sérgio Barbosa','Enfermeiro','UTI'),
+(32,'Caio Ribeiro','Enfermeiro','Enfermaria'),
+(33,'Sérgio Batista','Enfermeiro','Pronto Atendimento'),
+(34,'Felipe Ibrahim','Enfermeiro','Emergência'),
+(35,'Rafael Xavier','Enfermeiro','Pronto Atendimento'),
+(36,'Elisa Vidal','Enfermeiro','Emergência'),
+(37,'Davi Holanda','Enfermeiro','Pronto Atendimento'),
+(38,'Sônia Lourenço','Técnico de Enfermagem','UTI'),
+(39,'Alexandre Ibrahim','Técnico de Enfermagem','UTI'),
+(40,'Caio Henriques','Técnico de Enfermagem','Enfermaria'),
+(41,'Vítor Werneck','Técnico de Enfermagem','Enfermaria'),
+(42,'Marcelo Vidal','Técnico de Enfermagem','Emergência'),
+(43,'Sérgio Lacerda','Técnico de Enfermagem','Emergência'),
+(44,'Rafaela Ferraz','Técnico de Enfermagem','Pronto Atendimento'),
+(45,'Larissa Zanetti','Técnico de Enfermagem','Enfermaria'),
+(46,'Camila Uchoa','Técnico de Enfermagem','Centro Cirúrgico'),
+(47,'Lucas Ornelas','Técnico de Enfermagem','Pronto Atendimento'),
+(48,'Felipe Pacheco','Técnico de Enfermagem','Enfermaria'),
+(49,'Hugo Klein','Técnico de Enfermagem','Centro Cirúrgico'),
+(50,'Leonardo Teixeira','Técnico de Enfermagem','UTI'),
+(51,'Elisa Coelho','Técnico de Enfermagem','Enfermaria'),
+(52,'Heloísa Almeida','Técnico de Enfermagem','Enfermaria');
+
+INSERT INTO item_controlado (id,nome,unidade) VALUES
+(1,'Morfina 10 mg/mL','ampola'),
+(2,'Fentanil 0,05 mg/mL','ampola'),
+(3,'Midazolam 5 mg/mL','ampola'),
+(4,'Cetamina 50 mg/mL','frasco'),
+(5,'Diazepam 10 mg','comprimido'),
+(6,'Metadona 10 mg','comprimido');
+
+INSERT INTO receita (id,medico_id,item_id,paciente_cod,quantidade,data) VALUES
+(1,20,1,'P-5860',1,20260801),
+(2,14,1,'P-6199',3,20260801),
+(3,16,2,'P-6503',3,20260801),
+(4,15,4,'P-6475',3,20260801),
+(5,18,4,'P-9729',3,20260801),
+(6,18,4,'P-7390',1,20260801),
+(7,17,5,'P-3003',4,20260801),
+(8,17,6,'P-9999',4,20260801),
+(9,17,1,'P-7181',2,20260802),
+(10,16,2,'P-3226',3,20260802),
+(11,12,2,'P-2657',2,20260802),
+(12,17,3,'P-1089',4,20260802),
+(13,18,3,'P-6153',4,20260802),
+(14,22,3,'P-2213',3,20260802),
+(15,22,5,'P-4528',2,20260802),
+(16,18,5,'P-7915',3,20260802),
+(17,18,5,'P-6956',4,20260802),
+(18,15,6,'P-9418',2,20260802),
+(19,17,6,'P-5413',1,20260802),
+(20,20,2,'P-4391',2,20260803),
+(21,13,2,'P-2128',3,20260803),
+(22,18,3,'P-2680',3,20260803),
+(23,16,4,'P-4573',4,20260803),
+(24,14,4,'P-5506',3,20260803),
+(25,17,4,'P-7857',1,20260803),
+(26,16,5,'P-2303',3,20260803),
+(27,18,5,'P-9215',2,20260803),
+(28,23,6,'P-7882',3,20260803),
+(29,23,1,'P-3688',2,20260804),
+(30,16,1,'P-1069',2,20260804),
+(31,23,3,'P-3429',3,20260804),
+(32,20,3,'P-8735',3,20260804),
+(33,16,3,'P-6399',1,20260804),
+(34,23,5,'P-9680',1,20260804),
+(35,19,5,'P-5632',1,20260804),
+(36,21,6,'P-6091',1,20260804),
+(37,15,6,'P-8726',2,20260804),
+(38,16,1,'P-6754',2,20260805),
+(39,16,1,'P-8409',3,20260805),
+(40,22,1,'P-3541',2,20260805),
+(41,15,2,'P-3863',2,20260805),
+(42,16,4,'P-5455',2,20260805),
+(43,12,5,'P-9527',1,20260805),
+(44,16,6,'P-1622',3,20260805),
+(45,15,6,'P-6582',2,20260805),
+(46,15,1,'P-8558',2,20260806),
+(47,21,2,'P-8290',2,20260806),
+(48,18,2,'P-9123',3,20260806),
+(49,15,4,'P-4918',3,20260806),
+(50,17,5,'P-7139',2,20260806),
+(51,22,5,'P-7206',1,20260806),
+(52,14,6,'P-2659',4,20260806),
+(53,23,1,'P-5191',2,20260807),
+(54,14,1,'P-7251',3,20260807),
+(55,23,1,'P-4060',1,20260807),
+(56,15,2,'P-2608',2,20260807),
+(57,13,2,'P-6939',2,20260807),
+(58,19,2,'P-3082',1,20260807),
+(59,12,3,'P-9919',3,20260807),
+(60,18,4,'P-5525',1,20260807),
+(61,17,4,'P-8099',4,20260807),
+(62,21,5,'P-7447',2,20260807),
+(63,19,5,'P-1166',2,20260807),
+(64,13,5,'P-1702',1,20260807),
+(65,19,6,'P-4341',2,20260807),
+(66,19,1,'P-7377',2,20260808),
+(67,16,2,'P-4601',3,20260808),
+(68,20,2,'P-1995',4,20260808),
+(69,17,3,'P-6532',1,20260808),
+(70,14,5,'P-8198',4,20260808),
+(71,15,5,'P-5452',2,20260808),
+(72,12,5,'P-1640',2,20260808),
+(73,17,6,'P-3075',1,20260808),
+(74,16,6,'P-1456',1,20260808),
+(75,16,2,'P-8160',2,20260809),
+(76,15,3,'P-5700',2,20260809),
+(77,16,3,'P-6303',2,20260809),
+(78,14,5,'P-2473',3,20260809),
+(79,16,6,'P-8158',3,20260809),
+(80,16,2,'P-1700',3,20260810),
+(81,16,2,'P-2506',1,20260810),
+(82,18,3,'P-8580',1,20260810),
+(83,12,3,'P-1998',2,20260810),
+(84,23,6,'P-7275',1,20260810),
+(85,22,6,'P-8578',1,20260810),
+(86,20,1,'P-7480',3,20260811),
+(87,15,1,'P-2207',2,20260811),
+(88,21,1,'P-8954',1,20260811),
+(89,22,2,'P-3358',4,20260811),
+(90,16,2,'P-2406',2,20260811),
+(91,14,3,'P-6147',3,20260811),
+(92,23,3,'P-9039',3,20260811),
+(93,19,3,'P-1573',1,20260811),
+(94,19,4,'P-2078',3,20260811),
+(95,21,6,'P-3974',1,20260811),
+(96,21,6,'P-6521',4,20260811),
+(97,17,1,'P-9792',1,20260812),
+(98,15,1,'P-2437',3,20260812),
+(99,23,1,'P-9626',2,20260812),
+(100,15,2,'P-6157',2,20260812),
+(101,20,3,'P-6893',2,20260812),
+(102,14,3,'P-9108',3,20260812),
+(103,13,4,'P-5504',2,20260812),
+(104,19,5,'P-9494',4,20260812),
+(105,20,5,'P-1657',1,20260812),
+(106,14,5,'P-8824',3,20260812),
+(107,18,3,'P-8267',1,20260813),
+(108,18,3,'P-1687',4,20260813),
+(109,21,3,'P-2907',2,20260813),
+(110,19,4,'P-1270',3,20260813),
+(111,12,5,'P-2892',1,20260813),
+(112,20,5,'P-8352',1,20260813),
+(113,20,5,'P-4230',4,20260813),
+(114,20,2,'P-9651',4,20260814),
+(115,14,3,'P-8579',2,20260814),
+(116,15,4,'P-1810',4,20260814),
+(117,13,5,'P-9055',1,20260814),
+(118,18,5,'P-7010',1,20260814),
+(119,19,6,'P-1351',1,20260814),
+(120,23,6,'P-6736',4,20260814),
+(121,14,1,'P-6256',2,20260815),
+(122,15,2,'P-2620',1,20260815),
+(123,13,2,'P-7581',2,20260815),
+(124,12,3,'P-9202',3,20260815),
+(125,12,3,'P-8843',4,20260815),
+(126,22,4,'P-7120',3,20260815),
+(127,14,5,'P-4816',2,20260815),
+(128,12,6,'P-2410',1,20260815),
+(129,18,6,'P-9657',1,20260815),
+(130,23,6,'P-3893',2,20260815),
+(131,14,3,'P-9496',3,20260816),
+(132,14,3,'P-9442',1,20260816),
+(133,19,3,'P-7969',1,20260816),
+(134,20,4,'P-7724',4,20260816),
+(135,18,5,'P-8310',3,20260816),
+(136,12,5,'P-1960',2,20260816),
+(137,12,1,'P-5300',3,20260817),
+(138,15,1,'P-9502',1,20260817),
+(139,21,2,'P-4164',2,20260817),
+(140,21,2,'P-3677',3,20260817),
+(141,23,2,'P-3918',3,20260817),
+(142,21,4,'P-8015',1,20260817),
+(143,12,5,'P-5288',1,20260817),
+(144,20,5,'P-1243',1,20260817),
+(145,15,6,'P-1447',3,20260817),
+(146,14,1,'P-2255',3,20260818),
+(147,17,1,'P-3403',2,20260818),
+(148,17,1,'P-4345',3,20260818),
+(149,22,2,'P-8383',3,20260818),
+(150,15,3,'P-6418',3,20260818),
+(151,17,3,'P-2182',3,20260818),
+(152,13,4,'P-6078',3,20260818),
+(153,19,5,'P-4222',4,20260818),
+(154,12,6,'P-3326',3,20260818),
+(155,12,2,'P-1182',4,20260819),
+(156,12,2,'P-2347',2,20260819),
+(157,19,3,'P-9616',3,20260819),
+(158,19,5,'P-8621',1,20260819),
+(159,17,1,'P-8009',2,20260820),
+(160,19,1,'P-6005',1,20260820),
+(161,16,1,'P-6528',2,20260820),
+(162,22,2,'P-8129',2,20260820),
+(163,18,4,'P-1946',4,20260820),
+(164,20,6,'P-8774',3,20260820),
+(165,21,6,'P-3365',2,20260820),
+(166,17,6,'P-8311',1,20260820),
+(167,21,1,'P-2222',2,20260821),
+(168,12,2,'P-7256',3,20260821),
+(169,21,2,'P-1791',3,20260821),
+(170,23,4,'P-6342',1,20260821),
+(171,20,4,'P-7034',4,20260821),
+(172,18,4,'P-6880',1,20260821),
+(173,21,5,'P-7510',4,20260821),
+(174,22,5,'P-3125',1,20260821),
+(175,23,5,'P-2670',2,20260821),
+(176,13,6,'P-7301',2,20260821),
+(177,13,1,'P-1635',1,20260822),
+(178,12,1,'P-7814',3,20260822),
+(179,18,1,'P-3637',2,20260822),
+(180,18,4,'P-5141',4,20260822),
+(181,15,4,'P-2672',1,20260822),
+(182,19,4,'P-2931',3,20260822),
+(183,18,5,'P-3209',3,20260822),
+(184,17,6,'P-8355',1,20260822),
+(185,23,6,'P-8561',1,20260822),
+(186,18,1,'P-9402',1,20260823),
+(187,16,1,'P-9972',3,20260823),
+(188,14,2,'P-7467',3,20260823),
+(189,20,3,'P-6639',2,20260823),
+(190,13,4,'P-7046',2,20260823),
+(191,22,5,'P-3157',1,20260823),
+(192,12,5,'P-6602',1,20260823),
+(193,23,5,'P-5792',2,20260823),
+(194,19,6,'P-4966',4,20260823),
+(195,15,1,'P-3669',1,20260824),
+(196,18,1,'P-8333',3,20260824),
+(197,21,1,'P-8114',1,20260824),
+(198,16,3,'P-6846',3,20260824),
+(199,13,3,'P-6564',4,20260824),
+(200,19,5,'P-6202',2,20260824);
+INSERT INTO receita (id,medico_id,item_id,paciente_cod,quantidade,data) VALUES
+(201,23,6,'P-7760',3,20260824),
+(202,19,6,'P-1079',2,20260824),
+(203,12,1,'P-4591',2,20260825),
+(204,13,2,'P-4082',1,20260825),
+(205,15,3,'P-6240',3,20260825),
+(206,16,4,'P-7097',1,20260825),
+(207,22,6,'P-5381',1,20260825),
+(208,12,1,'P-6243',3,20260826),
+(209,14,1,'P-6478',2,20260826),
+(210,14,2,'P-7774',3,20260826),
+(211,21,2,'P-4301',4,20260826),
+(212,18,2,'P-4213',4,20260826),
+(213,20,3,'P-5077',4,20260826),
+(214,13,4,'P-9692',3,20260826),
+(215,21,5,'P-8569',3,20260826),
+(216,15,6,'P-4079',1,20260826),
+(217,19,1,'P-6202',2,20260827),
+(218,14,1,'P-5814',2,20260827),
+(219,18,1,'P-7122',3,20260827),
+(220,14,2,'P-1922',2,20260827),
+(221,19,3,'P-3486',2,20260827),
+(222,13,3,'P-7132',4,20260827),
+(223,14,3,'P-1011',2,20260827),
+(224,23,4,'P-4663',1,20260827),
+(225,13,5,'P-5488',3,20260827),
+(226,20,6,'P-1955',4,20260827),
+(227,19,6,'P-9850',2,20260827),
+(228,16,6,'P-1595',4,20260827),
+(229,19,1,'P-8047',3,20260828),
+(230,16,1,'P-9471',2,20260828),
+(231,12,1,'P-2214',3,20260828),
+(232,20,2,'P-8518',2,20260828),
+(233,20,2,'P-6627',4,20260828),
+(234,15,5,'P-6031',1,20260828),
+(235,14,6,'P-1357',3,20260828),
+(236,14,6,'P-9932',3,20260828),
+(237,14,1,'P-2760',3,20260829),
+(238,22,3,'P-8644',4,20260829),
+(239,15,4,'P-3125',1,20260829),
+(240,16,4,'P-1027',1,20260829),
+(241,19,6,'P-5406',2,20260829),
+(242,20,6,'P-2028',3,20260829),
+(243,18,3,'P-2360',1,20260830),
+(244,22,3,'P-4846',1,20260830),
+(245,20,3,'P-9554',1,20260830),
+(246,15,4,'P-7706',3,20260830),
+(247,13,4,'P-9125',4,20260830),
+(248,22,5,'P-7303',2,20260830),
+(249,21,5,'P-9487',4,20260830),
+(250,12,6,'P-4361',4,20260830),
+(251,17,2,'P-3199',1,20260831),
+(252,12,3,'P-5495',3,20260831),
+(253,21,4,'P-5558',2,20260831),
+(254,15,5,'P-8912',2,20260831),
+(255,16,6,'P-2797',4,20260831),
+(256,21,6,'P-1470',4,20260831),
+(257,12,6,'P-1351',4,20260831),
+(258,22,1,'P-8571',3,20260901),
+(259,17,1,'P-6072',2,20260901),
+(260,12,3,'P-9969',2,20260901),
+(261,16,4,'P-2152',2,20260901),
+(262,15,5,'P-6931',2,20260901),
+(263,23,6,'P-9458',2,20260901),
+(264,19,1,'P-4893',3,20260902),
+(265,19,1,'P-9861',1,20260902),
+(266,14,2,'P-3122',3,20260902),
+(267,21,3,'P-9021',3,20260902),
+(268,20,3,'P-1631',4,20260902),
+(269,14,3,'P-9994',2,20260902),
+(270,14,4,'P-3779',1,20260902),
+(271,16,5,'P-9907',2,20260902),
+(272,22,6,'P-7261',4,20260902),
+(273,22,1,'P-2658',2,20260903),
+(274,14,2,'P-5147',2,20260903),
+(275,12,3,'P-3736',4,20260903),
+(276,22,3,'P-6040',1,20260903),
+(277,22,3,'P-2371',4,20260903),
+(278,20,4,'P-7798',2,20260903),
+(279,16,4,'P-9399',3,20260903),
+(280,23,5,'P-7643',1,20260903),
+(281,20,5,'P-6037',4,20260903),
+(282,19,5,'P-6156',3,20260903),
+(283,21,6,'P-4461',3,20260903),
+(284,14,1,'P-9814',2,20260904),
+(285,21,2,'P-1062',3,20260904),
+(286,15,3,'P-7290',1,20260904),
+(287,18,3,'P-2317',4,20260904),
+(288,16,4,'P-5331',3,20260904),
+(289,20,5,'P-8841',3,20260904),
+(290,23,6,'P-4763',4,20260904),
+(291,20,6,'P-3400',4,20260904),
+(292,13,6,'P-2568',3,20260904),
+(293,18,1,'P-1931',1,20260905),
+(294,17,2,'P-9624',1,20260905),
+(295,14,3,'P-4066',4,20260905),
+(296,22,3,'P-2325',4,20260905),
+(297,20,4,'P-7422',1,20260905),
+(298,16,4,'P-9119',1,20260905),
+(299,16,5,'P-7587',2,20260905),
+(300,17,6,'P-8867',3,20260905),
+(301,20,1,'P-9164',2,20260906),
+(302,13,2,'P-9546',2,20260906),
+(303,14,3,'P-3755',3,20260906),
+(304,18,3,'P-1217',3,20260906),
+(305,23,4,'P-2707',3,20260906),
+(306,16,4,'P-2753',4,20260906),
+(307,17,4,'P-1629',4,20260906),
+(308,13,5,'P-7615',2,20260906),
+(309,13,6,'P-6509',2,20260906),
+(310,22,6,'P-5789',2,20260906),
+(311,22,6,'P-6646',2,20260906),
+(312,21,3,'P-2883',4,20260907),
+(313,21,3,'P-5776',1,20260907),
+(314,12,3,'P-7736',3,20260907),
+(315,16,4,'P-7285',2,20260907),
+(316,17,5,'P-6136',4,20260907),
+(317,22,5,'P-5735',3,20260907),
+(318,23,1,'P-3475',2,20260908),
+(319,20,3,'P-9896',3,20260908),
+(320,16,4,'P-8372',4,20260908),
+(321,13,4,'P-7635',4,20260908),
+(322,22,5,'P-3636',3,20260908),
+(323,15,5,'P-8293',3,20260908),
+(324,13,1,'P-7196',2,20260909),
+(325,19,1,'P-8691',3,20260909),
+(326,14,1,'P-6974',3,20260909),
+(327,15,2,'P-7941',3,20260909),
+(328,16,2,'P-4840',1,20260909),
+(329,21,3,'P-8784',4,20260909),
+(330,13,4,'P-6977',2,20260909),
+(331,15,5,'P-3605',4,20260909),
+(332,17,5,'P-5774',2,20260909),
+(333,12,1,'P-9101',3,20260910),
+(334,12,2,'P-4299',2,20260910),
+(335,20,2,'P-5365',4,20260910),
+(336,16,2,'P-6132',2,20260910),
+(337,22,3,'P-5845',2,20260910),
+(338,13,4,'P-1249',4,20260910),
+(339,17,5,'P-8836',1,20260910),
+(340,12,5,'P-6111',4,20260910),
+(341,13,6,'P-6674',4,20260910),
+(342,13,6,'P-9135',3,20260910),
+(343,21,1,'P-6724',3,20260911),
+(344,21,2,'P-4806',3,20260911),
+(345,23,2,'P-9107',3,20260911),
+(346,19,2,'P-8858',3,20260911),
+(347,17,3,'P-5366',3,20260911),
+(348,12,4,'P-5312',4,20260911),
+(349,19,5,'P-1896',1,20260911),
+(350,23,6,'P-8186',2,20260911),
+(351,14,6,'P-9957',1,20260911),
+(352,12,6,'P-3132',3,20260911),
+(353,15,1,'P-1360',2,20260912),
+(354,19,1,'P-1893',3,20260912),
+(355,13,1,'P-3536',1,20260912),
+(356,23,2,'P-9731',3,20260912),
+(357,23,3,'P-7532',1,20260912),
+(358,18,3,'P-4311',3,20260912),
+(359,23,4,'P-3046',4,20260912),
+(360,23,4,'P-7250',1,20260912),
+(361,19,5,'P-9797',2,20260912),
+(362,23,6,'P-4486',4,20260912),
+(363,19,6,'P-2185',2,20260912),
+(364,19,1,'P-4559',3,20260913),
+(365,15,1,'P-6858',1,20260913),
+(366,19,1,'P-2646',2,20260913),
+(367,22,2,'P-9068',4,20260913),
+(368,16,3,'P-2643',4,20260913),
+(369,15,3,'P-4037',3,20260913),
+(370,14,4,'P-9245',3,20260913),
+(371,23,5,'P-8785',1,20260913),
+(372,19,6,'P-9015',1,20260913),
+(373,17,6,'P-1999',4,20260913),
+(374,19,6,'P-1379',1,20260913),
+(375,21,1,'P-1487',1,20260914),
+(376,19,2,'P-9012',3,20260914),
+(377,13,3,'P-7113',1,20260914),
+(378,15,5,'P-4904',3,20260914),
+(379,15,5,'P-1111',1,20260914),
+(380,22,5,'P-7884',2,20260914),
+(381,22,1,'P-1942',2,20260915),
+(382,15,2,'P-8419',2,20260915),
+(383,13,3,'P-1754',2,20260915),
+(384,18,4,'P-1238',3,20260915),
+(385,15,5,'P-8820',1,20260915),
+(386,20,5,'P-6270',4,20260915),
+(387,22,6,'P-4055',1,20260915),
+(388,18,6,'P-7446',1,20260915),
+(389,18,1,'P-9522',3,20260916),
+(390,12,2,'P-7162',1,20260916),
+(391,19,3,'P-5598',3,20260916),
+(392,20,3,'P-3172',1,20260916),
+(393,13,3,'P-6085',2,20260916),
+(394,14,4,'P-7912',3,20260916),
+(395,21,5,'P-6840',2,20260916),
+(396,23,6,'P-3836',4,20260916),
+(397,18,2,'P-1870',4,20260917),
+(398,21,2,'P-4486',1,20260917),
+(399,20,2,'P-9982',3,20260917),
+(400,16,5,'P-4723',3,20260917);
+INSERT INTO receita (id,medico_id,item_id,paciente_cod,quantidade,data) VALUES
+(401,14,5,'P-7915',1,20260917),
+(402,20,1,'P-9146',1,20260918),
+(403,19,1,'P-8161',3,20260918),
+(404,19,2,'P-8785',2,20260918),
+(405,22,2,'P-6120',1,20260918),
+(406,12,4,'P-2729',4,20260918),
+(407,14,4,'P-8661',1,20260918),
+(408,15,5,'P-1471',3,20260918),
+(409,13,6,'P-2361',4,20260918),
+(410,20,6,'P-4012',4,20260918),
+(411,16,6,'P-4876',3,20260918),
+(412,22,1,'P-4793',2,20260919),
+(413,22,2,'P-8359',3,20260919),
+(414,17,2,'P-8101',1,20260919),
+(415,20,3,'P-1793',3,20260919),
+(416,18,3,'P-3800',4,20260919),
+(417,15,5,'P-7389',4,20260919),
+(418,22,5,'P-8209',4,20260919),
+(419,19,5,'P-7732',3,20260919),
+(420,15,6,'P-1283',1,20260919),
+(421,19,2,'P-1310',3,20260920),
+(422,22,3,'P-8071',1,20260920),
+(423,20,4,'P-7337',3,20260920),
+(424,21,5,'P-1741',1,20260920),
+(425,16,5,'P-2333',4,20260920),
+(426,12,6,'P-3308',1,20260920),
+(427,20,6,'P-1839',3,20260920),
+(428,19,6,'P-2812',1,20260920),
+(429,18,1,'P-5798',2,20260921),
+(430,12,5,'P-9688',2,20260921),
+(431,12,5,'P-3068',3,20260921),
+(432,13,6,'P-5911',1,20260921),
+(433,17,1,'P-4773',3,20260922),
+(434,17,1,'P-2951',3,20260922),
+(435,21,2,'P-7653',4,20260922),
+(436,18,3,'P-2308',3,20260922),
+(437,23,3,'P-4109',1,20260922),
+(438,15,3,'P-8106',4,20260922),
+(439,21,4,'P-7164',2,20260922),
+(440,22,1,'P-2986',3,20260923),
+(441,23,1,'P-5961',2,20260923),
+(442,18,1,'P-6883',3,20260923),
+(443,13,2,'P-2346',4,20260923),
+(444,20,3,'P-3843',4,20260923),
+(445,21,4,'P-7971',4,20260923),
+(446,14,6,'P-5980',3,20260923),
+(447,12,2,'P-3817',3,20260924),
+(448,14,2,'P-9200',4,20260924),
+(449,16,2,'P-4086',1,20260924),
+(450,14,3,'P-1186',1,20260924),
+(451,17,3,'P-6992',2,20260924),
+(452,23,4,'P-7118',3,20260924),
+(453,18,4,'P-1207',2,20260924),
+(454,17,4,'P-8652',1,20260924),
+(455,18,5,'P-6544',4,20260924),
+(456,18,5,'P-8933',2,20260924),
+(457,22,5,'P-1859',1,20260924),
+(458,23,3,'P-6764',4,20260925),
+(459,23,3,'P-3101',3,20260925),
+(460,13,3,'P-3263',1,20260925),
+(461,15,5,'P-7875',1,20260925),
+(462,17,5,'P-9128',3,20260925),
+(463,18,6,'P-2250',3,20260925),
+(464,14,6,'P-5433',3,20260925),
+(465,13,2,'P-1302',3,20260926),
+(466,21,2,'P-4425',4,20260926),
+(467,18,2,'P-6531',3,20260926),
+(468,19,5,'P-3364',4,20260926),
+(469,20,5,'P-5882',3,20260926),
+(470,18,6,'P-8180',4,20260926),
+(471,15,6,'P-3428',4,20260926),
+(472,13,2,'P-2348',3,20260927),
+(473,18,3,'P-8573',2,20260927),
+(474,13,6,'P-8501',4,20260927),
+(475,23,1,'P-1589',2,20260928),
+(476,12,1,'P-1156',2,20260928),
+(477,19,1,'P-7074',1,20260928),
+(478,13,3,'P-9771',3,20260928),
+(479,16,4,'P-9069',2,20260928),
+(480,16,4,'P-8492',2,20260928),
+(481,18,4,'P-8817',2,20260928),
+(482,12,5,'P-3716',1,20260928),
+(483,23,6,'P-7615',1,20260928),
+(484,15,6,'P-7482',3,20260928),
+(485,19,6,'P-5727',2,20260928),
+(486,13,3,'P-2010',2,20260929),
+(487,23,4,'P-8987',1,20260929),
+(488,17,5,'P-9266',4,20260929),
+(489,21,5,'P-9708',2,20260929),
+(490,17,1,'P-3942',2,20260930),
+(491,21,1,'P-5776',1,20260930),
+(492,21,2,'P-5205',3,20260930),
+(493,14,2,'P-2462',2,20260930),
+(494,22,5,'P-7438',4,20260930),
+(495,18,6,'P-6193',1,20260930),
+(496,16,1,'P-3902',2,20260804),
+(497,19,1,'P-5761',2,20260809),
+(498,20,1,'P-6454',2,20260813),
+(499,14,1,'P-9631',2,20260818),
+(500,12,1,'P-7485',2,20260823),
+(501,12,1,'P-7258',2,20260828),
+(502,15,1,'P-1698',1,20260905),
+(503,23,1,'P-6921',1,20260914),
+(504,13,1,'P-1182',1,20260914),
+(505,12,1,'P-3326',2,20260815),
+(506,14,1,'P-3018',2,20260830),
+(507,21,1,'P-2637',2,20260806),
+(508,18,1,'P-1571',2,20260820),
+(509,16,1,'P-5897',2,20260903),
+(510,20,1,'P-9671',1,20260811),
+(511,20,1,'P-5602',1,20260910);
+
+INSERT INTO movimento_estoque (id,data,hora,item_id,colaborador_id,tipo,quantidade,receita_id,motivo,destino) VALUES
+(1,20260801,726,4,5,'saida',3,5,'prescrição','Centro Cirúrgico'),
+(2,20260801,809,5,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(3,20260801,815,2,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(4,20260801,817,3,8,'entrada',150,NULL,'reposição','Farmácia Central'),
+(5,20260801,856,1,8,'entrada',150,NULL,'reposição','Farmácia Central'),
+(6,20260801,905,4,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(7,20260801,944,5,9,'saida',4,7,'prescrição','Centro Cirúrgico'),
+(8,20260801,959,6,10,'entrada',150,NULL,'reposição','Farmácia Central'),
+(9,20260801,1009,6,1,'saida',4,8,'prescrição','UTI'),
+(10,20260801,1019,4,5,'saida',1,6,'prescrição','Pronto Atendimento'),
+(11,20260801,1346,1,8,'saida',1,1,'prescrição','Pronto Atendimento'),
+(12,20260801,1612,1,5,'saida',3,2,'prescrição','Emergência'),
+(13,20260801,1807,2,8,'saida',3,3,'prescrição','Centro Cirúrgico'),
+(14,20260801,1826,4,9,'saida',3,4,'prescrição','Centro Cirúrgico'),
+(15,20260802,217,3,3,'saida',4,12,'prescrição','UTI'),
+(16,20260802,302,5,7,'saida',3,16,'prescrição','Emergência'),
+(17,20260802,730,3,8,'saida',4,13,'prescrição','Enfermaria'),
+(18,20260802,1031,5,5,'saida',2,15,'prescrição','Pronto Atendimento'),
+(19,20260802,1347,2,11,'saida',3,10,'prescrição','Emergência'),
+(20,20260802,1525,2,8,'saida',2,11,'prescrição','Centro Cirúrgico'),
+(21,20260802,1726,6,10,'saida',1,19,'prescrição','Enfermaria'),
+(22,20260802,1728,5,5,'saida',4,17,'prescrição','Centro Cirúrgico'),
+(23,20260802,1738,3,6,'saida',3,14,'prescrição','Emergência'),
+(24,20260802,1959,1,8,'saida',2,9,'prescrição','UTI'),
+(25,20260802,2232,6,10,'saida',2,18,'prescrição','Centro Cirúrgico'),
+(26,20260803,736,2,7,'saida',2,20,'prescrição','Emergência'),
+(27,20260803,801,4,8,'saida',4,23,'prescrição','Centro Cirúrgico'),
+(28,20260803,954,3,5,'saida',3,22,'prescrição','Emergência'),
+(29,20260803,1006,2,4,'saida',3,21,'prescrição','Centro Cirúrgico'),
+(30,20260803,1006,4,9,'saida',3,24,'prescrição','Enfermaria'),
+(31,20260803,1432,4,2,'saida',1,25,'prescrição','UTI'),
+(32,20260803,1608,6,6,'saida',3,28,'prescrição','UTI'),
+(33,20260803,1635,5,4,'saida',2,27,'prescrição','Centro Cirúrgico'),
+(34,20260803,2107,5,9,'saida',3,26,'prescrição','Enfermaria'),
+(35,20260804,49,6,2,'saida',1,36,'prescrição','UTI'),
+(36,20260804,329,3,4,'saida',3,31,'prescrição','Emergência'),
+(37,20260804,701,3,11,'saida',3,32,'prescrição','Pronto Atendimento'),
+(38,20260804,755,3,10,'saida',1,33,'prescrição','Centro Cirúrgico'),
+(39,20260804,1113,5,11,'saida',1,34,'prescrição','UTI'),
+(40,20260804,1302,1,9,'saida',2,30,'prescrição','Pronto Atendimento'),
+(41,20260804,1812,1,7,'saida',2,29,'prescrição','Pronto Atendimento'),
+(42,20260804,2135,5,3,'saida',1,35,'prescrição','Enfermaria'),
+(43,20260804,2215,1,1,'saida',5,496,'prescrição','UTI'),
+(44,20260804,2350,6,9,'saida',2,37,'prescrição','Centro Cirúrgico'),
+(45,20260805,202,6,4,'saida',3,44,'prescrição','Emergência'),
+(46,20260805,303,1,2,'saida',2,40,'prescrição','Pronto Atendimento'),
+(47,20260805,421,6,11,'saida',2,45,'prescrição','Emergência'),
+(48,20260805,852,1,4,'saida',3,39,'prescrição','Emergência'),
+(49,20260805,1432,2,11,'saida',2,41,'prescrição','Pronto Atendimento'),
+(50,20260805,1846,1,6,'saida',2,38,'prescrição','UTI'),
+(51,20260805,2157,4,6,'saida',2,42,'prescrição','Enfermaria'),
+(52,20260805,2354,5,3,'saida',1,43,'prescrição','Enfermaria'),
+(53,20260806,224,4,6,'saida',3,49,'prescrição','Enfermaria'),
+(54,20260806,854,5,5,'saida',2,50,'prescrição','Pronto Atendimento'),
+(55,20260806,859,1,3,'saida',2,46,'prescrição','Emergência'),
+(56,20260806,1005,2,6,'saida',3,48,'prescrição','UTI'),
+(57,20260806,1020,1,24,'saida',4,507,'quebra de ampola','Centro Cirúrgico'),
+(58,20260806,1123,6,11,'saida',4,52,'prescrição','Centro Cirúrgico'),
+(59,20260806,1454,5,6,'saida',1,51,'prescrição','Emergência'),
+(60,20260806,1549,2,3,'saida',2,47,'prescrição','Centro Cirúrgico'),
+(61,20260807,333,4,8,'saida',1,60,'prescrição','Pronto Atendimento'),
+(62,20260807,345,1,25,'saida',2,NULL,'urgência','Emergência'),
+(63,20260807,708,2,10,'saida',2,57,'prescrição','Enfermaria'),
+(64,20260807,724,2,1,'saida',1,58,'prescrição','Pronto Atendimento'),
+(65,20260807,826,1,4,'saida',2,53,'prescrição','UTI'),
+(66,20260807,849,1,7,'saida',3,54,'prescrição','UTI'),
+(67,20260807,856,1,11,'saida',1,55,'prescrição','Enfermaria'),
+(68,20260807,957,3,3,'saida',3,59,'prescrição','Pronto Atendimento'),
+(69,20260807,1329,5,11,'saida',1,64,'prescrição','UTI'),
+(70,20260807,1400,6,4,'saida',2,65,'prescrição','UTI'),
+(71,20260807,1606,4,10,'saida',4,61,'prescrição','Centro Cirúrgico'),
+(72,20260807,1729,5,9,'saida',2,63,'prescrição','Centro Cirúrgico'),
+(73,20260807,1801,5,2,'saida',2,62,'prescrição','Pronto Atendimento'),
+(74,20260807,2324,2,2,'saida',2,56,'prescrição','Centro Cirúrgico'),
+(75,20260808,800,6,11,'entrada',150,NULL,'reposição','Farmácia Central'),
+(76,20260808,808,2,8,'entrada',150,NULL,'reposição','Farmácia Central'),
+(77,20260808,816,3,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(78,20260808,835,5,8,'entrada',150,NULL,'reposição','Farmácia Central'),
+(79,20260808,851,4,11,'entrada',150,NULL,'reposição','Farmácia Central'),
+(80,20260808,913,6,3,'saida',1,73,'prescrição','Emergência'),
+(81,20260808,931,5,7,'saida',2,71,'prescrição','UTI'),
+(82,20260808,955,6,6,'saida',1,74,'prescrição','UTI'),
+(83,20260808,957,1,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(84,20260808,1037,2,2,'saida',4,68,'prescrição','Centro Cirúrgico'),
+(85,20260808,1045,5,8,'saida',4,70,'prescrição','Emergência'),
+(86,20260808,1204,5,10,'saida',2,72,'prescrição','Centro Cirúrgico'),
+(87,20260808,1449,2,7,'saida',3,67,'prescrição','Emergência'),
+(88,20260808,1701,1,7,'saida',2,66,'prescrição','UTI'),
+(89,20260808,1810,3,3,'saida',1,69,'prescrição','Emergência'),
+(90,20260809,335,2,3,'saida',2,75,'prescrição','Enfermaria'),
+(91,20260809,917,6,11,'saida',3,79,'prescrição','Enfermaria'),
+(92,20260809,1240,3,9,'saida',2,77,'prescrição','Pronto Atendimento'),
+(93,20260809,1403,5,3,'saida',3,78,'prescrição','Centro Cirúrgico'),
+(94,20260809,1828,3,9,'saida',2,76,'prescrição','UTI'),
+(95,20260809,2340,1,1,'saida',6,497,'prescrição','UTI'),
+(96,20260810,208,6,10,'saida',1,85,'prescrição','Pronto Atendimento'),
+(97,20260810,400,3,25,'saida',2,NULL,'urgência','Emergência'),
+(98,20260810,847,6,6,'saida',1,84,'prescrição','UTI'),
+(99,20260810,1038,2,11,'saida',3,80,'prescrição','Pronto Atendimento'),
+(100,20260810,1244,2,9,'saida',1,81,'prescrição','Centro Cirúrgico'),
+(101,20260810,1302,3,9,'saida',2,83,'prescrição','Emergência'),
+(102,20260810,2338,3,5,'saida',1,82,'prescrição','Pronto Atendimento'),
+(103,20260811,738,2,1,'saida',2,90,'prescrição','Enfermaria'),
+(104,20260811,752,6,7,'saida',1,95,'prescrição','Pronto Atendimento'),
+(105,20260811,754,1,9,'saida',3,86,'prescrição','Centro Cirúrgico'),
+(106,20260811,802,3,7,'saida',1,93,'prescrição','Pronto Atendimento'),
+(107,20260811,810,3,3,'saida',3,92,'prescrição','Enfermaria'),
+(108,20260811,952,2,10,'saida',4,89,'prescrição','Centro Cirúrgico'),
+(109,20260811,959,4,10,'saida',3,94,'prescrição','UTI'),
+(110,20260811,1115,1,38,'saida',2,510,'quebra de ampola','Enfermaria'),
+(111,20260811,1148,1,11,'saida',1,88,'prescrição','Emergência'),
+(112,20260811,1516,1,2,'saida',2,87,'prescrição','Pronto Atendimento'),
+(113,20260811,1743,3,6,'saida',3,91,'prescrição','Pronto Atendimento'),
+(114,20260811,2233,6,5,'saida',4,96,'prescrição','Enfermaria'),
+(115,20260812,13,5,1,'saida',1,105,'prescrição','Centro Cirúrgico'),
+(116,20260812,1007,1,9,'saida',3,98,'prescrição','Pronto Atendimento'),
+(117,20260812,1007,3,8,'saida',3,102,'prescrição','Pronto Atendimento'),
+(118,20260812,1012,1,4,'saida',2,99,'prescrição','Pronto Atendimento'),
+(119,20260812,1021,3,1,'saida',2,101,'prescrição','Centro Cirúrgico'),
+(120,20260812,1141,5,11,'saida',3,106,'prescrição','UTI'),
+(121,20260812,1412,2,2,'saida',2,100,'prescrição','UTI'),
+(122,20260812,1415,5,3,'saida',4,104,'prescrição','Pronto Atendimento'),
+(123,20260812,1546,4,10,'saida',2,103,'prescrição','Emergência'),
+(124,20260812,2234,1,1,'saida',1,97,'prescrição','UTI'),
+(125,20260813,30,1,1,'saida',5,498,'prescrição','UTI'),
+(126,20260813,55,5,9,'saida',4,113,'prescrição','Enfermaria'),
+(127,20260813,752,5,9,'saida',1,112,'prescrição','Pronto Atendimento'),
+(128,20260813,946,3,3,'saida',4,108,'prescrição','Pronto Atendimento'),
+(129,20260813,1258,3,3,'saida',1,107,'prescrição','Emergência'),
+(130,20260813,1719,3,1,'saida',2,109,'prescrição','Enfermaria'),
+(131,20260813,1929,5,5,'saida',1,111,'prescrição','UTI'),
+(132,20260813,2118,4,8,'saida',3,110,'prescrição','Emergência'),
+(133,20260814,31,5,2,'saida',1,117,'prescrição','Centro Cirúrgico'),
+(134,20260814,208,4,9,'saida',4,116,'prescrição','Centro Cirúrgico'),
+(135,20260814,328,5,1,'saida',1,118,'prescrição','Pronto Atendimento'),
+(136,20260814,1019,6,3,'saida',1,119,'prescrição','Centro Cirúrgico'),
+(137,20260814,1250,3,4,'saida',2,115,'prescrição','Pronto Atendimento'),
+(138,20260814,1727,2,9,'saida',4,114,'prescrição','Emergência'),
+(139,20260814,1922,6,2,'saida',4,120,'prescrição','Centro Cirúrgico'),
+(140,20260815,1,6,1,'saida',2,130,'prescrição','UTI'),
+(141,20260815,159,4,3,'saida',3,126,'prescrição','Emergência'),
+(142,20260815,808,6,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(143,20260815,825,3,10,'entrada',150,NULL,'reposição','Farmácia Central'),
+(144,20260815,838,2,10,'entrada',150,NULL,'reposição','Farmácia Central'),
+(145,20260815,857,4,8,'entrada',150,NULL,'reposição','Farmácia Central'),
+(146,20260815,903,3,5,'saida',4,125,'prescrição','Enfermaria'),
+(147,20260815,904,6,8,'saida',1,129,'prescrição','Enfermaria'),
+(148,20260815,928,5,8,'entrada',150,NULL,'reposição','Farmácia Central'),
+(149,20260815,942,1,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(150,20260815,1034,1,5,'saida',2,121,'prescrição','Pronto Atendimento'),
+(151,20260815,1346,2,7,'saida',1,122,'prescrição','UTI'),
+(152,20260815,1443,3,7,'saida',3,124,'prescrição','Pronto Atendimento'),
+(153,20260815,1911,2,11,'saida',2,123,'prescrição','Emergência'),
+(154,20260815,1941,5,2,'saida',2,127,'prescrição','UTI'),
+(155,20260815,2230,1,2,'saida',3,505,'prescrição','Emergência'),
+(156,20260815,2328,6,8,'saida',1,128,'prescrição','Centro Cirúrgico'),
+(157,20260816,11,3,6,'saida',3,131,'prescrição','Centro Cirúrgico'),
+(158,20260816,457,5,7,'saida',2,136,'prescrição','Enfermaria'),
+(159,20260816,831,3,4,'saida',1,132,'prescrição','Emergência'),
+(160,20260816,909,3,4,'saida',1,133,'prescrição','Enfermaria'),
+(161,20260816,913,4,6,'saida',4,134,'prescrição','UTI'),
+(162,20260816,1323,5,6,'saida',3,135,'prescrição','Centro Cirúrgico'),
+(163,20260817,704,2,5,'saida',2,139,'prescrição','Centro Cirúrgico'),
+(164,20260817,705,5,1,'saida',1,143,'prescrição','Enfermaria'),
+(165,20260817,800,1,6,'saida',1,138,'prescrição','Emergência'),
+(166,20260817,1052,5,3,'saida',1,144,'prescrição','Centro Cirúrgico'),
+(167,20260817,1112,2,8,'saida',3,141,'prescrição','Emergência'),
+(168,20260817,1954,2,2,'saida',3,140,'prescrição','Emergência'),
+(169,20260817,1959,1,8,'saida',3,137,'prescrição','Pronto Atendimento'),
+(170,20260817,2120,6,4,'saida',3,145,'prescrição','Pronto Atendimento'),
+(171,20260817,2302,4,4,'saida',1,142,'prescrição','UTI'),
+(172,20260818,115,1,1,'saida',5,499,'prescrição','UTI'),
+(173,20260818,835,6,10,'saida',3,154,'prescrição','Centro Cirúrgico'),
+(174,20260818,1118,1,10,'saida',3,146,'prescrição','UTI'),
+(175,20260818,1440,2,6,'saida',3,149,'prescrição','Enfermaria'),
+(176,20260818,1447,1,5,'saida',3,148,'prescrição','Enfermaria'),
+(177,20260818,1525,3,11,'saida',3,151,'prescrição','Pronto Atendimento'),
+(178,20260818,1538,5,11,'saida',4,153,'prescrição','Pronto Atendimento'),
+(179,20260818,1943,4,7,'saida',3,152,'prescrição','Enfermaria'),
+(180,20260818,2108,3,5,'saida',3,150,'prescrição','Pronto Atendimento'),
+(181,20260818,2200,1,2,'saida',2,147,'prescrição','Centro Cirúrgico'),
+(182,20260819,729,2,8,'saida',4,155,'prescrição','Enfermaria'),
+(183,20260819,922,2,6,'saida',2,156,'prescrição','Pronto Atendimento'),
+(184,20260819,1529,3,3,'saida',3,157,'prescrição','Pronto Atendimento'),
+(185,20260819,1639,5,9,'saida',1,158,'prescrição','Centro Cirúrgico'),
+(186,20260820,218,6,1,'saida',1,166,'prescrição','Enfermaria'),
+(187,20260820,407,1,10,'saida',2,161,'prescrição','Enfermaria'),
+(188,20260820,745,1,5,'saida',1,160,'prescrição','Pronto Atendimento'),
+(189,20260820,750,1,10,'saida',2,159,'prescrição','Centro Cirúrgico'),
+(190,20260820,1221,6,3,'saida',2,165,'prescrição','Pronto Atendimento'),
+(191,20260820,1410,1,24,'saida',4,508,'quebra de ampola','Centro Cirúrgico'),
+(192,20260820,1517,6,10,'saida',3,164,'prescrição','Emergência'),
+(193,20260820,1811,2,2,'saida',2,162,'prescrição','Centro Cirúrgico'),
+(194,20260820,1853,4,3,'saida',4,163,'prescrição','Pronto Atendimento'),
+(195,20260821,223,4,10,'saida',1,172,'prescrição','Pronto Atendimento'),
+(196,20260821,246,2,9,'saida',3,169,'prescrição','Centro Cirúrgico'),
+(197,20260821,908,1,7,'saida',2,167,'prescrição','Emergência'),
+(198,20260821,939,5,5,'saida',4,173,'prescrição','UTI'),
+(199,20260821,1108,2,2,'saida',3,168,'prescrição','Enfermaria'),
+(200,20260821,1257,4,8,'saida',4,171,'prescrição','Centro Cirúrgico');
+INSERT INTO movimento_estoque (id,data,hora,item_id,colaborador_id,tipo,quantidade,receita_id,motivo,destino) VALUES
+(201,20260821,1340,6,3,'saida',2,176,'prescrição','Enfermaria'),
+(202,20260821,1452,5,1,'saida',1,174,'prescrição','Pronto Atendimento'),
+(203,20260821,1728,5,4,'saida',2,175,'prescrição','Pronto Atendimento'),
+(204,20260821,1737,4,1,'saida',1,170,'prescrição','UTI'),
+(205,20260822,808,1,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(206,20260822,850,2,10,'entrada',150,NULL,'reposição','Farmácia Central'),
+(207,20260822,853,6,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(208,20260822,912,3,11,'entrada',150,NULL,'reposição','Farmácia Central'),
+(209,20260822,912,4,11,'entrada',150,NULL,'reposição','Farmácia Central'),
+(210,20260822,926,5,8,'entrada',150,NULL,'reposição','Farmácia Central'),
+(211,20260822,955,1,4,'saida',2,179,'prescrição','Centro Cirúrgico'),
+(212,20260822,1213,4,2,'saida',3,182,'prescrição','Emergência'),
+(213,20260822,1403,5,11,'saida',3,183,'prescrição','Emergência'),
+(214,20260822,1432,1,4,'saida',3,178,'prescrição','Enfermaria'),
+(215,20260822,1536,4,9,'saida',4,180,'prescrição','Enfermaria'),
+(216,20260822,1817,4,3,'saida',1,181,'prescrição','UTI'),
+(217,20260822,1850,1,25,'saida',1,NULL,'urgência','Emergência'),
+(218,20260822,1950,6,8,'saida',1,184,'prescrição','Enfermaria'),
+(219,20260822,2103,1,2,'saida',1,177,'prescrição','Enfermaria'),
+(220,20260822,2236,6,1,'saida',1,185,'prescrição','UTI'),
+(221,20260823,224,5,9,'saida',2,193,'prescrição','UTI'),
+(222,20260823,240,1,1,'saida',6,500,'prescrição','UTI'),
+(223,20260823,1117,5,8,'saida',1,192,'prescrição','Emergência'),
+(224,20260823,1158,3,2,'saida',2,189,'prescrição','Emergência'),
+(225,20260823,1209,1,7,'saida',1,186,'prescrição','Centro Cirúrgico'),
+(226,20260823,1217,5,8,'saida',1,191,'prescrição','Enfermaria'),
+(227,20260823,1303,1,8,'saida',3,187,'prescrição','Pronto Atendimento'),
+(228,20260823,1509,6,6,'saida',4,194,'prescrição','Centro Cirúrgico'),
+(229,20260823,2328,4,4,'saida',2,190,'prescrição','Emergência'),
+(230,20260823,2358,2,10,'saida',3,188,'prescrição','Centro Cirúrgico'),
+(231,20260824,810,6,4,'saida',3,201,'prescrição','Centro Cirúrgico'),
+(232,20260824,838,1,4,'saida',1,197,'prescrição','Enfermaria'),
+(233,20260824,1131,6,6,'saida',2,202,'prescrição','Enfermaria'),
+(234,20260824,1254,1,1,'saida',1,195,'prescrição','Centro Cirúrgico'),
+(235,20260824,1255,5,10,'saida',2,200,'prescrição','Centro Cirúrgico'),
+(236,20260824,1330,3,2,'saida',3,198,'prescrição','Enfermaria'),
+(237,20260824,1448,3,7,'saida',4,199,'prescrição','Emergência'),
+(238,20260824,1928,1,2,'saida',3,196,'prescrição','Emergência'),
+(239,20260825,733,4,9,'saida',1,206,'prescrição','UTI'),
+(240,20260825,736,3,8,'saida',3,205,'prescrição','Centro Cirúrgico'),
+(241,20260825,823,6,3,'saida',1,207,'prescrição','Pronto Atendimento'),
+(242,20260825,902,2,1,'saida',1,204,'prescrição','Emergência'),
+(243,20260825,1054,1,2,'saida',2,203,'prescrição','Emergência'),
+(244,20260826,732,5,2,'saida',3,215,'prescrição','Emergência'),
+(245,20260826,750,2,7,'saida',4,212,'prescrição','UTI'),
+(246,20260826,937,4,11,'saida',3,214,'prescrição','Centro Cirúrgico'),
+(247,20260826,1415,2,1,'saida',4,211,'prescrição','Pronto Atendimento'),
+(248,20260826,1538,6,8,'saida',1,216,'prescrição','Enfermaria'),
+(249,20260826,1559,1,1,'saida',2,209,'prescrição','Pronto Atendimento'),
+(250,20260826,1650,3,1,'saida',4,213,'prescrição','UTI'),
+(251,20260826,1841,1,5,'saida',3,208,'prescrição','UTI'),
+(252,20260826,1953,2,3,'saida',3,210,'prescrição','Enfermaria'),
+(253,20260826,2250,3,26,'saida',2,NULL,'urgência','Emergência'),
+(254,20260827,730,3,4,'saida',4,222,'prescrição','Emergência'),
+(255,20260827,800,4,7,'saida',1,224,'prescrição','Enfermaria'),
+(256,20260827,917,1,1,'saida',2,217,'prescrição','Emergência'),
+(257,20260827,1020,3,8,'saida',2,221,'prescrição','Centro Cirúrgico'),
+(258,20260827,1202,3,5,'saida',2,223,'prescrição','Emergência'),
+(259,20260827,1336,6,6,'saida',4,228,'prescrição','Enfermaria'),
+(260,20260827,1713,1,5,'saida',3,219,'prescrição','Enfermaria'),
+(261,20260827,1741,6,6,'saida',4,226,'prescrição','UTI'),
+(262,20260827,1833,2,9,'saida',2,220,'prescrição','Emergência'),
+(263,20260827,2255,5,5,'saida',3,225,'prescrição','Centro Cirúrgico'),
+(264,20260827,2318,1,6,'saida',2,218,'prescrição','Pronto Atendimento'),
+(265,20260827,2321,6,1,'saida',2,227,'prescrição','Pronto Atendimento'),
+(266,20260828,114,2,11,'saida',2,232,'prescrição','Emergência'),
+(267,20260828,330,1,1,'saida',5,501,'prescrição','UTI'),
+(268,20260828,759,2,7,'saida',4,233,'prescrição','Centro Cirúrgico'),
+(269,20260828,1518,1,6,'saida',3,231,'prescrição','Pronto Atendimento'),
+(270,20260828,1724,5,4,'saida',1,234,'prescrição','UTI'),
+(271,20260828,1734,1,1,'saida',3,229,'prescrição','Enfermaria'),
+(272,20260828,1735,1,6,'saida',2,230,'prescrição','Emergência'),
+(273,20260828,1813,6,3,'saida',3,236,'prescrição','Centro Cirúrgico'),
+(274,20260828,2341,6,7,'saida',3,235,'prescrição','UTI'),
+(275,20260829,425,4,6,'saida',1,240,'prescrição','Emergência'),
+(276,20260829,751,3,10,'saida',4,238,'prescrição','Pronto Atendimento'),
+(277,20260829,819,3,11,'entrada',150,NULL,'reposição','Farmácia Central'),
+(278,20260829,830,4,11,'entrada',150,NULL,'reposição','Farmácia Central'),
+(279,20260829,842,6,8,'entrada',150,NULL,'reposição','Farmácia Central'),
+(280,20260829,856,1,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(281,20260829,913,2,10,'entrada',150,NULL,'reposição','Farmácia Central'),
+(282,20260829,935,5,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(283,20260829,937,1,10,'saida',3,237,'prescrição','Emergência'),
+(284,20260829,1320,6,2,'saida',3,242,'prescrição','UTI'),
+(285,20260829,1351,4,9,'saida',1,239,'prescrição','Enfermaria'),
+(286,20260829,2100,6,7,'saida',2,241,'prescrição','Emergência'),
+(287,20260830,310,1,2,'saida',3,506,'prescrição','Emergência'),
+(288,20260830,708,4,4,'saida',3,246,'prescrição','UTI'),
+(289,20260830,1159,3,8,'saida',1,243,'prescrição','Centro Cirúrgico'),
+(290,20260830,1232,6,3,'saida',4,250,'prescrição','Emergência'),
+(291,20260830,1344,4,8,'saida',4,247,'prescrição','Pronto Atendimento'),
+(292,20260830,1518,3,3,'saida',1,244,'prescrição','Enfermaria'),
+(293,20260830,1806,3,9,'saida',1,245,'prescrição','Emergência'),
+(294,20260830,1956,5,11,'saida',4,249,'prescrição','Enfermaria'),
+(295,20260830,2325,5,8,'saida',2,248,'prescrição','Pronto Atendimento'),
+(296,20260831,130,1,12,'saida',3,NULL,'urgência','Emergência'),
+(297,20260831,308,6,5,'saida',4,256,'prescrição','Centro Cirúrgico'),
+(298,20260831,746,6,6,'saida',4,255,'prescrição','UTI'),
+(299,20260831,1002,3,10,'saida',3,252,'prescrição','Centro Cirúrgico'),
+(300,20260831,1034,5,8,'saida',2,254,'prescrição','Enfermaria'),
+(301,20260831,1315,4,11,'saida',2,253,'prescrição','Enfermaria'),
+(302,20260831,1922,2,5,'saida',1,251,'prescrição','Enfermaria'),
+(303,20260831,1936,6,1,'saida',4,257,'prescrição','UTI'),
+(304,20260901,148,4,3,'saida',2,261,'prescrição','Pronto Atendimento'),
+(305,20260901,723,1,7,'saida',2,259,'prescrição','Enfermaria'),
+(306,20260901,901,1,9,'saida',3,258,'prescrição','Enfermaria'),
+(307,20260901,1243,6,8,'saida',2,263,'prescrição','Enfermaria'),
+(308,20260901,1538,5,11,'saida',2,262,'prescrição','Pronto Atendimento'),
+(309,20260901,1609,3,5,'saida',2,260,'prescrição','UTI'),
+(310,20260902,25,3,11,'saida',3,267,'prescrição','Enfermaria'),
+(311,20260902,1153,3,11,'saida',2,269,'prescrição','Emergência'),
+(312,20260902,1415,1,7,'saida',1,265,'prescrição','UTI'),
+(313,20260902,1429,5,6,'saida',2,271,'prescrição','Centro Cirúrgico'),
+(314,20260902,1447,2,9,'saida',3,266,'prescrição','Pronto Atendimento'),
+(315,20260902,1454,3,10,'saida',4,268,'prescrição','Enfermaria'),
+(316,20260902,1612,6,10,'saida',4,272,'prescrição','Emergência'),
+(317,20260902,1906,1,5,'saida',3,264,'prescrição','Enfermaria'),
+(318,20260902,2239,4,7,'saida',1,270,'prescrição','Centro Cirúrgico'),
+(319,20260903,328,2,3,'saida',2,274,'prescrição','Pronto Atendimento'),
+(320,20260903,901,5,11,'saida',3,282,'prescrição','Centro Cirúrgico'),
+(321,20260903,918,4,9,'saida',2,278,'prescrição','Emergência'),
+(322,20260903,930,1,24,'saida',4,509,'quebra de ampola','Centro Cirúrgico'),
+(323,20260903,949,1,2,'saida',2,273,'prescrição','Pronto Atendimento'),
+(324,20260903,1008,5,8,'saida',1,280,'prescrição','Pronto Atendimento'),
+(325,20260903,1327,3,7,'saida',4,275,'prescrição','UTI'),
+(326,20260903,1411,6,11,'saida',3,283,'prescrição','Pronto Atendimento'),
+(327,20260903,1754,5,5,'saida',4,281,'prescrição','Emergência'),
+(328,20260903,1808,3,11,'saida',4,277,'prescrição','Emergência'),
+(329,20260903,1929,3,11,'saida',1,276,'prescrição','Enfermaria'),
+(330,20260903,2139,4,11,'saida',3,279,'prescrição','Centro Cirúrgico'),
+(331,20260904,315,6,10,'saida',3,292,'prescrição','Emergência'),
+(332,20260904,421,4,6,'saida',3,288,'prescrição','Centro Cirúrgico'),
+(333,20260904,452,3,1,'saida',4,287,'prescrição','Centro Cirúrgico'),
+(334,20260904,817,5,3,'saida',3,289,'prescrição','Centro Cirúrgico'),
+(335,20260904,917,6,10,'saida',4,291,'prescrição','UTI'),
+(336,20260904,951,1,5,'saida',2,284,'prescrição','UTI'),
+(337,20260904,1045,6,7,'saida',4,290,'prescrição','Centro Cirúrgico'),
+(338,20260904,1201,3,11,'saida',1,286,'prescrição','Emergência'),
+(339,20260904,1449,2,4,'saida',3,285,'prescrição','Enfermaria'),
+(340,20260905,224,5,6,'saida',2,299,'prescrição','Centro Cirúrgico'),
+(341,20260905,420,1,1,'saida',4,502,'prescrição','UTI'),
+(342,20260905,802,6,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(343,20260905,810,5,11,'entrada',150,NULL,'reposição','Farmácia Central'),
+(344,20260905,834,1,8,'entrada',150,NULL,'reposição','Farmácia Central'),
+(345,20260905,909,2,8,'entrada',150,NULL,'reposição','Farmácia Central'),
+(346,20260905,911,3,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(347,20260905,931,4,8,'entrada',150,NULL,'reposição','Farmácia Central'),
+(348,20260905,1141,6,11,'saida',3,300,'prescrição','Centro Cirúrgico'),
+(349,20260905,1249,4,6,'saida',1,297,'prescrição','Pronto Atendimento'),
+(350,20260905,1251,3,8,'saida',4,295,'prescrição','Pronto Atendimento'),
+(351,20260905,1528,4,3,'saida',1,298,'prescrição','Emergência'),
+(352,20260905,1737,3,2,'saida',4,296,'prescrição','Centro Cirúrgico'),
+(353,20260905,1801,1,9,'saida',1,293,'prescrição','Centro Cirúrgico'),
+(354,20260905,1836,2,6,'saida',1,294,'prescrição','Emergência'),
+(355,20260906,210,4,4,'saida',3,305,'prescrição','Enfermaria'),
+(356,20260906,308,6,2,'saida',2,309,'prescrição','UTI'),
+(357,20260906,313,3,2,'saida',3,304,'prescrição','UTI'),
+(358,20260906,722,1,7,'saida',2,301,'prescrição','UTI'),
+(359,20260906,825,6,5,'saida',2,310,'prescrição','UTI'),
+(360,20260906,1325,6,7,'saida',2,311,'prescrição','Emergência'),
+(361,20260906,1343,2,10,'saida',2,302,'prescrição','Centro Cirúrgico'),
+(362,20260906,1510,3,2,'saida',3,303,'prescrição','Emergência'),
+(363,20260906,1534,4,3,'saida',4,307,'prescrição','Emergência'),
+(364,20260906,1545,5,2,'saida',2,308,'prescrição','Emergência'),
+(365,20260906,2118,4,6,'saida',4,306,'prescrição','Pronto Atendimento'),
+(366,20260907,917,3,4,'saida',1,313,'prescrição','UTI'),
+(367,20260907,1222,3,9,'saida',3,314,'prescrição','Emergência'),
+(368,20260907,1308,4,11,'saida',2,315,'prescrição','Enfermaria'),
+(369,20260907,1614,3,6,'saida',4,312,'prescrição','Enfermaria'),
+(370,20260907,1719,5,5,'saida',3,317,'prescrição','Centro Cirúrgico'),
+(371,20260907,1945,5,4,'saida',4,316,'prescrição','Pronto Atendimento'),
+(372,20260908,150,2,12,'saida',1,NULL,'urgência','Emergência'),
+(373,20260908,428,5,4,'saida',3,322,'prescrição','Emergência'),
+(374,20260908,729,5,10,'saida',3,323,'prescrição','Centro Cirúrgico'),
+(375,20260908,902,3,4,'saida',3,319,'prescrição','Enfermaria'),
+(376,20260908,1444,4,4,'saida',4,320,'prescrição','Enfermaria'),
+(377,20260908,1510,4,6,'saida',4,321,'prescrição','Emergência'),
+(378,20260908,1824,1,7,'saida',2,318,'prescrição','Enfermaria'),
+(379,20260909,149,2,2,'saida',3,327,'prescrição','Pronto Atendimento'),
+(380,20260909,212,5,11,'saida',2,332,'prescrição','Centro Cirúrgico'),
+(381,20260909,752,2,2,'saida',1,328,'prescrição','Pronto Atendimento'),
+(382,20260909,1035,1,10,'saida',3,325,'prescrição','Pronto Atendimento'),
+(383,20260909,1103,3,8,'saida',4,329,'prescrição','UTI'),
+(384,20260909,1550,4,2,'saida',2,330,'prescrição','Pronto Atendimento'),
+(385,20260909,1630,5,7,'saida',4,331,'prescrição','Centro Cirúrgico'),
+(386,20260909,1947,1,11,'saida',2,324,'prescrição','Enfermaria'),
+(387,20260909,2220,1,11,'saida',3,326,'prescrição','Enfermaria'),
+(388,20260910,944,4,8,'saida',4,338,'prescrição','Enfermaria'),
+(389,20260910,1108,6,11,'saida',3,342,'prescrição','UTI'),
+(390,20260910,1216,2,10,'saida',4,335,'prescrição','UTI'),
+(391,20260910,1239,6,3,'saida',4,341,'prescrição','Pronto Atendimento'),
+(392,20260910,1452,1,8,'saida',3,333,'prescrição','Pronto Atendimento'),
+(393,20260910,1500,1,38,'saida',2,511,'quebra de ampola','Enfermaria'),
+(394,20260910,1552,5,9,'saida',1,339,'prescrição','Emergência'),
+(395,20260910,1555,2,11,'saida',2,334,'prescrição','UTI'),
+(396,20260910,1800,5,2,'saida',4,340,'prescrição','Enfermaria'),
+(397,20260910,1913,2,1,'saida',2,336,'prescrição','UTI'),
+(398,20260910,2000,3,9,'saida',2,337,'prescrição','UTI'),
+(399,20260911,35,3,3,'saida',3,347,'prescrição','Centro Cirúrgico'),
+(400,20260911,707,4,5,'saida',4,348,'prescrição','Emergência');
+INSERT INTO movimento_estoque (id,data,hora,item_id,colaborador_id,tipo,quantidade,receita_id,motivo,destino) VALUES
+(401,20260911,1135,5,10,'saida',1,349,'prescrição','Pronto Atendimento'),
+(402,20260911,1413,2,4,'saida',3,344,'prescrição','Centro Cirúrgico'),
+(403,20260911,1435,2,4,'saida',3,345,'prescrição','Emergência'),
+(404,20260911,1718,6,6,'saida',2,350,'prescrição','Pronto Atendimento'),
+(405,20260911,1719,6,5,'saida',3,352,'prescrição','Emergência'),
+(406,20260911,1736,2,3,'saida',3,346,'prescrição','Pronto Atendimento'),
+(407,20260911,1832,1,2,'saida',3,343,'prescrição','Pronto Atendimento'),
+(408,20260911,1936,6,11,'saida',1,351,'prescrição','UTI'),
+(409,20260912,0,1,5,'saida',3,354,'prescrição','UTI'),
+(410,20260912,13,5,5,'saida',2,361,'prescrição','Pronto Atendimento'),
+(411,20260912,803,1,11,'entrada',150,NULL,'reposição','Farmácia Central'),
+(412,20260912,857,3,10,'entrada',150,NULL,'reposição','Farmácia Central'),
+(413,20260912,858,6,10,'entrada',150,NULL,'reposição','Farmácia Central'),
+(414,20260912,900,4,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(415,20260912,908,5,10,'entrada',150,NULL,'reposição','Farmácia Central'),
+(416,20260912,937,2,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(417,20260912,1053,6,1,'saida',4,362,'prescrição','Emergência'),
+(418,20260912,1128,2,7,'saida',3,356,'prescrição','Pronto Atendimento'),
+(419,20260912,1331,1,7,'saida',2,353,'prescrição','Centro Cirúrgico'),
+(420,20260912,1713,1,3,'saida',1,355,'prescrição','UTI'),
+(421,20260912,1927,3,3,'saida',1,357,'prescrição','Enfermaria'),
+(422,20260912,1927,3,8,'saida',3,358,'prescrição','UTI'),
+(423,20260912,2118,6,10,'saida',2,363,'prescrição','Pronto Atendimento'),
+(424,20260912,2155,4,2,'saida',1,360,'prescrição','Pronto Atendimento'),
+(425,20260912,2346,4,1,'saida',4,359,'prescrição','UTI'),
+(426,20260913,325,3,11,'saida',4,368,'prescrição','Enfermaria'),
+(427,20260913,936,6,10,'saida',4,373,'prescrição','UTI'),
+(428,20260913,1026,6,10,'saida',1,374,'prescrição','Enfermaria'),
+(429,20260913,1448,6,11,'saida',1,372,'prescrição','Emergência'),
+(430,20260913,1713,1,6,'saida',3,364,'prescrição','Centro Cirúrgico'),
+(431,20260913,1756,4,3,'saida',3,370,'prescrição','Centro Cirúrgico'),
+(432,20260913,1824,2,6,'saida',4,367,'prescrição','Enfermaria'),
+(433,20260913,1908,5,1,'saida',1,371,'prescrição','UTI'),
+(434,20260913,1912,3,8,'saida',3,369,'prescrição','Pronto Atendimento'),
+(435,20260913,2202,1,6,'saida',1,365,'prescrição','Centro Cirúrgico'),
+(436,20260913,2328,1,4,'saida',2,366,'prescrição','Enfermaria'),
+(437,20260914,245,3,5,'saida',1,377,'prescrição','Pronto Atendimento'),
+(438,20260914,450,1,1,'saida',4,503,'prescrição','UTI'),
+(439,20260914,1354,5,10,'saida',2,380,'prescrição','Emergência'),
+(440,20260914,1423,1,7,'saida',1,375,'prescrição','UTI'),
+(441,20260914,1505,5,1,'saida',3,378,'prescrição','Centro Cirúrgico'),
+(442,20260914,1808,5,2,'saida',1,379,'prescrição','Pronto Atendimento'),
+(443,20260914,1825,2,4,'saida',3,376,'prescrição','Pronto Atendimento'),
+(444,20260914,2215,1,1,'saida',3,504,'prescrição','UTI'),
+(445,20260915,213,4,8,'saida',3,384,'prescrição','Pronto Atendimento'),
+(446,20260915,1020,3,3,'saida',2,383,'prescrição','Enfermaria'),
+(447,20260915,1236,1,11,'saida',2,381,'prescrição','Emergência'),
+(448,20260915,1458,6,4,'saida',1,388,'prescrição','UTI'),
+(449,20260915,1737,5,2,'saida',1,385,'prescrição','Pronto Atendimento'),
+(450,20260915,2107,2,11,'saida',2,382,'prescrição','UTI'),
+(451,20260915,2205,6,1,'saida',1,387,'prescrição','Pronto Atendimento'),
+(452,20260915,2257,5,9,'saida',4,386,'prescrição','Pronto Atendimento'),
+(453,20260916,21,4,2,'saida',3,394,'prescrição','UTI'),
+(454,20260916,443,5,8,'saida',2,395,'prescrição','Enfermaria'),
+(455,20260916,800,6,10,'saida',4,396,'prescrição','Emergência'),
+(456,20260916,931,3,7,'saida',2,393,'prescrição','Centro Cirúrgico'),
+(457,20260916,1109,2,3,'saida',1,390,'prescrição','Emergência'),
+(458,20260916,1220,3,9,'saida',3,391,'prescrição','UTI'),
+(459,20260916,1741,3,11,'saida',1,392,'prescrição','Pronto Atendimento'),
+(460,20260916,1906,1,8,'saida',3,389,'prescrição','Enfermaria'),
+(461,20260917,131,2,1,'saida',3,399,'prescrição','Emergência'),
+(462,20260917,756,5,2,'saida',3,400,'prescrição','Pronto Atendimento'),
+(463,20260917,1244,5,11,'saida',1,401,'prescrição','UTI'),
+(464,20260917,1844,2,3,'saida',4,397,'prescrição','UTI'),
+(465,20260917,2152,2,4,'saida',1,398,'prescrição','Enfermaria'),
+(466,20260917,2205,1,26,'saida',3,NULL,'urgência','Emergência'),
+(467,20260918,21,4,9,'saida',4,406,'prescrição','Pronto Atendimento'),
+(468,20260918,128,6,6,'saida',4,409,'prescrição','UTI'),
+(469,20260918,440,6,11,'saida',3,411,'prescrição','Centro Cirúrgico'),
+(470,20260918,856,2,8,'saida',1,405,'prescrição','Emergência'),
+(471,20260918,1050,5,5,'saida',3,408,'prescrição','Centro Cirúrgico'),
+(472,20260918,1224,1,3,'saida',1,402,'prescrição','Centro Cirúrgico'),
+(473,20260918,1549,2,2,'saida',2,404,'prescrição','Emergência'),
+(474,20260918,1939,6,9,'saida',4,410,'prescrição','Emergência'),
+(475,20260918,2108,1,11,'saida',3,403,'prescrição','UTI'),
+(476,20260918,2152,4,4,'saida',1,407,'prescrição','UTI'),
+(477,20260919,22,6,3,'saida',1,420,'prescrição','Pronto Atendimento'),
+(478,20260919,434,5,7,'saida',4,417,'prescrição','Enfermaria'),
+(479,20260919,812,2,10,'entrada',150,NULL,'reposição','Farmácia Central'),
+(480,20260919,820,6,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(481,20260919,824,4,11,'entrada',150,NULL,'reposição','Farmácia Central'),
+(482,20260919,859,5,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(483,20260919,911,3,10,'entrada',150,NULL,'reposição','Farmácia Central'),
+(484,20260919,935,1,11,'entrada',150,NULL,'reposição','Farmácia Central'),
+(485,20260919,1115,3,8,'saida',3,415,'prescrição','Centro Cirúrgico'),
+(486,20260919,1338,5,1,'saida',3,419,'prescrição','Emergência'),
+(487,20260919,1606,3,8,'saida',4,416,'prescrição','Enfermaria'),
+(488,20260919,1639,2,6,'saida',1,414,'prescrição','UTI'),
+(489,20260919,1734,5,6,'saida',4,418,'prescrição','Pronto Atendimento'),
+(490,20260919,1806,1,4,'saida',2,412,'prescrição','Pronto Atendimento'),
+(491,20260919,2123,2,4,'saida',3,413,'prescrição','Enfermaria'),
+(492,20260920,25,6,9,'saida',3,427,'prescrição','Pronto Atendimento'),
+(493,20260920,707,6,10,'saida',1,428,'prescrição','Emergência'),
+(494,20260920,844,6,7,'saida',1,426,'prescrição','Centro Cirúrgico'),
+(495,20260920,900,4,25,'saida',2,NULL,'urgência','Emergência'),
+(496,20260920,955,2,8,'saida',3,421,'prescrição','Pronto Atendimento'),
+(497,20260920,1315,3,6,'saida',1,422,'prescrição','Centro Cirúrgico'),
+(498,20260920,1759,5,7,'saida',4,425,'prescrição','Enfermaria'),
+(499,20260920,1824,5,1,'saida',1,424,'prescrição','Emergência'),
+(500,20260920,2208,4,6,'saida',3,423,'prescrição','Centro Cirúrgico'),
+(501,20260921,1712,6,7,'saida',1,432,'prescrição','Emergência'),
+(502,20260921,1822,5,11,'saida',2,430,'prescrição','Enfermaria'),
+(503,20260921,1941,1,2,'saida',2,429,'prescrição','UTI'),
+(504,20260921,2345,5,7,'saida',3,431,'prescrição','Pronto Atendimento'),
+(505,20260922,341,2,6,'saida',4,435,'prescrição','Emergência'),
+(506,20260922,851,1,7,'saida',3,433,'prescrição','Centro Cirúrgico'),
+(507,20260922,952,3,7,'saida',4,438,'prescrição','UTI'),
+(508,20260922,1104,4,1,'saida',2,439,'prescrição','UTI'),
+(509,20260922,1327,3,7,'saida',3,436,'prescrição','UTI'),
+(510,20260922,1716,3,2,'saida',1,437,'prescrição','Pronto Atendimento'),
+(511,20260922,1756,1,10,'saida',3,434,'prescrição','UTI'),
+(512,20260923,414,6,7,'saida',3,446,'prescrição','UTI'),
+(513,20260923,815,1,8,'saida',3,440,'prescrição','Emergência'),
+(514,20260923,1231,4,11,'saida',4,445,'prescrição','Pronto Atendimento'),
+(515,20260923,1402,1,5,'saida',3,442,'prescrição','Enfermaria'),
+(516,20260923,1859,1,6,'saida',2,441,'prescrição','UTI'),
+(517,20260923,2158,2,6,'saida',4,443,'prescrição','UTI'),
+(518,20260923,2259,3,9,'saida',4,444,'prescrição','UTI'),
+(519,20260924,16,4,1,'saida',1,454,'prescrição','Enfermaria'),
+(520,20260924,840,5,6,'saida',2,456,'prescrição','Pronto Atendimento'),
+(521,20260924,913,2,4,'saida',4,448,'prescrição','UTI'),
+(522,20260924,1059,2,5,'saida',1,449,'prescrição','UTI'),
+(523,20260924,1234,4,5,'saida',3,452,'prescrição','UTI'),
+(524,20260924,1242,3,10,'saida',2,451,'prescrição','Emergência'),
+(525,20260924,1251,5,11,'saida',4,455,'prescrição','UTI'),
+(526,20260924,1426,5,4,'saida',1,457,'prescrição','Emergência'),
+(527,20260924,1835,3,4,'saida',1,450,'prescrição','Centro Cirúrgico'),
+(528,20260924,2226,2,3,'saida',3,447,'prescrição','UTI'),
+(529,20260924,2249,4,10,'saida',2,453,'prescrição','Enfermaria'),
+(530,20260925,349,5,4,'saida',1,461,'prescrição','Enfermaria'),
+(531,20260925,1224,3,6,'saida',3,459,'prescrição','Emergência'),
+(532,20260925,1624,3,10,'saida',1,460,'prescrição','Enfermaria'),
+(533,20260925,1756,3,8,'saida',4,458,'prescrição','UTI'),
+(534,20260925,1756,6,10,'saida',3,463,'prescrição','UTI'),
+(535,20260925,2312,6,8,'saida',3,464,'prescrição','Centro Cirúrgico'),
+(536,20260925,2359,5,11,'saida',3,462,'prescrição','UTI'),
+(537,20260926,712,2,5,'saida',4,466,'prescrição','Centro Cirúrgico'),
+(538,20260926,752,2,6,'saida',3,465,'prescrição','Enfermaria'),
+(539,20260926,807,6,8,'entrada',150,NULL,'reposição','Farmácia Central'),
+(540,20260926,911,1,11,'entrada',150,NULL,'reposição','Farmácia Central'),
+(541,20260926,943,4,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(542,20260926,946,3,9,'entrada',150,NULL,'reposição','Farmácia Central'),
+(543,20260926,953,2,8,'entrada',150,NULL,'reposição','Farmácia Central'),
+(544,20260926,1000,5,11,'entrada',150,NULL,'reposição','Farmácia Central'),
+(545,20260926,1243,6,2,'saida',4,471,'prescrição','Pronto Atendimento'),
+(546,20260926,1810,6,2,'saida',4,470,'prescrição','Pronto Atendimento'),
+(547,20260926,1827,5,2,'saida',4,468,'prescrição','Pronto Atendimento'),
+(548,20260926,1839,5,1,'saida',3,469,'prescrição','Emergência'),
+(549,20260926,2235,2,8,'saida',3,467,'prescrição','Enfermaria'),
+(550,20260927,1238,6,10,'saida',4,474,'prescrição','Emergência'),
+(551,20260927,1410,3,9,'saida',2,473,'prescrição','Enfermaria'),
+(552,20260927,1509,2,11,'saida',3,472,'prescrição','Enfermaria'),
+(553,20260928,21,4,2,'saida',2,480,'prescrição','Pronto Atendimento'),
+(554,20260928,233,6,11,'saida',3,484,'prescrição','Centro Cirúrgico'),
+(555,20260928,1145,4,3,'saida',2,481,'prescrição','Pronto Atendimento'),
+(556,20260928,1215,1,6,'saida',2,475,'prescrição','Centro Cirúrgico'),
+(557,20260928,1236,6,2,'saida',2,485,'prescrição','Pronto Atendimento'),
+(558,20260928,1435,4,1,'saida',2,479,'prescrição','UTI'),
+(559,20260928,1941,6,5,'saida',1,483,'prescrição','Emergência'),
+(560,20260928,1959,3,6,'saida',3,478,'prescrição','Emergência'),
+(561,20260928,2223,1,11,'saida',1,477,'prescrição','Emergência'),
+(562,20260928,2232,5,3,'saida',1,482,'prescrição','Centro Cirúrgico'),
+(563,20260928,2306,1,11,'saida',2,476,'prescrição','Emergência'),
+(564,20260929,1201,4,3,'saida',1,487,'prescrição','Emergência'),
+(565,20260929,1347,3,2,'saida',2,486,'prescrição','UTI'),
+(566,20260929,1911,5,5,'saida',2,489,'prescrição','Enfermaria'),
+(567,20260929,2144,5,11,'saida',4,488,'prescrição','UTI'),
+(568,20260930,733,1,5,'saida',1,491,'prescrição','Centro Cirúrgico'),
+(569,20260930,1003,2,8,'saida',3,492,'prescrição','Pronto Atendimento'),
+(570,20260930,1541,2,10,'saida',2,493,'prescrição','Pronto Atendimento'),
+(571,20260930,1613,6,5,'saida',1,495,'prescrição','UTI'),
+(572,20260930,1758,5,9,'saida',4,494,'prescrição','Emergência'),
+(573,20260930,2354,1,11,'saida',2,490,'prescrição','Centro Cirúrgico');
+
+-- Segurança: bloqueia acesso pela API pública (o SQL Editor continua funcionando)
+ALTER TABLE colaborador ENABLE ROW LEVEL SECURITY;
+ALTER TABLE item_controlado ENABLE ROW LEVEL SECURITY;
+ALTER TABLE receita ENABLE ROW LEVEL SECURITY;
+ALTER TABLE movimento_estoque ENABLE ROW LEVEL SECURITY;
+
+-- Conferir a resposta:  SELECT verificar_caso3('Nome Completo');
+CREATE FUNCTION verificar_caso3(suspeito text) RETURNS text
+LANGUAGE sql AS $$
+  SELECT CASE md5(lower(trim(suspeito)))
+    WHEN 'e5b54c1cad067c5ea26788768df1abb6' THEN
+      '🏆 CASO ENCERRADO! Foi essa pessoa que retirou morfina a mais, de madrugada, sem justificativa. Parabéns, detetive!'
+    ELSE
+      '❌ Não é essa pessoa. Confira se escreveu o nome completo, com acentos, e revise as pistas.'
+  END
+$$;
+
+SELECT '✅ Caso 3 instalado! Volte para o guia e comece a Etapa 1.' AS status;
+</script>
+
+<div class="tela-login" id="telaLogin" role="dialog" aria-modal="true" aria-labelledby="lgTitulo" hidden>
+  <div class="tela-card">
+    <div class="tela-sel">🕵️‍♀️</div>
+    <h1 id="lgTitulo">Mistério no Hospital SQL</h1>
+    <p class="tela-sub">Entre para guardar seu progresso e continuar de onde parou, em qualquer computador.</p>
+    <label for="sbEmail">E-mail</label>
+    <input id="sbEmail" type="email" placeholder="voce@exemplo.com" autocomplete="email" inputmode="email">
+    <label for="sbPass">Senha <span class="tela-min">(mínimo 8 caracteres)</span></label>
+    <input id="sbPass" type="password" autocomplete="current-password" maxlength="72">
+    <div class="tela-btns">
+      <button type="button" class="btn tela-primario" id="sbLogin">Entrar</button>
+      <button type="button" class="btn" id="sbSignup">Criar conta</button>
+    </div>
+    <div class="msg" id="lgMsg" role="status" aria-live="polite"></div>
+    <button type="button" class="tela-pular" id="lgPular">Continuar sem entrar</button>
+    <p class="tela-nota">Sem entrar, o progresso fica salvo só neste navegador.</p>
+  </div>
+</div>
+
+<dialog class="sync" id="syncDlg">
+  <h3>☁ Salvar progresso na nuvem</h3>
+  <div id="sbConnGrp">
+    <small>No Supabase: Project Settings → API. Use a <b>Project URL</b> e a chave <b>anon / public</b>. Nunca use a service_role. Rode antes o <code>banco_do_jogo.sql</code> atualizado.</small>
+    <label for="sbUrl">Project URL</label>
+    <input id="sbUrl" type="url" placeholder="https://xxxx.supabase.co" autocomplete="off">
+    <label for="sbKey">Chave anon (public)</label>
+    <input id="sbKey" type="text" placeholder="eyJ..." autocomplete="off">
+    <div class="row"><button type="button" class="btn" id="sbSave">Conectar</button></div>
+  </div>
+  <div id="sbUserGrp">
+    <p id="sbWho"></p>
+    <div class="row"><button type="button" class="btn" id="sbLogout">Sair</button></div>
+  </div>
+  <div class="msg" id="sbMsg" role="status"></div>
+  <div class="row">
+    <button type="button" class="btn" id="sbClear">Trocar projeto</button>
+    <button type="button" class="btn" id="sbClose">Fechar</button>
+  </div>
+</dialog>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script src="js/mermaid-init.js"></script>
+
+</body>
+</html>

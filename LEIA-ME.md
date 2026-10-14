@@ -17,6 +17,16 @@ Alguém desligou a geladeira de vacinas da Sala de Vacinas, e você descobre que
 | `package.json` | Para hospedagens que pedem Node.js. `npm install` e `npm start` abrem em http://localhost:3000. |
 | `LEIA-ME.md` | Este arquivo. |
 
+## Os casos
+
+| Caso | História | Nível | Arquivos |
+|---|---|---|---|
+| 1 | A geladeira de vacinas | Iniciante, ensina do zero | `guia.html` e `banco_do_jogo.sql` |
+| 2 | O prontuário adulterado | Intermediário, 5 etapas | `caso2.html` e `caso2.sql` |
+| 3 | O sumiço da morfina | Intermediário, 5 etapas | `caso3.html` e `caso3.sql` |
+
+`index.html` é a página inicial, com a escolha do caso. Cada caso tem as próprias tabelas, então os três cabem no mesmo projeto do Supabase. Para conferir a resposta: `SELECT verificar_caso2('Nome Completo');` e `SELECT verificar_caso3('Nome Completo');`.
+
 ## Como começar
 
 1. **Abra o guia:** dê dois cliques em `guia.html`. Ele abre no navegador.

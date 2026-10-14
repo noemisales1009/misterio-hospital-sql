@@ -2,8 +2,48 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="refresh" content="0; url=guia.html">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mistério no Hospital SQL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/estilo.css">
 </head>
-<body><p><a href="guia.html">Abrir o jogo</a></p></body>
+<body>
+<div class="wrap">
+<header class="hero">
+  <div class="tag">Jogo de detetive · aprenda SQL no Supabase</div>
+  <h1>Mistério no Hospital <span>SQL</span></h1>
+  <p class="lead">Três casos, do mais simples ao mais exigente. Em cada um você investiga com consultas SQL num banco de dados de verdade, no Supabase. Comece pelo Caso 1 se nunca usou SQL.</p>
+</header>
+
+<section class="casos" aria-label="Casos disponíveis">
+  <a class="caso-card" href="guia.html">
+    <span class="caso-n">Caso 1</span>
+    <h2>A geladeira de vacinas</h2>
+    <p>Alguém desligou a geladeira da Sala de Vacinas. Você aprende SELECT, WHERE, LIKE, JOIN e GROUP BY, passo a passo.</p>
+    <span class="caso-meta">Iniciante · 13 fases · ensina do zero</span>
+    <span class="caso-go">Abrir o Caso 1 →</span>
+  </a>
+  <a class="caso-card" href="caso2.html">
+    <span class="caso-n">Caso 2</span>
+    <h2>O prontuário adulterado</h2>
+    <p>Uma dose foi alterada na UTI com a senha de quem estava de folga. Cruze auditoria, escala de plantões e porta com crachá.</p>
+    <span class="caso-meta">Intermediário · 5 etapas · JOIN, LEFT JOIN, HAVING</span>
+    <span class="caso-go">Abrir o Caso 2 →</span>
+  </a>
+  <a class="caso-card" href="caso3.html">
+    <span class="caso-n">Caso 3</span>
+    <h2>O sumiço da morfina</h2>
+    <p>O cofre de controlados não fechou. Ache o item, o truque e a pessoa por trás de retiradas a mais, de madrugada.</p>
+    <span class="caso-meta">Intermediário · 5 etapas · SUM, IS NULL, CASE, HAVING</span>
+    <span class="caso-go">Abrir o Caso 3 →</span>
+  </a>
+</section>
+
+<section class="fase" style="gap:10px">
+  <div class="box"><b class="l">Como funciona</b><p>Cada caso tem as <strong>próprias tabelas</strong>, então os três cabem no mesmo projeto do Supabase. O progresso de cada caso fica salvo no navegador, e pode ser guardado na nuvem com uma conta, dentro de qualquer caso, pelo botão ☁ no topo.</p></div>
+  <p class="foot">Inspirado no <a href="https://mystery.knightlab.com/walkthrough.html" target="_blank" rel="noopener">SQL Murder Mystery</a> do Knight Lab. Personagens e dados são fictícios.</p>
+</section>
+</div>
+</body>
 </html>
