@@ -175,3 +175,13 @@ dialog.lupa .lupa-corpo{overflow:auto;max-height:calc(94vh - 70px);margin-top:8p
 .acordeao-cabeca:focus-visible{outline:3px solid var(--clue);outline-offset:4px;border-radius:6px}
 .fase.feita .fase-head .sub::after{content:"  ·  ✓ concluída";color:var(--scrub);font-weight:600}
 @media (prefers-reduced-motion:reduce){.acordeao-cabeca::after{transition:none}}
+
+/* fases em sequência: bloqueada até concluir a anterior */
+.fase.bloqueada{opacity:.62}
+.fase.bloqueada .acordeao-cabeca{cursor:not-allowed}
+.fase.bloqueada .acordeao-cabeca::after{content:"🔒";font-size:1.05rem;transform:translateY(-50%)}
+.fase.bloqueada .num{background:var(--muted)}
+.fase.atual{border-color:var(--scrub);box-shadow:0 0 0 2px var(--scrub-soft)}
+.fase.atual:not(.aberta) .fase-head .sub::after{content:"  ·  ▶ você está aqui";color:var(--scrub);font-weight:600}
+.chip.bloqueada{opacity:.45;cursor:not-allowed}
+.chip.atual{border-color:var(--scrub);box-shadow:0 0 0 2px var(--scrub-soft)}

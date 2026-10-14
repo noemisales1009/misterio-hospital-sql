@@ -68,6 +68,7 @@
     if(!fases.length) return;
     if(bar) bar.style.width=(total/fases.length*100)+"%";
     cnt.textContent=total+"/"+fases.length;
+    atualizaBloqueios();
   }
 
   // acordeão: as fases ficam fechadas; clicar no título abre e fecha
@@ -98,33 +99,51 @@
     });
     return true;
   });
-  var todasBtn=null;
-  function atualizaTudo(){
-    if(!todasBtn) return;
-    var n=secoes.filter(function(s){return s.classList.contains("aberta")}).length;
-    todasBtn.textContent=(n===secoes.length)?"Fechar tudo":"Abrir tudo";
+  // fases em sequência: a próxima só libera quando a anterior estiver concluída
+  function liberada(i){
+    if(i<=0) return true;
+    return !!(state[fases[i-1].id]||state[fases[i].id]);
+  }
+  function bloqueada(sec){
+    var i=fases.indexOf(sec);
+    return i>-1 && !liberada(i);
+  }
+  function atualizaBloqueios(){
+    var atual=-1;
+    fases.forEach(function(sec,i){
+      var trava=!liberada(i);
+      sec.classList.toggle("bloqueada",trava);
+      if(chips[i]) chips[i].classList.toggle("bloqueada",trava);
+      if(sec._head) sec._head.setAttribute("aria-disabled",trava?"true":"false");
+      if(trava&&sec.classList.contains("aberta")) setAberta(sec,false);
+      if(atual===-1&&!trava&&!state[sec.id]) atual=i;
+    });
+    fases.forEach(function(sec,i){
+      sec.classList.toggle("atual",i===atual);
+      if(chips[i]) chips[i].classList.toggle("atual",i===atual);
+    });
   }
   function setAberta(sec,sim){
     if(!sec._head) return;
+    if(sim&&bloqueada(sec)){toast("Conclua a fase anterior para liberar esta");return}
+    if(sim){
+      // uma por vez: abrir esta fecha as outras
+      secoes.forEach(function(o){
+        if(o!==sec&&o.classList.contains("aberta")){
+          o.classList.remove("aberta");
+          o._head.setAttribute("aria-expanded","false");
+        }
+      });
+    }
     sec.classList.toggle("aberta",sim);
     sec._head.setAttribute("aria-expanded",sim?"true":"false");
-    atualizaTudo();
   }
   function abrirPorId(id,rolar){
     var sec=document.getElementById(id);
     if(!sec||!sec._head) return;
+    if(bloqueada(sec)){toast("Conclua a fase anterior para liberar esta");return}
     setAberta(sec,true);
     if(rolar) setTimeout(function(){sec.scrollIntoView({behavior:"smooth",block:"start"})},40);
-  }
-  if(secoes.length){
-    todasBtn=document.createElement("button");
-    todasBtn.type="button";todasBtn.className="syncbtn";todasBtn.id="btnTodas";
-    todasBtn.addEventListener("click",function(){
-      var abrir=!(secoes.every(function(s){return s.classList.contains("aberta")}));
-      secoes.forEach(function(s){setAberta(s,abrir)});
-    });
-    trail.appendChild(todasBtn);
-    atualizaTudo();
   }
   chips.forEach(function(a,i){
     a.addEventListener("click",function(e){
