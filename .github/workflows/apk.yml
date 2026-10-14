@@ -1,0 +1,99 @@
+# Gera o aplicativo Android (APK) do jogo e publica na aba "Releases".
+# Para rodar na mão: aba Actions > "Gerar APK" > Run workflow.
+name: Gerar APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apk/**"
+      - ".github/workflows/apk.yml"
+      - "*.html"
+      - "css/**"
+      - "js/**"
+      - "fonts/**"
+      - "icons/**"
+      - "vendor/**"
+      - "manifest.webmanifest"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gerar-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: apk
+    steps:
+      - name: Baixar o projeto
+        uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apk/package-lock.json
+
+      - name: Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Instalar Capacitor
+        run: npm ci
+
+      - name: Montar a pasta www com o jogo
+        run: node scripts/preparar-www.js
+
+      - name: Criar o projeto Android
+        run: npx cap add android
+
+      - name: Gerar ícones e tela de abertura
+        run: >
+          npx capacitor-assets generate --android
+          --iconBackgroundColor "#1b5a4b" --iconBackgroundColorDark "#0b2e26"
+          --splashBackgroundColor "#0f1715" --splashBackgroundColorDark "#0f1715"
+
+      - name: Assinatura e versão
+        run: node scripts/configurar-android.js
+        env:
+          NUMERO: ${{ github.run_number }}
+
+      - name: Sincronizar
+        run: npx cap sync android
+
+      - name: Compilar o APK
+        working-directory: apk/android
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Conferir o arquivo
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk ../misterio-sql.apk
+          ls -la ../misterio-sql.apk
+          unzip -l ../misterio-sql.apk | grep -E "assets/public/(index.html|vendor/pglite/postgres.wasm)" || (echo "faltam arquivos do jogo no APK" && exit 1)
+
+      - name: Guardar como arquivo da execução
+        uses: actions/upload-artifact@v4
+        with:
+          name: misterio-sql-apk
+          path: misterio-sql.apk
+          retention-days: 30
+
+      - name: Publicar na aba Releases
+        working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete apk-mais-recente --yes --cleanup-tag || true
+          gh release create apk-mais-recente misterio-sql.apk \
+            --title "Mistério SQL (APK Android)" \
+            --notes "Aplicativo Android do jogo, funciona sem internet. Baixe o arquivo misterio-sql.apk no celular e instale (o Android pede para permitir instalar de fontes desconhecidas). Gerado em $(date -u +'%d/%m/%Y %H:%M') UTC a partir do commit ${GITHUB_SHA::7}."

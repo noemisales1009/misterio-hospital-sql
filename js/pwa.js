@@ -1,6 +1,8 @@
 // Offline: registra o service worker (sw.js), que guarda o jogo no aparelho.
 (function () {
   if (!("serviceWorker" in navigator)) return;
+  // dentro do aplicativo Android (APK) os arquivos já estão no aparelho: não precisa de service worker
+  try { if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return; } catch (e) {}
   var local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
   if (location.protocol !== "https:" && !local) return;
   var K = "misterio-sql-offline-avisado";

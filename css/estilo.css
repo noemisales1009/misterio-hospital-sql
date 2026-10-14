@@ -688,6 +688,8 @@ dialog.caderno[open]{display:block}
 
 /* celular e tablet */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+/* aplicativo (tela cheia, com entalhe ou barra de status): conteúdo não fica embaixo delas */
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .fase>*{min-width:0;max-width:100%}
 .toast{left:16px;right:16px;width:max-content;max-width:calc(100% - 32px);margin-inline:auto;transform:none;text-align:center;line-height:1.4}
 @media (max-width:900px){

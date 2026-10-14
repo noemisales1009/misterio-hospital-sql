@@ -94,3 +94,9 @@ Comando de build: `npm run build` (gera `js/config.js` e `js/catalogo.js`). Coma
 - O guia precisa de internet só para as fontes e os diagramas.
 - Se você editar o conteúdo de uma fase, rode `npm run build` para atualizar o caderno.
 - Personagens e dados são fictícios. Inspirado no SQL Murder Mystery do Knight Lab.
+
+## Offline e aplicativo Android
+
+- O jogo guarda o que precisa no aparelho (`sw.js`, gerado no `npm run build`) e funciona **sem internet** depois da primeira visita. No Chrome, aparece "Instalar app" / "Adicionar à tela inicial".
+- O computador da investigação (PGlite), os diagramas (Mermaid) e as fontes ficam em `vendor/` e `fonts/`. Para atualizar o PGlite ou o Mermaid, troque os arquivos de `vendor/`.
+- O **APK** para Android é gerado pelo GitHub: veja `apk/LEIA-ME.md`.
