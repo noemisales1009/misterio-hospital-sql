@@ -729,3 +729,81 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
   .quadro-caso .hero .lead,.quadro-caso.aberto .hero .lead,
   .quadro-caso .hero .pistas,.quadro-caso:not(.aberto) .hero .pistas,.quadro-caso.aberto .hero .pistas{grid-row:auto}
 }
+
+/* menu de cima: na página inicial fica tudo no canto direito; dentro do caso, só as fases e a barra de progresso */
+.wrap>.trail:first-child{margin-top:-28px}
+.trail-chips:empty{display:none}
+.trail-top.topo-inicio #btnCaderno{margin-left:auto}
+.trail-top.topo-caso{display:none}
+.conta{display:none;position:relative;flex:none}
+.conta-botao{height:40px;padding:0 8px 0 3px;gap:2px}
+.conta-botao:hover,.conta-botao:focus-visible{border-color:var(--scrub)}
+.conta-botao .seta{display:grid;place-items:center;color:var(--muted);transition:transform .15s}
+.conta-botao .seta svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.conta-botao[aria-expanded="true"] .seta{transform:rotate(180deg)}
+.conta-lista{position:absolute;right:0;top:calc(100% + 8px);z-index:30;display:flex;flex-direction:column;gap:2px;min-width:230px;max-width:calc(100vw - 32px);padding:6px;background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 34px rgba(0,0,0,.28)}
+.conta-nome{padding:8px 12px 8px;margin-bottom:4px;border-bottom:1px solid var(--line);font-family:var(--f-display);font-weight:800;font-size:22px;line-height:1.1;overflow-wrap:anywhere}
+.conta-item{display:flex;align-items:center;gap:12px;min-height:48px;padding:0 12px;border:0;border-radius:10px;background:none;color:var(--ink);font:inherit;font-size:16px;font-weight:700;text-align:left;cursor:pointer}
+.conta-item:hover,.conta-item:focus-visible{background:var(--scrub-soft);color:var(--scrub);outline:none}
+.conta-item .ic{display:grid;place-items:center;flex:none;width:22px}
+.conta-item .ic svg{width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:899.98px){
+  .topo-inicio #btnCaderno,.topo-inicio #btnTema,.topo-inicio #btnNuvem,.topo-inicio #btnSair{display:none}
+  .topo-inicio .conta{display:block;margin-left:auto}
+}
+@media (max-width:720px){
+  .wrap>.trail:first-child{margin-top:-18px}
+}
+
+/* página inicial no celular: quadro mais enxuto; o botão "Começar" aparece já na primeira tela */
+@media (max-width:720px){
+  .wrap>.quadro:first-child{margin-top:0}
+  .quadro:not(.quadro-caso){padding:18px 10px 22px;border-width:6px}
+  .quadro .hero{gap:14px}
+  .quadro .hero .tag{letter-spacing:.1em}
+  .quadro .hero .lead{padding:10px 14px;font-size:16px;line-height:1.5}
+  .quadro .boas-vindas{margin-top:26px;padding:16px;gap:14px}
+  .bv-topo{flex-wrap:nowrap;gap:12px}
+  .bv-foto{width:52px;height:52px}
+  .bv-id{min-width:0}
+  .bv-id h2{font-size:28px}
+  .bt-primario{min-height:56px}
+  .bt-secundario{min-height:46px;justify-content:center}
+  .quadro .casos{gap:30px;margin-top:30px}
+  .quadro .caso-card{padding:22px 16px 14px;gap:6px}
+  .quadro .caso-card h2{font-size:26px}
+  .quadro .caso-card p{font-size:15px;line-height:1.5}
+}
+@media (prefers-reduced-motion:reduce){.conta-botao .seta{transition:none}}
+
+/* carimbo do caso no celular: do tamanho do texto, sem o vão embaixo (antes esticava e atravessava o título) */
+@media (max-width:860px){
+  .quadro-caso .hero .case .stamp{align-self:flex-start}
+  .quadro-caso .hero .case h2{padding-top:0}
+}
+
+/* caderno no celular: tela cheia, cabeçalho de uma linha, margem vermelha fora do texto, rolagem só dentro dele */
+@media (max-width:760px){
+  dialog.caderno,dialog.caderno[open]{width:100vw;height:100vh;height:100dvh;max-width:none;max-height:none;margin:0;inset:0;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);background:#1a5043}
+  .cad-etiqueta,.cad-carimbo{display:none}
+  .cad-aba{padding:8px 6px;font-size:19px}
+  .cad-topo{padding:8px 12px 6px 16px}
+  .cad-titulo{font-size:28px}
+  .cad-titulo::after{height:10px}
+  .cad-fechar{width:40px;height:40px}
+  .cad-pagina{overscroll-behavior:contain;background-image:linear-gradient(to right,transparent 26px,rgba(214,90,90,.5) 26px,rgba(214,90,90,.5) 28px,transparent 28px),repeating-linear-gradient(transparent 0 31px,#cbdde8 31px 32px)}
+}
+@media (max-width:760px) and (prefers-reduced-motion:no-preference){
+  dialog.caderno[open]{animation:cad-sobe .22s ease-out}
+  .cad-pagina>*{animation:cad-aparece .18s ease-out}
+}
+@keyframes cad-sobe{from{opacity:0;transform:translateY(28px)}}
+@keyframes cad-aparece{from{opacity:0;transform:translateY(6px)}}
+
+/* toque: alvos pequenos ficam maiores */
+@media (pointer:coarse){
+  .dossie-ler{padding-block:10px;margin-top:0}
+  .pc-col{padding-block:6px}
+  .pc-tab summary{padding-block:8px}
+  .pc-ver{padding:8px 10px}
+}

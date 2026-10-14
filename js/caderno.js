@@ -79,6 +79,60 @@
     r.className = "rot"; r.textContent = texto;
     botao.appendChild(s); botao.appendChild(r);
     botao.title = "Caderno de " + (jog.nome || "detetive"); botao.setAttribute("aria-label", botao.title); botao.classList.add("icone");
+    pintaConta();
+  }
+
+  // ------------------------------------------------------------------ menu da conta (celular)
+  // No celular a barra mostra só a foto; tocar nela abre esta lista com os botões da barra.
+  var conta = null, contaBotao = null, contaLista = null;
+  var SETA = "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M6 9l6 6 6-6'/></svg>";
+  function pintaConta() {
+    if (!contaBotao) return;
+    contaBotao.textContent = "";
+    var s = el("span", "ic av"); s.setAttribute("aria-hidden", "true");
+    s.appendChild(avatarNode(jog.foto, jog.nome));
+    var seta = el("span", "seta"); seta.setAttribute("aria-hidden", "true"); seta.innerHTML = SETA;
+    contaBotao.appendChild(s); contaBotao.appendChild(seta);
+  }
+  function criaMenuConta(topo) {
+    conta = el("div", "conta");
+    contaBotao = el("button", "syncbtn conta-botao"); contaBotao.type = "button"; contaBotao.id = "btnConta";
+    contaBotao.title = "Menu"; contaBotao.setAttribute("aria-label", "Menu: caderno, tema e conta");
+    contaBotao.setAttribute("aria-expanded", "false"); contaBotao.setAttribute("aria-controls", "contaLista");
+    contaLista = el("div", "conta-lista"); contaLista.id = "contaLista"; contaLista.hidden = true;
+    contaBotao.addEventListener("click", function () { if (contaLista.hidden) abreConta(); else fechaConta(); });
+    conta.appendChild(contaBotao); conta.appendChild(contaLista);
+    topo.appendChild(conta);
+    pintaConta();
+    document.addEventListener("click", function (e) { if (!contaLista.hidden && !conta.contains(e.target)) fechaConta(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !contaLista.hidden) { fechaConta(); contaBotao.focus(); }
+    });
+  }
+  function itemConta(icone, texto, acao) {
+    var b = el("button", "conta-item"); b.type = "button";
+    var s = el("span", "ic"); s.setAttribute("aria-hidden", "true"); s.innerHTML = icone;
+    b.appendChild(s); b.appendChild(el("span", null, texto));
+    b.addEventListener("click", function () { fechaConta(); acao(); });
+    contaLista.appendChild(b);
+  }
+  function abreConta() {
+    contaLista.textContent = "";
+    if (jog.nome) contaLista.appendChild(el("div", "conta-nome", jog.nome));
+    itemConta(ICONES.caderno, "Caderno do detetive", function () { abrir("detetive"); });
+    var nuvemBtn = document.getElementById("btnNuvem");
+    // sem conta, a nuvem e o "Entrar" fazem a mesma coisa: fica só o "Entrar"
+    var itens = [btnTema, nuvemBtn && nuvemBtn.dataset.on === "1" ? nuvemBtn : null, btnSair];
+    itens.forEach(function (b) {
+      if (!b || b.hidden) return;
+      var ic = b.querySelector(".ic"), rot = b.querySelector(".rot");
+      itemConta(ic ? ic.innerHTML : "", rot ? rot.textContent : b.title, function () { b.click(); });
+    });
+    contaLista.hidden = false; contaBotao.setAttribute("aria-expanded", "true");
+  }
+  function fechaConta() {
+    if (!contaLista || contaLista.hidden) return;
+    contaLista.hidden = true; contaBotao.setAttribute("aria-expanded", "false");
   }
   var NIVEIS = [
     { min: 0, nome: "Aprendiz" },
@@ -226,6 +280,10 @@
     });
     topo.appendChild(btnSair);
     atualizaSair();
+    // página inicial: tudo no canto direito, e no celular só a foto com o menu; dentro do caso a linha de cima some (ficam as fases e a barra)
+    var naInicial = !!document.querySelector(".casos");
+    topo.classList.add(naInicial ? "topo-inicio" : "topo-caso");
+    if (naInicial) criaMenuConta(topo);
   }
 
   // ------------------------------------------------------------------ caderno
@@ -540,14 +598,14 @@
       pintaSelo();
       inp.addEventListener("input", pintaSelo);
       var fbp = el("div", "cad-foto-botoes");
-      var addp = el("button", "btn", "Adicionar foto (opcional)"); addp.type = "button"; addp.id = "bvAddFoto";
+      var addp = el("button", "btn ghost", "Adicionar foto (opcional)"); addp.type = "button"; addp.id = "bvAddFoto";
       addp.addEventListener("click", function () {
         escolherFoto(function (d) { fotoTemp = d; addp.textContent = "Trocar foto"; pintaSelo(); });
       });
       fbp.appendChild(addp);
       popup.appendChild(fbp);
       var linha = el("div", "bv-botoes");
-      var depois = el("button", "btn", "Agora não"); depois.type = "button";
+      var depois = el("button", "btn ghost", "Agora não"); depois.type = "button";
       var ok = el("button", "btn big", "Começar"); ok.type = "button"; ok.id = "bvOk";
       linha.appendChild(depois); linha.appendChild(ok);
       popup.appendChild(linha);
