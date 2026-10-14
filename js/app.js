@@ -70,6 +70,7 @@
   // sincronização com Supabase (opcional; sem configurar, tudo continua só no navegador)
   var CFG_KEY="misterio-sql-supabase", cfg={};
   try{cfg=JSON.parse(localStorage.getItem(CFG_KEY)||"{}")}catch(e){}
+  if(!(cfg.url&&cfg.key)&&window.MISTERIO_CONFIG&&window.MISTERIO_CONFIG.url&&window.MISTERIO_CONFIG.key){cfg={url:window.MISTERIO_CONFIG.url,key:window.MISTERIO_CONFIG.key}}
   var syncBtn=document.createElement("button");syncBtn.type="button";syncBtn.className="syncbtn";
   trail.appendChild(syncBtn);
   var dlg=document.getElementById("syncDlg"),sbUrl=document.getElementById("sbUrl"),

@@ -55,3 +55,15 @@ SELECT verificar_solucao('Nome Completo');
 - Para recomeçar o jogo do zero, rode `banco_do_jogo.sql` de novo. Sua tabela `caderno` não é apagada.
 - O guia precisa de internet só para as fontes e os diagramas. Sem internet, ele funciona com letras e diagramas mais simples.
 - Personagens e dados são fictícios. Inspirado no SQL Murder Mystery do Knight Lab.
+
+## Variáveis de ambiente (hospedagem Node.js)
+
+Para o guia já abrir conectado ao Supabase, sem colar a chave em cada navegador, defina na hospedagem:
+
+| Variável | Valor |
+|---|---|
+| `SUPABASE_URL` | `https://SEU-PROJETO.supabase.co` |
+| `SUPABASE_ANON_KEY` | a chave **anon / public** (nunca a `service_role`) |
+
+Comando de build: `npm run build` (gera `js/config.js`). Comando de início: `npm start`.
+Sem as variáveis, o guia funciona igual, e o botão **☁ Salvar na nuvem** permite conectar na mão.
