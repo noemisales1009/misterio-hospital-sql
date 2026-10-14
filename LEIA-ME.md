@@ -39,6 +39,10 @@ Alguém desligou a geladeira de vacinas da Sala de Vacinas, e você descobre que
 | 6 | `JOIN` de 4 tabelas e conferir o culpado |
 | ★ | `BETWEEN`, `GROUP BY`, `HAVING` |
 | ✎ | `CREATE TABLE`, `INSERT`, `UPDATE`, `DELETE` |
+| A | `DISTINCT`, `MIN`, `MAX`, `AVG`, `SUM`, `ROUND` |
+| B | Subconsultas: `IN (SELECT …)` e `= (SELECT …)` |
+| C | `CASE WHEN … THEN … ELSE … END` |
+| D | `LEFT JOIN` e `IS NULL` |
 
 ## Conferir a resposta
 

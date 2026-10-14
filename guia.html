@@ -393,6 +393,162 @@ WHERE p.rua_endereco = 'Rua das Acácias'
   <div class="done-row"><input type="checkbox" id="ok8"><label for="ok8">Meu caderno está funcionando</label></div>
 </section>
 
+<!-- EXTRAS: TREINOS A–D -->
+<section class="fase bonus" id="fase9" data-fase="9" data-nome="Números">
+  <div class="fase-head"><div class="num">A</div><div class="t"><h2>Contando e somando</h2><div class="sub">DISTINCT · MIN · MAX · AVG · SUM · ROUND</div></div></div>
+  <div class="box"><b class="l">Para que serve</b><p>Até aqui você listou linhas. Agora você vai <em>resumir</em>: quantos tipos existem, qual o maior valor, qual a média. É o que você faz numa planilha com a linha de totais no rodapé. <code>DISTINCT</code> tira os repetidos, e <code>MIN</code>, <code>MAX</code>, <code>AVG</code> e <code>SUM</code> calculam sobre a coluna inteira.</p></div>
+  <div class="tw"><table>
+    <tr><th>Escrevendo</th><th>Significa</th></tr>
+    <tr><td><code>DISTINCT tipo</code></td><td>cada tipo aparece uma vez só</td></tr>
+    <tr><td><code>COUNT(DISTINCT setor)</code></td><td>quantos setores diferentes existem</td></tr>
+    <tr><td><code>MIN(x) / MAX(x)</code></td><td>o menor e o maior valor</td></tr>
+    <tr><td><code>AVG(x)</code></td><td>a média</td></tr>
+    <tr><td><code>SUM(x)</code></td><td>a soma</td></tr>
+    <tr><td><code>ROUND(x, 1)</code></td><td>arredonda para 1 casa decimal</td></tr>
+  </table></div>
+  <div class="lbl">Exemplos</div>
+  <div class="code"><pre data-sql>-- cada tipo de ocorrência, sem repetir
+SELECT DISTINCT tipo
+FROM relatorio_ocorrencia
+ORDER BY tipo;</pre></div>
+  <div class="code"><pre data-sql>-- a pessoa mais baixa e a mais alta
+SELECT MIN(altura_cm), MAX(altura_cm)
+FROM habilitacao;</pre></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantos <strong>setores diferentes</strong> aparecem nos relatórios de ocorrência?</li><li>Qual a <strong>menor</strong> e a <strong>maior</strong> renda anual da cidade?</li><li>Qual a <strong>renda média</strong> anual, arredondada sem casas decimais?</li></ul></div>
+  <details><summary>Dica</summary><div><p>Para o item 1, junte <code>COUNT</code> com <code>DISTINCT</code> dentro do parêntese. Para o item 3, coloque o <code>AVG</code> dentro do <code>ROUND</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT COUNT(DISTINCT setor) FROM relatorio_ocorrencia;</pre></div>
+    <div class="code"><pre data-sql>SELECT MIN(renda_anual), MAX(renda_anual) FROM renda;</pre></div>
+    <div class="code"><pre data-sql>SELECT ROUND(AVG(renda_anual)) FROM renda;</pre></div>
+    <p>Para conferir: <strong>11</strong> setores; renda de <strong>18317</strong> a <strong>980000</strong>; média de <strong>134334</strong>.</p></div></details>
+  <div class="done-row"><input type="checkbox" id="ok9"><label for="ok9">Fase A concluída</label></div>
+</section>
+
+<section class="fase bonus" id="fase10" data-fase="10" data-nome="Subconsulta">
+  <div class="fase-head"><div class="num">B</div><div class="t"><h2>Consulta dentro de consulta</h2><div class="sub">SUBCONSULTA · IN · = (SELECT …)</div></div></div>
+  <div class="box"><b class="l">Para que serve</b><p>Às vezes a resposta de uma pergunta depende da resposta de outra. “Quem ganha acima da média?” primeiro pede a média, depois compara. Em SQL você escreve a primeira pergunta <em>entre parênteses</em>, dentro da segunda. É como abrir um prontuário para achar o número do leito e usar esse número para abrir outro.</p></div>
+  <div class="tw"><table>
+    <tr><th>Escrevendo</th><th>Significa</th></tr>
+    <tr><td><code>WHERE x &gt; (SELECT AVG(x) …)</code></td><td>compara com um valor calculado na hora</td></tr>
+    <tr><td><code>WHERE x = (SELECT MAX(x) …)</code></td><td>pega quem tem o maior valor</td></tr>
+    <tr><td><code>WHERE id IN (SELECT …)</code></td><td>o id está na lista que a subconsulta devolve</td></tr>
+  </table></div>
+  <div class="lbl">Exemplos</div>
+  <div class="code"><pre data-sql>-- quem foi ao Congresso de Gestão Hospitalar (sem JOIN)
+SELECT nome FROM pessoa
+WHERE id IN (
+  SELECT pessoa_id FROM evento_checkin
+  WHERE nome_evento = 'Congresso de Gestão Hospitalar'
+)
+LIMIT 5;</pre></div>
+  <div class="code"><pre data-sql>-- renda acima da média
+SELECT COUNT(*) FROM renda
+WHERE renda_anual &gt; (SELECT AVG(renda_anual) FROM renda);</pre></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantas pessoas ganham <strong>acima da média</strong> de renda?</li><li>Qual o <strong>nome</strong> da pessoa de maior renda anual?</li><li>Quantas pessoas que têm um carro da marca <strong>Tesla</strong> foram ao evento <strong>Show no Parque</strong>? Resolva só com <code>IN</code> e subconsultas.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Item 2: a subconsulta <code>(SELECT MAX(renda_anual) FROM renda)</code> devolve o valor. Use-o no <code>WHERE</code> de uma consulta que liga <code>pessoa</code> e <code>renda</code> pelo CPF. Item 3: use dois <code>IN</code> ligados por <code>AND</code>, um para a habilitação e outro para o evento.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT COUNT(*) FROM renda
+WHERE renda_anual &gt; (SELECT AVG(renda_anual) FROM renda);</pre></div>
+    <div class="code"><pre data-sql>SELECT p.nome, r.renda_anual
+FROM pessoa p
+JOIN renda r ON r.cpf = p.cpf
+WHERE r.renda_anual = (SELECT MAX(renda_anual) FROM renda);</pre></div>
+    <div class="code"><pre data-sql>SELECT COUNT(*) FROM pessoa
+WHERE habilitacao_id IN (SELECT id FROM habilitacao WHERE marca_carro = 'Tesla')
+  AND id IN (SELECT pessoa_id FROM evento_checkin WHERE nome_evento = 'Show no Parque');</pre></div>
+    <p>Para conferir: <strong>328</strong> pessoas; <strong>Vitória Albuquerque</strong>; <strong>11</strong> pessoas.</p></div></details>
+  <div class="done-row"><input type="checkbox" id="ok10"><label for="ok10">Fase B concluída</label></div>
+</section>
+
+<section class="fase bonus" id="fase11" data-fase="11" data-nome="CASE">
+  <div class="fase-head"><div class="num">C</div><div class="t"><h2>Classificando com CASE</h2><div class="sub">CASE · WHEN · THEN · ELSE · END</div></div></div>
+  <div class="box"><b class="l">Para que serve</b><p><code>CASE</code> é o “se isso, então aquilo” do SQL. Serve para criar uma coluna nova com uma etiqueta, como a classificação de risco do paciente: verde, amarelo ou vermelho, conforme os sinais. Depois você pode contar quantos caem em cada etiqueta com <code>GROUP BY</code>.</p></div>
+  <div class="tw"><table>
+    <tr><th>Escrevendo</th><th>Significa</th></tr>
+    <tr><td><code>WHEN condição THEN valor</code></td><td>se a condição for verdadeira, usa este valor</td></tr>
+    <tr><td><code>ELSE valor</code></td><td>se nenhuma condição bater, usa este</td></tr>
+    <tr><td><code>END</code></td><td>fecha o CASE</td></tr>
+    <tr><td><code>AS nome</code></td><td>dá nome à coluna criada</td></tr>
+  </table></div>
+  <div class="lbl">Exemplos</div>
+  <div class="code"><pre data-sql>-- etiqueta nova para cada sócio
+SELECT nome, plano,
+  CASE WHEN plano = 'ouro' THEN 'VIP' ELSE 'comum' END AS categoria
+FROM academia_membro
+LIMIT 5;</pre></div>
+  <div class="code"><pre data-sql>-- contando por etiqueta
+SELECT
+  CASE WHEN altura_cm &lt; 170 THEN 'mais baixa' ELSE 'mais alta' END AS grupo,
+  COUNT(*) AS total
+FROM habilitacao
+GROUP BY grupo;</pre></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Separe a renda em três faixas: <strong>baixa</strong> (menos de 50000), <strong>média</strong> (de 50000 até 199999) e <strong>alta</strong> (200000 ou mais). Conte quantas pessoas há em cada faixa.</li><li>Classifique as ocorrências em <strong>grave</strong> (sabotagem, invasão, furto, fraude) e <strong>leve</strong> (as demais). Conte quantas há de cada.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Use <code>CASE</code> no <code>SELECT</code>, dê um nome com <code>AS</code> e repita esse nome no <code>GROUP BY</code>. As condições são testadas de cima para baixo, então coloque a menor faixa primeiro. No item 2, <code>tipo IN ('sabotagem', …)</code> resolve a condição.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT
+  CASE WHEN renda_anual &lt; 50000  THEN 'baixa'
+       WHEN renda_anual &lt; 200000 THEN 'média'
+       ELSE 'alta' END AS faixa,
+  COUNT(*) AS total
+FROM renda
+GROUP BY faixa
+ORDER BY total DESC;</pre></div>
+    <div class="code"><pre data-sql>SELECT
+  CASE WHEN tipo IN ('sabotagem', 'invasão', 'furto', 'fraude') THEN 'grave'
+       ELSE 'leve' END AS gravidade,
+  COUNT(*) AS total
+FROM relatorio_ocorrencia
+GROUP BY gravidade
+ORDER BY total DESC;</pre></div>
+    <p>Para conferir: média <strong>445</strong>, alta <strong>128</strong>, baixa <strong>82</strong>; grave <strong>536</strong> e leve <strong>369</strong>.</p></div></details>
+  <div class="done-row"><input type="checkbox" id="ok11"><label for="ok11">Fase C concluída</label></div>
+</section>
+
+<section class="fase bonus" id="fase12" data-fase="12" data-nome="LEFT JOIN">
+  <div class="fase-head"><div class="num">D</div><div class="t"><h2>Quem ficou de fora</h2><div class="sub">LEFT JOIN · IS NULL</div></div></div>
+  <div class="box"><b class="l">Para que serve</b><p>O <code>JOIN</code> que você já conhece só mostra quem tem par nas duas tabelas. Mas a pergunta, às vezes, é a contrária: <em>quem não tem</em>. Quais pacientes não têm retorno marcado? Quais sócios nunca foram? O <code>LEFT JOIN</code> mantém todo mundo da tabela da esquerda. Quem não achou par fica com <code>NULL</code>, e é só filtrar por <code>IS NULL</code>.</p></div>
+  <div class="tw"><table>
+    <tr><th>Escrevendo</th><th>Significa</th></tr>
+    <tr><td><code>JOIN</code></td><td>só quem tem par nas duas tabelas</td></tr>
+    <tr><td><code>LEFT JOIN</code></td><td>todos da esquerda, com ou sem par</td></tr>
+    <tr><td><code>IS NULL</code></td><td>o valor está vazio (sem par)</td></tr>
+    <tr><td><code>IS NOT NULL</code></td><td>o valor existe</td></tr>
+  </table></div>
+  <div class="lbl">Exemplos</div>
+  <div class="code"><pre data-sql>-- todos os sócios, com ou sem entrada na academia
+SELECT m.nome, c.data
+FROM academia_membro m
+LEFT JOIN academia_checkin c ON c.membro_id = m.id
+LIMIT 5;</pre></div>
+  <div class="code"><pre data-sql>-- só quem nunca entrou
+SELECT m.nome
+FROM academia_membro m
+LEFT JOIN academia_checkin c ON c.membro_id = m.id
+WHERE c.membro_id IS NULL
+LIMIT 5;</pre></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantos sócios da academia <strong>nunca entraram</strong> (não têm nenhum check-in)?</li><li>Desses, quantos há em <strong>cada plano</strong>?</li><li>Liste o <strong>nome</strong> dos sócios do plano <strong>ouro</strong> que nunca entraram, em ordem alfabética.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Parta de <code>academia_membro</code> (a esquerda) e faça <code>LEFT JOIN</code> com <code>academia_checkin</code>. Quem nunca entrou fica com <code>c.membro_id IS NULL</code>. Conte com <code>COUNT(*)</code> e, no item 2, agrupe por <code>m.plano</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT COUNT(*)
+FROM academia_membro m
+LEFT JOIN academia_checkin c ON c.membro_id = m.id
+WHERE c.membro_id IS NULL;</pre></div>
+    <div class="code"><pre data-sql>SELECT m.plano, COUNT(*) AS total
+FROM academia_membro m
+LEFT JOIN academia_checkin c ON c.membro_id = m.id
+WHERE c.membro_id IS NULL
+GROUP BY m.plano
+ORDER BY m.plano;</pre></div>
+    <div class="code"><pre data-sql>SELECT m.nome
+FROM academia_membro m
+LEFT JOIN academia_checkin c ON c.membro_id = m.id
+WHERE c.membro_id IS NULL
+  AND m.plano = 'ouro'
+ORDER BY m.nome;</pre></div>
+    <p>Para conferir: <strong>28</strong> sócios; bronze <strong>8</strong>, ouro <strong>11</strong>, prata <strong>9</strong>; a lista do ouro tem <strong>11</strong> nomes.</p></div></details>
+  <div class="done-row"><input type="checkbox" id="ok12"><label for="ok12">Fase D concluída</label></div>
+</section>
+
 <section class="fase" id="cola" style="gap:12px">
   <h2 style="font-size:32px">Cola do detetive</h2>
   <div class="tw"><table>
@@ -405,6 +561,10 @@ WHERE p.rua_endereco = 'Rua das Acácias'
     <tr><td><code>IN (…)</code> / <code>BETWEEN a AND b</code></td><td>lista de valores / faixa</td></tr>
     <tr><td><code>COUNT</code>, <code>MAX</code>, <code>MIN</code>, <code>AVG</code>, <code>SUM</code></td><td>contar, maior, menor, média, soma</td></tr>
     <tr><td><code>GROUP BY</code> + <code>HAVING</code></td><td>agrupar e filtrar os grupos</td></tr>
+    <tr><td><code>DISTINCT</code></td><td>tirar repetidos</td></tr>
+    <tr><td><code>WHERE x = (SELECT …)</code></td><td>subconsulta: uma consulta dentro de outra</td></tr>
+    <tr><td><code>CASE WHEN … THEN … ELSE … END</code></td><td>criar uma etiqueta a partir de condições</td></tr>
+    <tr><td><code>LEFT JOIN</code> + <code>IS NULL</code></td><td>achar quem não tem par na outra tabela</td></tr>
     <tr><td><code>CREATE TABLE</code></td><td>criar tabela nova</td></tr>
     <tr><td><code>INSERT INTO … VALUES</code></td><td>guardar linha nova</td></tr>
     <tr><td><code>UPDATE … SET … WHERE</code></td><td>corrigir (sempre com WHERE!)</td></tr>
