@@ -1,0 +1,3 @@
+# Tipos de arquivo que algumas hospedagens nao conhecem
+AddType application/wasm .wasm
+AddType application/manifest+json .webmanifest

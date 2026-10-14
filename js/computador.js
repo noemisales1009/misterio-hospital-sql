@@ -39,9 +39,22 @@
     if (a > -1 && b > a) s = s.slice(0, a) + s.slice(b);
     return s;
   }
+  // Baixa o banco como bytes e compila na mão. Assim não importa o tipo de arquivo que o servidor
+  // declara para o .wasm (alguns hospedam como text/plain, e o navegador recusa nesse caso).
+  function baixa(url, comoBytes) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error("não foi possível baixar " + url.split("/").pop() + " (" + r.status + ")");
+      return comoBytes ? r.arrayBuffer() : r.blob();
+    });
+  }
   function novoBanco() {
-    return import(CDN).then(function (mod) {
-      var db = new mod.PGlite();
+    var pasta = new URL("vendor/pglite/", document.baseURI).href;
+    return Promise.all([
+      import(CDN),
+      baixa(pasta + "postgres.wasm", true).then(function (bytes) { return WebAssembly.compile(bytes); }),
+      baixa(pasta + "postgres.data", false)
+    ]).then(function (v) {
+      var db = new v[0].PGlite({ wasmModule: v[1], fsBundle: v[2] });
       return db.waitReady.then(function () { return db; });
     });
   }
@@ -308,12 +321,21 @@
       var p = mensagem("", "boot");
       var tTexto = "> ligando o computador…\n> carregando o banco de dados do caso…\n";
       var animacao = digita(p, tTexto, 8);
+      // relógio: mostra que não travou e avisa se estiver demorando
+      var seg = 0;
+      var relogio = setInterval(function () {
+        seg++;
+        status.textContent = "ligando… " + seg + " s";
+        if (seg === 12) p.textContent += "\n> está demorando mais que o normal, aguarde mais um pouco…";
+      }, 1000);
       return Promise.all([ligar(), animacao]).then(function () {
+        clearInterval(relogio);
         marca("ligado", "ligado");
         pintaTabelas();
         var n = motor.tabelas.length;
         return digita(p, "> pronto: " + n + " tabelas carregadas.\n> digite uma consulta e aperte Ctrl+Enter.", 8);
       }).catch(function (e) {
+        clearInterval(relogio);
         marca("erro", "sem conexão");
         mensagem("Não consegui ligar o computador.\nÉ preciso internet na primeira vez, para baixar o banco de dados.\n(" + (e && e.message ? e.message : e) + ")", "erro");
         throw e;
