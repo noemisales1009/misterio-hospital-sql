@@ -118,3 +118,35 @@ dialog.sync .msg{margin-top:10px;font-size:.9rem;color:var(--muted);min-height:1
 dialog.sync small{color:var(--muted)}
 dialog.sync [hidden]{display:none}
 dialog.sync #sbWho{margin:8px 0;word-break:break-all}
+
+/* zoom nos diagramas */
+pre.mermaid.zoomavel{overflow:hidden;cursor:zoom-in;outline-offset:2px}
+pre.mermaid.zoomavel svg{transition:transform .18s ease-out;transform-origin:50% 50%}
+@media (hover:hover) and (pointer:fine){
+  pre.mermaid.zoomavel:hover svg{transform:scale(var(--zoom,1.8))}
+}
+pre.mermaid.zoomavel:focus-visible{outline:2px solid var(--scrub)}
+.zoom-dica{margin:6px 0 0}
+dialog.lupa{border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);padding:12px;width:min(96vw,1500px);max-height:94vh;overflow:hidden}
+dialog.lupa::backdrop{background:rgba(0,0,0,.6)}
+dialog.lupa .lupa-fechar{position:sticky;top:0;float:right;z-index:1}
+dialog.lupa .lupa-corpo{overflow:auto;max-height:calc(94vh - 70px);margin-top:8px}
+@media (prefers-reduced-motion:reduce){pre.mermaid.zoomavel svg{transition:none}}
+
+/* tela de login */
+.tela-login{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:16px;background:var(--bg);overflow:auto}
+.tela-login[hidden]{display:none}
+.tela-card{width:min(440px,100%);background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:28px 24px;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.tela-sel{font-size:40px;line-height:1}
+.tela-card h1{font-family:var(--f-display);font-size:34px;line-height:1.05;margin:10px 0 6px;color:var(--ink)}
+.tela-sub{margin:0 0 12px;color:var(--muted)}
+.tela-card label{display:block;margin:14px 0 4px;font-weight:700}
+.tela-min{font-weight:400;color:var(--muted);font-size:.85em}
+.tela-card input{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+.tela-card input:focus-visible{outline:2px solid var(--scrub);outline-offset:1px}
+.tela-btns{display:flex;gap:10px;margin-top:18px}
+.tela-btns .btn{flex:1;padding:11px 12px}
+.tela-primario{background:var(--scrub);color:#fff;border-color:var(--scrub)}
+.tela-card .msg{margin-top:12px;min-height:1.3em;font-size:.92rem;color:var(--muted)}
+.tela-pular{display:block;margin:14px auto 0;background:none;border:0;color:var(--scrub);font:inherit;text-decoration:underline;cursor:pointer;padding:6px}
+.tela-nota{margin:4px 0 0;text-align:center;font-size:.82rem;color:var(--muted)}

@@ -78,7 +78,8 @@
   var syncBtn=document.createElement("button");syncBtn.type="button";syncBtn.className="syncbtn";
   trail.appendChild(syncBtn);
   function $(id){return document.getElementById(id)}
-  var dlg=$("syncDlg"),sbMsg=$("sbMsg");
+  var dlg=$("syncDlg"),sbMsg=$("sbMsg"),lgMsg=$("lgMsg"),tela=$("telaLogin");
+  var SKIP_KEY="misterio-sql-sem-login";
 
   function base(){return cfg.url.replace(/\/+$/,"").replace(/\/(rest|auth)\/v1$/,"")}
   function configurado(){return !!(cfg.url&&cfg.key)}
@@ -91,12 +92,16 @@
   }
   function painel(){
     $("sbConnGrp").hidden=configurado();
-    $("sbAuthGrp").hidden=!configurado()||logado();
     $("sbUserGrp").hidden=!logado();
     $("sbClear").hidden=!configurado()||doBuild;
     $("sbWho").textContent=logado()?"Conectado como "+(sessao.email||"usuário")+". Seu progresso é salvo na nuvem.":"";
   }
-  function aviso(t){sbMsg.textContent=t}
+  function aviso(t){sbMsg.textContent=t;lgMsg.textContent=t}
+  function mostraLogin(){
+    aviso("");tela.hidden=false;
+    try{$("sbEmail").focus()}catch(e){}
+  }
+  function escondeLogin(){tela.hidden=true}
 
   function guardaSessao(r){
     if(r&&r.access_token){
@@ -187,9 +192,9 @@
   function aposAutenticar(r){
     $("sbPass").value="";
     if(r&&r.access_token){
-      guardaSessao(r);rotulo();painel();aviso("Entrando...");sincroniza(true);
+      guardaSessao(r);rotulo();painel();escondeLogin();sincroniza(true);
     }else{
-      aviso("Conta criada. Confirme seu e-mail e depois clique em Entrar.");
+      aviso("Conta criada. Confirme seu e-mail (veja a caixa de entrada) e depois clique em Entrar.");
     }
   }
   $("sbLogin").addEventListener("click",function(){
@@ -206,7 +211,9 @@
   $("sbLogout").addEventListener("click",function(){
     var tk=sessao&&sessao.access_token;
     if(tk) authReq("logout",{},tk).catch(function(){});
-    sairLocal();aviso("Você saiu. O guia voltou ao estado inicial neste navegador.");
+    sairLocal();try{sessionStorage.removeItem(SKIP_KEY)}catch(e){}
+    if(dlg.open) dlg.close();
+    mostraLogin();aviso("Você saiu. Entre de novo quando quiser.");
   });
   $("sbSave").addEventListener("click",function(){
     var u=$("sbUrl").value.trim().replace(/\/rest\/v1\/?$/,"").replace(/\/+$/,""),k=$("sbKey").value.trim();
@@ -218,7 +225,7 @@
     }catch(e){aviso("Chave inválida. Copie a chave anon (public) inteira.");return}
     cfg={url:u,key:k};
     try{localStorage.setItem(CFG_KEY,JSON.stringify(cfg))}catch(e){}
-    rotulo();painel();aviso("Conectado ao projeto. Agora entre ou crie sua conta.");
+    rotulo();painel();if(dlg.open) dlg.close();mostraLogin();
   });
   $("sbClear").addEventListener("click",function(){
     var tk=sessao&&sessao.access_token;
@@ -228,8 +235,16 @@
   });
   $("sbClose").addEventListener("click",function(){dlg.close()});
   syncBtn.addEventListener("click",function(){
+    if(configurado()&&!logado()){mostraLogin();return}
     aviso("");painel();
     if(dlg.showModal) dlg.showModal(); else dlg.setAttribute("open","");
+  });
+  $("lgPular").addEventListener("click",function(){
+    try{sessionStorage.setItem(SKIP_KEY,"1")}catch(e){}
+    escondeLogin();
+  });
+  document.addEventListener("keydown",function(e){
+    if(e.key==="Escape"&&!tela.hidden) $("lgPular").click();
   });
   rotulo();painel();
 
@@ -244,4 +259,8 @@
   });
   render();
   if(logado()) sincroniza(false);
+  else if(configurado()){
+    var pulou=false;try{pulou=sessionStorage.getItem(SKIP_KEY)==="1"}catch(e){}
+    if(!pulou) mostraLogin();
+  }
 })();
