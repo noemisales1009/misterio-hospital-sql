@@ -9,6 +9,12 @@ Alguém desligou a geladeira de vacinas da Sala de Vacinas, e você descobre que
 |---|---|
 | `guia.html` | O jogo: as fases, explicações, missões, dicas e soluções. Abra no navegador. |
 | `banco_do_jogo.sql` | O banco de dados do mistério. Vai no Supabase. |
+| `index.html` | Redireciona para o `guia.html` (página inicial da hospedagem). |
+| `css/estilo.css` | Visual do guia. |
+| `js/app.js` | Progresso, sincronização com o Supabase e botões de copiar. |
+| `js/mermaid-init.js` | Liga os diagramas. |
+| `progresso.sql` | Só a tabela de progresso (já está dentro do `banco_do_jogo.sql`). |
+| `package.json` | Para hospedagens que pedem Node.js. `npm install` e `npm start` abrem em http://localhost:3000. |
 | `LEIA-ME.md` | Este arquivo. |
 
 ## Como começar

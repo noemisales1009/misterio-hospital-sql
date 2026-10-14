@@ -1,0 +1,16 @@
+{
+  "name": "misterio-hospital-sql",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Jogo de detetive para aprender SQL com o Supabase (site estatico em HTML, CSS e JavaScript).",
+  "scripts": {
+    "start": "serve . -l 3000",
+    "dev": "serve . -l 3000"
+  },
+  "dependencies": {
+    "serve": "14.2.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
