@@ -26,8 +26,16 @@
   --code-bg:#0a110f;--code-fg:#e3efe9;color-scheme:dark}
 
 *{box-sizing:border-box}
+/* app Android (Capacitor): a área segura vem numa variável injetada pelo nativo (confiável em
+   qualquer versão do WebView). Fora do app (navegador comum), ela não existe e cai no env(). */
+:root{
+  --safe-top:var(--safe-area-inset-top,env(safe-area-inset-top,0px));
+  --safe-right:var(--safe-area-inset-right,env(safe-area-inset-right,0px));
+  --safe-bottom:var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px));
+  --safe-left:var(--safe-area-inset-left,env(safe-area-inset-left,0px));
+}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.6;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  padding-left:max(16px,var(--safe-left));padding-right:max(16px,var(--safe-right))}
 .wrap{max-width:780px;margin:0 auto;padding-block:28px 80px;display:flex;flex-direction:column;gap:28px}
 h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.02;margin:0;letter-spacing:.01em}
 p{margin:0}
@@ -46,7 +54,7 @@ mark{background:var(--clue);color:#16211e;padding:0 .2em;border-radius:2px}
 .lead{font-size:19px;color:var(--muted);max-width:62ch}
 
 /* trilha de fases */
-.trail{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px;margin-inline:-4px;border-bottom:1px solid var(--line)}
+.trail{position:sticky;top:var(--safe-top);z-index:5;background:var(--bg);padding-block:10px;margin-inline:-4px;border-bottom:1px solid var(--line)}
 .trail-inner{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .chip{font-family:var(--f-mono);font-size:13px;font-weight:600;text-decoration:none;color:var(--ink);border:1.5px solid var(--line);background:var(--paper);border-radius:999px;padding:4px 11px;display:inline-flex;gap:6px;align-items:center}
 .chip.done{background:var(--scrub);border-color:var(--scrub);color:var(--paper)}
@@ -99,7 +107,7 @@ details>div{display:flex;flex-direction:column;gap:10px}
 
 .mapa pre.mermaid{background:var(--paper);margin:0}
 .foot{font-size:14px;color:var(--muted)}
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:6px;font-family:var(--f-mono);font-size:13px}
+.toast{position:fixed;left:50%;bottom:calc(20px + var(--safe-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:6px;font-family:var(--f-mono);font-size:13px}
 @media (max-width:520px){.case h2{padding-right:0;padding-top:34px}.num{width:46px;height:46px;font-size:26px}.fase{padding:20px 16px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 html{scroll-behavior:smooth}
@@ -277,7 +285,7 @@ dialog.caderno::backdrop{background:rgba(0,0,0,.62)}
 .caso-prog{display:flex;flex-direction:column;gap:2px;margin-top:4px}
 
 /* crédito */
-.rodape-autoria{text-align:center;padding:22px 16px calc(28px + env(safe-area-inset-bottom,0px));color:var(--muted);font-size:.9rem;border-top:1px solid var(--line);margin-top:24px}
+.rodape-autoria{text-align:center;padding:22px 16px calc(28px + var(--safe-bottom));color:var(--muted);font-size:.9rem;border-top:1px solid var(--line);margin-top:24px}
 .tela-autoria{margin:10px 0 0;text-align:center;font-size:.8rem;color:var(--muted)}
 
 /* pop-up da primeira entrada e avatar */
@@ -689,7 +697,7 @@ dialog.caderno[open]{display:block}
 /* celular e tablet */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 /* aplicativo (tela cheia, com entalhe ou barra de status): conteúdo não fica embaixo delas */
-html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
 .fase>*{min-width:0;max-width:100%}
 .toast{left:16px;right:16px;width:max-content;max-width:calc(100% - 32px);margin-inline:auto;transform:none;text-align:center;line-height:1.4}
 @media (max-width:900px){
@@ -784,7 +792,7 @@ html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
 
 /* caderno no celular: tela cheia, cabeçalho de uma linha, margem vermelha fora do texto, rolagem só dentro dele */
 @media (max-width:760px){
-  dialog.caderno,dialog.caderno[open]{width:100vw;height:100vh;height:100dvh;max-width:none;max-height:none;margin:0;inset:0;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);background:#1a5043}
+  dialog.caderno,dialog.caderno[open]{width:100vw;height:100vh;height:100dvh;max-width:none;max-height:none;margin:0;inset:0;padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);background:#1a5043}
   .cad-etiqueta,.cad-carimbo{display:none}
   .cad-aba{padding:8px 6px;font-size:19px}
   .cad-topo{padding:8px 12px 6px 16px}
