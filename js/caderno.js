@@ -1561,8 +1561,43 @@
     window.addEventListener("load", function () { agendaMural(0); });
     atualizaMuralHome();
   }
+  // tela pequena: uma fita de fotos com rolagem lateral, logo abaixo do cartão amarelo
+  function galeriaCompacta() {
+    var ant = document.getElementById("galeriaCulpados");
+    if (ant) ant.remove();
+    var boas = document.getElementById("cadBoasVindas");
+    if (!boas || window.innerWidth >= MURAL_LARGURA_MIN) return;
+    var r = resumo();
+    var pinos = ["vermelho", "azul", "amarelo", "verde"];
+    var sec = el("section", "galeria-culpados"); sec.id = "galeriaCulpados";
+    sec.setAttribute("aria-label", "Galeria dos culpados");
+    sec.appendChild(el("h3", null, "Galeria dos culpados"));
+    var fita = el("div", "galeria-fita");
+    var giros = [-3.6, 2.8, -2.4, 3.8, -3, 2.4, -3.8, 3.2, -2.6, 3.6];
+    CAT.forEach(function (cs, i) {
+      var cul = CULPADOS[cs.arq];
+      var feito = casoCompleto(cs, r.st);
+      var fig = el("figure", "galeria-foto");
+      fig.style.setProperty("--giro", giros[i % giros.length] + "deg");
+      fig.appendChild(el("span", "pino pino-" + pinos[i % 4]));
+      fig.appendChild(el("span", "mural-num", String(cs.n)));
+      var ret = el("div", "ficha-retrato");
+      ret.innerHTML = feito && cul ? retratoMarkup(cul.nome, cul.tipo === "aparelho") : svgSilhueta();
+      if (feito && cul) ret.appendChild(el("span", "mural-selo", "Concluído"));
+      fig.appendChild(ret);
+      var nome = feito && cul ? cul.nome : "?";
+      var leg = el("figcaption");
+      var b = el("b", null, nome.split(" ")[0]); b.title = nome;
+      leg.appendChild(b);
+      fig.appendChild(leg);
+      fita.appendChild(fig);
+    });
+    sec.appendChild(fita);
+    boas.parentNode.insertBefore(sec, boas.nextSibling);
+  }
   function atualizaMuralHome() {
     if (!mural || !muralModoHome) return;
+    galeriaCompacta();
     muralEsq.textContent = ""; muralDir.textContent = "";
     muralEsq.classList.remove("grade", "duplo"); muralDir.classList.remove("grade", "duplo");
     muralEsq.classList.add("home"); muralDir.classList.add("home");

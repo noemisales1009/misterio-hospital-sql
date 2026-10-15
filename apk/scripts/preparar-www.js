@@ -11,7 +11,7 @@ fs.rmSync(destino, { recursive: true, force: true });
 fs.mkdirSync(destino, { recursive: true });
 
 const paginas = fs.readdirSync(site).filter((f) => f.endsWith('.html'));
-const pastas = ['css', 'js', 'fonts', 'icons', 'vendor'];
+const pastas = ['css', 'js', 'fonts', 'icons', 'img', 'vendor'];
 const soltos = ['manifest.webmanifest'];
 
 paginas.concat(soltos).forEach((f) => {
