@@ -14,7 +14,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=86e6f3f7">
+<link rel="stylesheet" href="css/estilo.css?v=275db533">
 </head>
 <body>
 
@@ -5019,6 +5019,39 @@ GRANT SELECT, INSERT, UPDATE ON anotacao TO authenticated;
 ALTER TABLE anotacao ADD COLUMN IF NOT EXISTS imagem text;
 ALTER TABLE anotacao DROP CONSTRAINT IF EXISTS anotacao_imagem_tamanho;
 ALTER TABLE anotacao ADD CONSTRAINT anotacao_imagem_tamanho CHECK (imagem IS NULL OR char_length(imagem) <= 300000);
+-- Varias imagens por anotacao (ate 6 por fase), uma linha por imagem (JPEG reduzido, em texto)
+CREATE TABLE IF NOT EXISTS anotacao_imagem (
+  user_id        uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE,
+  fase           text NOT NULL CHECK (char_length(fase) <= 40),
+  pos            smallint NOT NULL CHECK (pos BETWEEN 0 AND 5),
+  imagem         text NOT NULL CHECK (char_length(imagem) <= 300000 AND imagem LIKE 'data:image/jpeg;base64,%'),
+  atualizado_em  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, fase, pos)
+);
+ALTER TABLE anotacao_imagem ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "le as proprias imagens" ON anotacao_imagem;
+DROP POLICY IF EXISTS "grava as proprias imagens" ON anotacao_imagem;
+DROP POLICY IF EXISTS "atualiza as proprias imagens" ON anotacao_imagem;
+DROP POLICY IF EXISTS "apaga as proprias imagens" ON anotacao_imagem;
+CREATE POLICY "le as proprias imagens" ON anotacao_imagem
+  FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid()));
+CREATE POLICY "grava as proprias imagens" ON anotacao_imagem
+  FOR INSERT TO authenticated WITH CHECK (user_id = (SELECT auth.uid()));
+CREATE POLICY "atualiza as proprias imagens" ON anotacao_imagem
+  FOR UPDATE TO authenticated USING (user_id = (SELECT auth.uid()))
+  WITH CHECK (user_id = (SELECT auth.uid()));
+CREATE POLICY "apaga as proprias imagens" ON anotacao_imagem
+  FOR DELETE TO authenticated USING (user_id = (SELECT auth.uid()));
+REVOKE ALL ON anotacao_imagem FROM anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON anotacao_imagem TO authenticated;
+-- leva para a tabela nova a imagem unica que ja existia na anotacao
+INSERT INTO anotacao_imagem (user_id, fase, pos, imagem)
+SELECT user_id, fase, 0, imagem FROM anotacao
+WHERE imagem IS NOT NULL AND imagem LIKE 'data:image/jpeg;base64,%'
+ON CONFLICT (user_id, fase, pos) DO NOTHING;
+UPDATE anotacao SET imagem = NULL
+WHERE imagem IS NOT NULL AND imagem LIKE 'data:image/jpeg;base64,%'
+  AND EXISTS (SELECT 1 FROM anotacao_imagem i WHERE i.user_id = anotacao.user_id AND i.fase = anotacao.fase AND i.pos = 0);
 
 -- Conferir a resposta:  SELECT verificar_solucao('Nome Completo');
 CREATE FUNCTION verificar_solucao(suspeito text) RETURNS text
@@ -5110,7 +5143,7 @@ SELECT '✅ Jogo instalado! Volte para o guia e comece a Fase 1.' AS status;
 <script src="js/app.js?v=5417c6c0"></script>
 <script src="js/pwa.js?v=e304ae22"></script>
 <script src="js/catalogo.js?v=cd3ff46d"></script>
-<script src="js/caderno.js?v=16f823f1"></script>
+<script src="js/caderno.js?v=2db7214a"></script>
 <script src="js/quadro.js?v=27dfa579"></script>
 <script src="js/computador.js?v=8b659794"></script>
 

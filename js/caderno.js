@@ -140,14 +140,15 @@
     return typeof d === "string" && d.length <= IMG_MAX_CARACTERES && d.indexOf(PREFIXO_FOTO) === 0 &&
       /^[A-Za-z0-9+/=]+$/.test(d.slice(PREFIXO_FOTO.length));
   }
-  function processaImagem(arquivo, pronto) {
-    if (!arquivo || !/^image[/]/.test(arquivo.type || "")) { toast("Escolha um arquivo de imagem"); return; }
-    if (arquivo.size > 15 * 1024 * 1024) { toast("A imagem é grande demais (máximo 15 MB)"); return; }
+  function processaImagem(arquivo, pronto, falhou) {
+    var erro = function (m) { toast(m); if (falhou) falhou(); };
+    if (!arquivo || !/^image[/]/.test(arquivo.type || "")) { erro("Escolha um arquivo de imagem"); return; }
+    if (arquivo.size > 15 * 1024 * 1024) { erro("A imagem é grande demais (máximo 15 MB)"); return; }
     var url = URL.createObjectURL(arquivo), img = new Image();
     img.onload = function () {
       URL.revokeObjectURL(url);
       var maior = Math.max(img.width, img.height);
-      if (!maior) { toast("Não consegui abrir essa imagem"); return; }
+      if (!maior) { erro("Não consegui abrir essa imagem"); return; }
       var tentativas = [[900, 0.78], [800, 0.65], [640, 0.55], [480, 0.5]];
       for (var i = 0; i < tentativas.length; i++) {
         var esc = Math.min(1, tentativas[i][0] / maior);
@@ -160,70 +161,144 @@
         var d = cv.toDataURL("image/jpeg", tentativas[i][1]);
         if (imagemValida(d)) { pronto(d); return; }
       }
-      toast("Essa imagem ficou grande demais mesmo reduzida");
+      erro("Essa imagem ficou grande demais mesmo reduzida");
     };
-    img.onerror = function () { URL.revokeObjectURL(url); toast("Não consegui abrir essa imagem"); };
+    img.onerror = function () { URL.revokeObjectURL(url); erro("Não consegui abrir essa imagem"); };
     img.src = url;
   }
-  function escolherArquivoImagem(cb) {
+  function escolherArquivoImagem(cb, multiplo) {
     var f = document.createElement("input");
     f.type = "file"; f.accept = "image/*"; f.style.display = "none";
+    if (multiplo) f.multiple = true;
     f.addEventListener("change", function () {
-      var a = f.files && f.files[0];
+      var a = [].slice.call(f.files || []);
       f.remove();
-      if (a) cb(a);
+      if (!a.length) return;
+      if (multiplo) cb(a); else cb(a[0]);
     });
     document.body.appendChild(f);
     f.click();
   }
-  // popup para ver a imagem da anotação em detalhe; os botões da anotação vêm para dentro dele
-  var visorEl = null, visorFoto = null, visorImg = null, visorLegenda = null, visorAcoes = null, visorAtual = null;
+  // feedback no próprio botão: o texto muda por um instante
+  function avisaBtn(b, t) {
+    var antes = b.getAttribute("data-rot") || b.textContent;
+    b.setAttribute("data-rot", antes);
+    b.textContent = t;
+    clearTimeout(b._t);
+    b._t = setTimeout(function () { b.textContent = antes; }, 1800);
+  }
+  // copia uma imagem (data URL) para a área de transferência, como PNG
+  function copiaImagemPNG(src, btn) {
+    if (!(navigator.clipboard && navigator.clipboard.write && window.ClipboardItem)) {
+      avisaBtn(btn, "Seu navegador não deixa"); return;
+    }
+    var png = new Promise(function (ok, no) {
+      var im = new Image();
+      im.onload = function () {
+        var cv = document.createElement("canvas");
+        cv.width = im.width; cv.height = im.height;
+        cv.getContext("2d").drawImage(im, 0, 0);
+        cv.toBlob(function (b) { b ? ok(b) : no(new Error("png")); }, "image/png");
+      };
+      im.onerror = no;
+      im.src = src;
+    });
+    navigator.clipboard.write([new ClipboardItem({ "image/png": png })]).then(
+      function () { avisaBtn(btn, "Copiada!"); },
+      function () { avisaBtn(btn, "Não consegui copiar"); });
+  }
+  // popup para ver as imagens da anotação em detalhe (uma por vez, com setas para passar entre elas)
+  var IMG_MAX_POR_FASE = 6;
+  var visorEl = null, visorFoto = null, visorImg = null, visorLegenda = null, visorAnt = null, visorProx = null, visorAtual = null;
   function criaVisor() {
     if (visorEl) return visorEl;
     var d = el("dialog", "cad-visor"); d.tabIndex = -1;
-    d.setAttribute("aria-label", "Imagem da anotação");
+    d.setAttribute("aria-label", "Imagens da anotação");
     var painel = el("div", "cad-visor-painel");
     var topo = el("div", "cad-visor-topo");
     visorLegenda = el("span", "cad-visor-legenda");
     var x = el("button", "cad-visor-x", "✕"); x.type = "button"; x.setAttribute("aria-label", "Fechar imagem");
     topo.appendChild(visorLegenda); topo.appendChild(x);
+    var quadro = el("div", "cad-visor-quadro");
+    visorAnt = el("button", "cad-visor-seta ant", "‹"); visorAnt.type = "button"; visorAnt.setAttribute("aria-label", "Imagem anterior");
+    visorProx = el("button", "cad-visor-seta prox", "›"); visorProx.type = "button"; visorProx.setAttribute("aria-label", "Próxima imagem");
     visorFoto = el("figure", "cad-visor-foto");
     visorImg = el("img"); visorImg.alt = "Imagem da anotação, ampliada";
-    visorImg.title = "Clique para ver no tamanho real";
     visorFoto.appendChild(visorImg);
-    visorAcoes = el("div", "cad-visor-acoes");
-    var dica = el("p", "cad-visor-dica", "Clique na imagem para ver no tamanho real · Esc fecha");
-    painel.appendChild(topo); painel.appendChild(visorFoto); painel.appendChild(visorAcoes); painel.appendChild(dica);
+    quadro.appendChild(visorAnt); quadro.appendChild(visorFoto); quadro.appendChild(visorProx);
+    var acoes = el("div", "cad-visor-acoes");
+    var trocar = el("button", "btn", "🖼 Trocar imagem"); trocar.type = "button";
+    trocar.title = "Troca só esta imagem por outra do computador";
+    var copiar = el("button", "btn", "Copiar imagem"); copiar.type = "button";
+    copiar.title = "Copia esta imagem para colar em outro lugar";
+    var remover = el("button", "btn", "Remover imagem"); remover.type = "button";
+    remover.title = "Tira só esta imagem da anotação";
+    acoes.appendChild(trocar); acoes.appendChild(copiar); acoes.appendChild(remover);
+    var dica = el("p", "cad-visor-dica", "Clique na imagem para ver no tamanho real · setas ← → passam de imagem · Ctrl+V adiciona outra · Esc fecha");
+    painel.appendChild(topo); painel.appendChild(quadro); painel.appendChild(acoes); painel.appendChild(dica);
     d.appendChild(painel);
     x.addEventListener("click", fechaVisor);
+    visorAnt.addEventListener("click", function () { moveVisor(-1); });
+    visorProx.addEventListener("click", function () { moveVisor(1); });
     visorImg.addEventListener("click", function () {
       var real = visorFoto.classList.toggle("real");
       visorImg.title = real ? "Clique para caber na tela" : "Clique para ver no tamanho real";
     });
+    trocar.addEventListener("click", function () {
+      var c = visorAtual; if (!c) return;
+      var i = c.i;
+      escolherArquivoImagem(function (arq) {
+        processaImagem(arq, function (dados) { c.ctrl.troca(i, dados); });
+      });
+    });
+    copiar.addEventListener("click", function () {
+      var c = visorAtual; if (c) copiaImagemPNG(c.ctrl.src(c.i), copiar);
+    });
+    remover.addEventListener("click", function () {
+      var c = visorAtual; if (c) c.ctrl.remove(c.i);
+    });
     // clicar no fundo escuro fecha
     d.addEventListener("click", function (e) { if (e.target === d) fechaVisor(); });
+    d.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowLeft") { e.preventDefault(); moveVisor(-1); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); moveVisor(1); }
+    });
     d.addEventListener("close", function () {
       var a = visorAtual; visorAtual = null;
-      if (a && a.aoFechar) a.aoFechar();
+      if (a && a.ctrl.aoFechar) a.ctrl.aoFechar();
     });
-    // Ctrl+V com o popup aberto troca a imagem da anotação
-    d.addEventListener("paste", function (e) { if (visorAtual && visorAtual.aoColar) visorAtual.aoColar(e); });
+    // Ctrl+V com o popup aberto adiciona outra imagem à anotação
+    d.addEventListener("paste", function (e) { if (visorAtual) visorAtual.ctrl.cola(e); });
     document.body.appendChild(d);
     visorEl = d;
     return d;
   }
-  function abreVisor(src, legenda, acoes, aoFechar, aoColar) {
-    var d = criaVisor();
-    visorAtual = { aoFechar: aoFechar, aoColar: aoColar };
+  function mostraNoVisor() {
+    var c = visorAtual; if (!c || !visorEl) return;
+    var n = c.ctrl.n();
+    if (!n) { fechaVisor(); return; }
+    if (c.i >= n) c.i = n - 1;
+    if (c.i < 0) c.i = 0;
+    visorImg.src = c.ctrl.src(c.i);
+    visorLegenda.textContent = c.ctrl.legenda(c.i);
     visorFoto.classList.remove("real");
     visorImg.title = "Clique para ver no tamanho real";
-    visorImg.src = src; visorLegenda.textContent = legenda;
-    visorAcoes.appendChild(acoes);
+    visorAnt.hidden = visorProx.hidden = n < 2;
+  }
+  function moveVisor(passo) {
+    var c = visorAtual; if (!c) return;
+    var n = c.ctrl.n(); if (n < 2) return;
+    c.i = (c.i + passo + n) % n;
+    mostraNoVisor();
+  }
+  function irVisor(i) { if (visorAtual) { visorAtual.i = i; mostraNoVisor(); } }
+  function abreVisor(ctrl, i) {
+    var d = criaVisor();
+    visorAtual = { ctrl: ctrl, i: i };
+    mostraNoVisor();
     if (!d.open) { if (d.showModal) d.showModal(); else d.setAttribute("open", ""); }
   }
-  function atualizaVisor(src) {
-    if (visorEl && visorEl.open) { visorImg.src = src; visorFoto.classList.remove("real"); }
-  }
+  function atualizaVisor() { if (visorEl && visorEl.open && visorAtual) mostraNoVisor(); }
   function fechaVisor() { if (visorEl && visorEl.open) visorEl.close(); }
   // as imagens ficam no IndexedDB do navegador (cabem mais do que no localStorage)
   function abreIDB() {
@@ -247,6 +322,12 @@
   function idbGet(k) { return idbOp("readonly", function (s) { return s.get(k); }); }
   function idbPut(k, v) { return idbOp("readwrite", function (s) { return s.put(v, k); }); }
   function idbDel(k) { return idbOp("readwrite", function (s) { return s["delete"](k); }); }
+  function idbChaves() { return idbOp("readonly", function (s) { return s.getAllKeys(); }); }
+  // cada fase guarda uma lista de imagens (o formato antigo guardava uma só, em texto)
+  function listaImagens(v) {
+    var l = Array.isArray(v) ? v : (typeof v === "string" ? [v] : []);
+    return l.filter(imagemValida).slice(0, IMG_MAX_POR_FASE);
+  }
   var NIVEIS = [
     { min: 0, nome: "Aprendiz" },
     { min: 15, nome: "Investigação" },
@@ -341,6 +422,22 @@
       body: JSON.stringify([linha])
     }).then(function () { return "ok"; }, function () { return "erro"; });
   }
+  // grava a lista inteira de imagens da fase (uma linha por imagem) e apaga as que sobraram
+  function salvaImagensNuvem(fase, lista) {
+    var n = nuvem(); if (!n) return Promise.resolve("sem-conta");
+    var agora = new Date().toISOString();
+    var envia = lista.length ? n.api("anotacao_imagem?on_conflict=user_id,fase,pos", {
+      method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify(lista.map(function (d, i) {
+        return { user_id: n.uid(), fase: fase, pos: i, imagem: d, atualizado_em: agora };
+      }))
+    }) : Promise.resolve();
+    return envia.then(function () {
+      return n.api("anotacao_imagem?fase=eq." + encodeURIComponent(fase) + "&pos=gte." + lista.length, {
+        method: "DELETE", headers: { Prefer: "return=minimal" }
+      });
+    }).then(function () { return "ok"; }, function () { return "erro"; });
+  }
   // aviso discreto de "salvo", usado nas anotações e no nome
   function criaAviso(enviar) {
     var box = el("div", "cad-salvo");
@@ -397,16 +494,43 @@
       } else if (jog.nome) { salvaPerfilNuvem(); }
       return n.api("anotacao?select=fase,texto,imagem").catch(function () { return n.api("anotacao?select=fase,texto"); });
     }).then(function (rows) {
-      var remoto = {};
+      var remoto = {}, legado = {};
       (rows || []).forEach(function (r) {
         remoto[r.fase] = r.texto; notas[r.fase] = r.texto;
-        if (imagemValida(r.imagem)) idbPut(r.fase, r.imagem);
+        if (imagemValida(r.imagem)) legado[r.fase] = r.imagem;
       });
       gravar(K_NOTAS, notas);
       Object.keys(notas).forEach(function (f) { if (notas[f] && !(f in remoto)) salvaNotaNuvem(f, notas[f]); });
+      return sincronizaImagens(n, legado);
+    }).then(function () {
       atualizaBotao();
       if (depois) depois();
     }).catch(function () { if (depois) depois(); });
+  }
+  // junta as imagens da nuvem com as do aparelho (a nuvem vale quando tem imagens da fase)
+  function sincronizaImagens(n, legado) {
+    return n.api("anotacao_imagem?select=fase,pos,imagem&order=pos.asc").then(function (rows) { return rows || []; }, function () { return null; })
+      .then(function (rows) {
+        var tabelaOk = rows !== null, naNuvem = {};
+        (rows || []).forEach(function (r) {
+          if (imagemValida(r.imagem)) (naNuvem[r.fase] = naNuvem[r.fase] || []).push(r.imagem);
+        });
+        return idbChaves().then(function (chaves) {
+          var tarefas = [], outras = {};
+          Object.keys(naNuvem).forEach(function (f) { tarefas.push(idbPut(f, naNuvem[f].slice(0, IMG_MAX_POR_FASE))); });
+          (chaves || []).forEach(function (f) { if (!naNuvem[f]) outras[f] = true; });
+          Object.keys(legado).forEach(function (f) { if (!naNuvem[f]) outras[f] = true; });
+          // só no aparelho (ou só na coluna antiga da anotação): sobe para a tabela nova
+          Object.keys(outras).forEach(function (f) {
+            tarefas.push(idbGet(f).then(function (v) {
+              var lista = listaImagens(v);
+              if (!lista.length && legado[f]) { lista = [legado[f]]; idbPut(f, lista); }
+              if (lista.length && tabelaOk) return salvaImagensNuvem(f, lista);
+            }));
+          });
+          return Promise.all(tarefas);
+        });
+      }).catch(function () {});
   }
 
   // ------------------------------------------------------------------ botão na barra
@@ -632,66 +756,116 @@
         if (fa.missao) linha.appendChild(el("p", "cad-missao", fa.missao));
         var ta = el("textarea", "cad-nota-area"); ta.rows = 2; ta.maxLength = 4000;
         ta.placeholder = "Minhas anotações desta fase…"; ta.value = notas[fa.id] || "";
-        var imagemAtual = null, removida = false;
+        var imagens = [], imagensSujas = false, verImg = 0, noVisor = false;
         var avisoNota = criaAviso(function (k) {
-          var op = { keepalive: k };
-          if (imagemAtual) op.imagem = imagemAtual; else if (removida) op.imagem = null;
-          return salvaNotaNuvem(fa.id, ta.value, op).then(function (r) { if (r === "ok") removida = false; return r; });
+          var v = verImg, lote = imagens.slice(), sujas = imagensSujas;
+          var passoImg = sujas ? salvaImagensNuvem(fa.id, lote) : Promise.resolve("ok");
+          return passoImg.then(function (ri) {
+            var op = { keepalive: k && !sujas };
+            // as imagens já estão na tabela nova: limpa a coluna antiga da anotação
+            if (sujas && ri === "ok") op.imagem = null;
+            return salvaNotaNuvem(fa.id, ta.value, op).then(function (rt) {
+              if (sujas && ri === "ok" && v === verImg) imagensSujas = false;
+              if (ri === "sem-conta" || rt === "sem-conta") return "sem-conta";
+              return ri === "ok" && rt === "ok" ? "ok" : "erro";
+            });
+          });
         });
         var areaImg = el("div", "cad-img");
         var botoesImg = el("div", "cad-img-botoes");
         var addImg = el("button", "btn", "🖼 Adicionar imagem"); addImg.type = "button";
+        addImg.title = "Escolha uma ou várias imagens do computador";
         var colImg = el("button", "btn", "📋 Colar imagem"); colImg.type = "button";
         colImg.title = "Cola o print ou a imagem que você copiou";
-        var cpImg = el("button", "btn", "Copiar imagem"); cpImg.type = "button"; cpImg.hidden = true;
-        cpImg.title = "Copia esta imagem para colar em outro lugar";
-        var rmImg = el("button", "btn", "Remover imagem"); rmImg.type = "button"; rmImg.hidden = true;
-        var vista = el("img", "cad-img-vista"); vista.alt = "Imagem anexada à anotação"; vista.hidden = true;
-        // com foto, os botões ficam escondidos: aparecem dentro do popup que abre ao clicar na foto
-        var noVisor = false;
+        var contaImg = el("span", "cad-img-conta");
+        var fotos = el("div", "cad-fotos"); fotos.hidden = true;
+        var titulo = fa.titulo || fa.nome;
+        // as imagens aparecem como fotos presas no quadro; clicar abre o popup
         var pintaImg = function () {
-          if (imagemAtual) {
-            vista.src = imagemAtual; vista.hidden = false; moldura.hidden = false;
-            rmImg.hidden = false; cpImg.hidden = false;
-            addImg.textContent = "🖼 Trocar imagem";
-            botoesImg.hidden = !noVisor;
-            if (noVisor) atualizaVisor(imagemAtual);
-          } else {
-            if (noVisor) fechaVisor();
-            vista.hidden = true; moldura.hidden = true; vista.removeAttribute("src");
-            rmImg.hidden = true; cpImg.hidden = true;
-            addImg.textContent = "🖼 Adicionar imagem";
-            botoesImg.hidden = false;
+          fotos.textContent = "";
+          imagens.forEach(function (d, i) {
+            var fig = el("figure", "cad-evidencia");
+            fig.tabIndex = 0; fig.setAttribute("role", "button"); fig.setAttribute("aria-haspopup", "dialog");
+            fig.title = "Clique para ver em detalhe";
+            var im = el("img", "cad-img-vista"); im.alt = "Imagem " + (i + 1) + " da anotação"; im.src = d;
+            fig.appendChild(im);
+            fig.appendChild(el("figcaption", null, imagens.length > 1 ? "Evidência " + (i + 1) : "Evidência · " + titulo));
+            fig.addEventListener("click", function () { abreFoto(i); });
+            fig.addEventListener("keydown", function (e) {
+              if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abreFoto(i); }
+            });
+            fotos.appendChild(fig);
+          });
+          fotos.hidden = !imagens.length;
+          var cheio = imagens.length >= IMG_MAX_POR_FASE;
+          addImg.disabled = colImg.disabled = cheio;
+          addImg.title = cheio ? "Limite de " + IMG_MAX_POR_FASE + " imagens por anotação" : "Escolha uma ou várias imagens do computador";
+          contaImg.textContent = imagens.length ? imagens.length + " de " + IMG_MAX_POR_FASE + " imagens" : "";
+          atualizaVisor();
+        };
+        var mudou = function () {
+          verImg++; imagensSujas = true;
+          if (imagens.length) idbPut(fa.id, imagens.slice()); else idbDel(fa.id);
+          pintaImg();
+          avisoNota.alterou();
+        };
+        var adicionaImg = function (d) {
+          if (imagens.length >= IMG_MAX_POR_FASE) { toast("Máximo de " + IMG_MAX_POR_FASE + " imagens por anotação"); return; }
+          imagens.push(d); mudou();
+          if (noVisor) irVisor(imagens.length - 1);
+        };
+        // várias de uma vez: processa todas e adiciona na ordem em que foram escolhidas
+        var adicionaArquivos = function (arqs) {
+          var livre = IMG_MAX_POR_FASE - imagens.length;
+          if (livre <= 0) { toast("Máximo de " + IMG_MAX_POR_FASE + " imagens por anotação"); return; }
+          var lote = [].slice.call(arqs, 0, livre);
+          if (arqs.length > livre) toast("Só cabem mais " + livre + " nesta anotação");
+          var res = new Array(lote.length), faltam = lote.length;
+          var fim = function () {
+            if (--faltam) return;
+            res.forEach(function (d) { if (d) adicionaImg(d); });
+          };
+          lote.forEach(function (a, k) {
+            processaImagem(a, function (d) { res[k] = d; fim(); }, fim);
+          });
+        };
+        // colar um print (Ctrl+V) em qualquer ponto da anotação
+        var colaDoEvento = function (e) {
+          var itens = (e.clipboardData && e.clipboardData.items) || [], arqs = [];
+          for (var i = 0; i < itens.length; i++) {
+            if (itens[i].type && itens[i].type.indexOf("image/") === 0) {
+              var arq = itens[i].getAsFile();
+              if (arq) arqs.push(arq);
+            }
           }
+          if (arqs.length) { e.preventDefault(); adicionaArquivos(arqs); }
         };
-        var defineImg = function (d) {
-          imagemAtual = d; removida = false;
-          idbPut(fa.id, d);
-          pintaImg();
-          avisoNota.alterou();
+        // o que o popup pode pedir a esta anotação
+        var ctrl = {
+          n: function () { return imagens.length; },
+          src: function (i) { return imagens[i]; },
+          legenda: function (i) {
+            return imagens.length > 1 ? "Evidência " + (i + 1) + " de " + imagens.length + " · " + titulo : "Evidência · " + titulo;
+          },
+          troca: function (i, d) { if (i < imagens.length) { imagens[i] = d; mudou(); } },
+          remove: function (i) { if (i < imagens.length) { imagens.splice(i, 1); mudou(); } },
+          cola: colaDoEvento,
+          aoFechar: function () { noVisor = false; }
         };
-        idbGet(fa.id).then(function (d) { if (imagemValida(d)) { imagemAtual = d; pintaImg(); } });
-        addImg.addEventListener("click", function () {
-          escolherArquivoImagem(function (arq) { processaImagem(arq, defineImg); });
+        var abreFoto = function (i) {
+          if (noVisor || !imagens.length) return;
+          noVisor = true;
+          abreVisor(ctrl, i);
+        };
+        idbGet(fa.id).then(function (v) {
+          var l = listaImagens(v);
+          if (l.length && !imagens.length) { imagens = l; pintaImg(); }
         });
-        rmImg.addEventListener("click", function () {
-          imagemAtual = null; removida = true;
-          idbDel(fa.id);
-          pintaImg();
-          avisoNota.alterou();
-        });
-        // feedback no próprio botão: o texto muda por um instante
-        var avisaBtn = function (b, t) {
-          var antes = b.getAttribute("data-rot") || b.textContent;
-          b.setAttribute("data-rot", antes);
-          b.textContent = t;
-          clearTimeout(b._t);
-          b._t = setTimeout(function () { b.textContent = antes; }, 1800);
-        };
+        addImg.addEventListener("click", function () { escolherArquivoImagem(adicionaArquivos, true); });
         // botão "Colar imagem": lê a imagem que está na área de transferência
         colImg.addEventListener("click", function () {
           var pedeAtalho = function () {
-            (noVisor && visorEl ? visorEl : ta).focus();
+            ta.focus();
             avisaBtn(colImg, "Aperte Ctrl+V");
             toast("Clique no texto da anotação e aperte Ctrl+V");
           };
@@ -701,7 +875,7 @@
               for (var j = 0; j < itens[i].types.length; j++) {
                 if (itens[i].types[j].indexOf("image/") === 0) {
                   return itens[i].getType(itens[i].types[j]).then(function (blob) {
-                    processaImagem(blob, defineImg);
+                    adicionaArquivos([blob]);
                     avisaBtn(colImg, "Colada!");
                   });
                 }
@@ -710,70 +884,18 @@
             avisaBtn(colImg, "Nenhuma imagem copiada");
           }, pedeAtalho);
         });
-        // botão "Copiar imagem": põe a imagem da anotação na área de transferência (como PNG)
-        cpImg.addEventListener("click", function () {
-          if (!imagemAtual) return;
-          if (!(navigator.clipboard && navigator.clipboard.write && window.ClipboardItem)) {
-            avisaBtn(cpImg, "Seu navegador não deixa"); return;
-          }
-          var png = new Promise(function (ok, no) {
-            var im = new Image();
-            im.onload = function () {
-              var cv = document.createElement("canvas");
-              cv.width = im.width; cv.height = im.height;
-              cv.getContext("2d").drawImage(im, 0, 0);
-              cv.toBlob(function (b) { b ? ok(b) : no(new Error("png")); }, "image/png");
-            };
-            im.onerror = no;
-            im.src = imagemAtual;
-          });
-          navigator.clipboard.write([new ClipboardItem({ "image/png": png })]).then(
-            function () { avisaBtn(cpImg, "Copiada!"); },
-            function () { avisaBtn(cpImg, "Não consegui copiar"); });
-        });
-        // colar um print (Ctrl+V) em qualquer ponto da anotação
-        var colaDoEvento = function (e) {
-          var itens = (e.clipboardData && e.clipboardData.items) || [];
-          for (var i = 0; i < itens.length; i++) {
-            if (itens[i].type && itens[i].type.indexOf("image/") === 0) {
-              var arq = itens[i].getAsFile();
-              if (arq) { e.preventDefault(); processaImagem(arq, defineImg); return; }
-            }
-          }
-        };
         linha.addEventListener("paste", colaDoEvento);
-        // arrastar uma imagem para cima da anotação
+        // arrastar imagens para cima da anotação
         linha.addEventListener("dragover", function (e) {
           if (e.dataTransfer && [].indexOf.call(e.dataTransfer.types || [], "Files") > -1) e.preventDefault();
         });
         linha.addEventListener("drop", function (e) {
-          var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-          if (f && /^image[/]/.test(f.type || "")) { e.preventDefault(); processaImagem(f, defineImg); }
+          var fs = e.dataTransfer && e.dataTransfer.files
+            ? [].filter.call(e.dataTransfer.files, function (f) { return /^image[/]/.test(f.type || ""); }) : [];
+          if (fs.length) { e.preventDefault(); adicionaArquivos(fs); }
         });
-        botoesImg.appendChild(addImg); botoesImg.appendChild(colImg); botoesImg.appendChild(cpImg); botoesImg.appendChild(rmImg);
-        // a imagem aparece como uma foto presa no quadro: moldura branca, alfinete e barbante vermelho
-        var moldura = el("figure", "cad-evidencia"); moldura.hidden = true;
-        moldura.tabIndex = 0; moldura.setAttribute("role", "button");
-        moldura.title = "Clique na foto para ver em detalhe (e trocar, copiar ou remover)";
-        moldura.setAttribute("aria-haspopup", "dialog");
-        var abreFoto = function () {
-          if (!imagemAtual || noVisor) return;
-          noVisor = true;
-          botoesImg.hidden = false;
-          abreVisor(imagemAtual, "Evidência · " + (fa.titulo || fa.nome), botoesImg, function () {
-            // popup fechado: os botões voltam para a anotação
-            noVisor = false;
-            areaImg.insertBefore(botoesImg, moldura);
-            pintaImg();
-          }, colaDoEvento);
-        };
-        moldura.addEventListener("click", abreFoto);
-        moldura.addEventListener("keydown", function (e) {
-          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abreFoto(); }
-        });
-        moldura.appendChild(vista);
-        moldura.appendChild(el("figcaption", null, "Evidência · " + (fa.titulo || fa.nome)));
-        areaImg.appendChild(botoesImg); areaImg.appendChild(moldura);
+        botoesImg.appendChild(addImg); botoesImg.appendChild(colImg); botoesImg.appendChild(contaImg);
+        areaImg.appendChild(botoesImg); areaImg.appendChild(fotos);
         ta.addEventListener("input", function () {
           notas[fa.id] = ta.value; gravar(K_NOTAS, notas);
           avisoNota.alterou();

@@ -873,3 +873,23 @@ dialog.cad-visor::backdrop{background:rgba(8,10,12,.84)}
 .cad-visor .btn{padding:8px 14px;border:1.5px solid #bdb48f;border-radius:10px;background:rgba(255,253,243,.9);color:#2b2a26;font:700 .85rem var(--f-body);cursor:pointer;transition:border-color .12s,color .12s,background .12s}
 .cad-visor .btn:hover,.cad-visor .btn:focus-visible{border-color:#1f6b5b;color:#1f6b5b;background:#fff}
 .cad-visor-dica{margin:0;color:#6f6a5c;font:.75rem var(--f-body);text-align:center}
+
+/* várias imagens por anotação */
+.cad-fotos{display:flex;flex-wrap:wrap;align-items:flex-start;gap:4px 18px}
+.cad-fotos[hidden]{display:none}
+.cad-fotos .cad-evidencia{max-width:min(100%,240px);margin:16px 0 6px 10px}
+.cad-fotos .cad-evidencia:nth-child(even){transform:rotate(1.4deg)}
+.cad-fotos .cad-evidencia:nth-child(3n){transform:rotate(-.6deg)}
+.cad-fotos .cad-img-vista{max-height:160px}
+.cad-fotos .cad-evidencia:only-child{max-width:min(100%,380px)}
+.cad-fotos .cad-evidencia:only-child .cad-img-vista{max-height:210px}
+.cad-img-conta{align-self:center;color:#6f6a5c;font:.75rem var(--f-body)}
+.cad-img-botoes .btn:disabled{opacity:.5;cursor:not-allowed}
+.cad-visor-quadro{position:relative;display:flex;align-items:center;min-height:0}
+.cad-visor-quadro .cad-visor-foto{flex:1;min-width:0}
+.cad-visor-seta{position:absolute;top:50%;z-index:2;width:44px;height:44px;margin-top:-22px;border:0;border-radius:50%;background:rgba(20,24,26,.66);color:#fff;font:700 30px/1 var(--f-body);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.cad-visor-seta.ant{left:10px}
+.cad-visor-seta.prox{right:10px}
+.cad-visor-seta:hover,.cad-visor-seta:focus-visible{background:rgba(31,107,91,.92)}
+.cad-visor-seta[hidden]{display:none}
+.cad-visor-acoes{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
