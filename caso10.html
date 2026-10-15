@@ -14,7 +14,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=281e62de">
+<link rel="stylesheet" href="css/estilo.css?v=e7dc1299">
 </head>
 <body>
 <div class="wrap">
@@ -30,6 +30,7 @@
   </div>
   <p class="lead">Este é o segundo caso de <strong>segurança</strong> da série. A novidade é olhar para três ideias que não aparecem nas consultas do dia a dia, mas são essenciais: <strong>injeção de SQL</strong> (como um campo de busca mal escrito vira uma porta aberta), <strong>menor privilégio</strong> (dar só o acesso que cada papel precisa, nem mais) e <strong>RLS</strong> — Row Level Security, as regras que limitam quais linhas cada papel pode ver. Dá para jogar depois do Caso 9. Travou? Abra a dica, depois a solução.</p>
 </header>
+<aside class="box aviso-data"><b class="l">Atenção: nas datas deste caso</b><p>Aqui as datas são <strong>datas de verdade</strong> (<code>date</code>) e as requisições são <strong>instantes com data e hora</strong> (<code>timestamp</code>). Escreva entre aspas simples, ano-mês-dia.</p><div class="tw"><table><tr><th>Neste caso</th><th>Escreva assim</th></tr><tr><td>✅ Certo</td><td><code>WHERE data = '2026-03-10'</code></td></tr><tr><td>✅ Certo</td><td><code>WHERE momento &gt;= '2026-03-10 02:00:00'</code></td></tr><tr><td>❌ Errado</td><td><code>WHERE data = 20260310</code>, porque número não é data aqui</td></tr></table></div><p class="cad-nota">Nos Casos 1 a 3 a data era um número, como <code>20260310</code>. Para saber qual é o caso de cada coluna, olhe o tipo no mapa das tabelas: <code>integer</code> é número, e <code>date</code> ou <code>timestamp</code> é data de verdade.</p></aside>
 <nav class="trail" aria-label="Etapas do caso">
   <div class="trail-inner" id="trail"></div>
   <div class="bar"><i id="bar"></i></div>

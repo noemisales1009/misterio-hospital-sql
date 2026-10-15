@@ -14,7 +14,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=281e62de">
+<link rel="stylesheet" href="css/estilo.css?v=e7dc1299">
 </head>
 <body>
 <div class="wrap">
@@ -29,6 +29,7 @@
   </div>
   <p class="lead">A novidade deste caso é a <strong>auditoria de acessos</strong>: ler os registros de quem abriu o quê, achar quem não tinha motivo e proteger os dados pessoais no relatório. A LGPD (Lei Geral de Proteção de Dados) é a lei brasileira que diz quem pode usar dados pessoais e como eles devem ser guardados. Entram <code>NOT EXISTS</code>, máscaras com <code>||</code>, <code>EXTRACT</code>, <code>COUNT(*) FILTER</code> e subconsultas. Travou? Abra a dica, depois a solução.</p>
 </header>
+<aside class="box aviso-data"><b class="l">Atenção: nas datas deste caso</b><p>Aqui a entrada do paciente é uma <strong>data de verdade</strong> (<code>date</code>) e os acessos são <strong>instantes com data e hora</strong> (<code>timestamp</code>). Escreva entre aspas simples, ano-mês-dia.</p><div class="tw"><table><tr><th>Neste caso</th><th>Escreva assim</th></tr><tr><td>✅ Certo</td><td><code>WHERE entrada = '2026-03-10'</code></td></tr><tr><td>✅ Certo</td><td><code>WHERE momento &gt;= '2026-03-10 02:00:00'</code></td></tr><tr><td>❌ Errado</td><td><code>WHERE entrada = 20260310</code>, porque número não é data aqui</td></tr></table></div><p class="cad-nota">Nos Casos 1 a 3 a data era um número, como <code>20260310</code>. Para saber qual é o caso de cada coluna, olhe o tipo no mapa das tabelas: <code>integer</code> é número, e <code>date</code> ou <code>timestamp</code> é data de verdade.</p></aside>
 <nav class="trail" aria-label="Etapas do caso">
   <div class="trail-inner" id="trail"></div>
   <div class="bar"><i id="bar"></i></div>

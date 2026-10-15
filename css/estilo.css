@@ -824,3 +824,9 @@ html{padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
 /* computador sem teclado: só o monitor antigo */
 .pc-teclado{display:none}
 .pc{gap:0}
+
+/* aviso sobre o formato das datas em cada caso */
+.aviso-data{margin:0}
+.aviso-data .tw{margin:8px 0 6px}
+.aviso-data td:first-child{white-space:nowrap;font-weight:700}
+.aviso-data p{margin:0}
