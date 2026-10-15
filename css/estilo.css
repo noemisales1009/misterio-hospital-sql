@@ -936,9 +936,49 @@ body{transition:padding-right .26s ease,padding-bottom .26s ease}
   .gaveta-painel{border-left:0;border-top:6px solid var(--scrub);box-shadow:0 -10px 26px rgba(0,0,0,.32)}
   .gaveta-aba{left:auto;right:14px;top:-46px;flex-direction:row;width:auto;height:42px;padding:0 14px;border-radius:12px 12px 0 0;box-shadow:0 -3px 8px rgba(0,0,0,.25)}
   .gaveta-aba-t{writing-mode:horizontal-tb;font-size:19px}
+  body.tem-gaveta{padding-bottom:64px}   /* a abinha fica embaixo: deixa o fim da página livre */
   body.com-gaveta{padding-bottom:min(70dvh,560px)}
 }
 /* botão dentro de cada fase */
 .fase-notas{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border:1.5px dashed var(--scrub);border-radius:10px;background:var(--scrub-soft);color:var(--scrub);font:700 .88rem var(--f-body);cursor:pointer;transition:background .12s,color .12s}
 .fase-notas:hover,.fase-notas:focus-visible{background:var(--scrub);color:var(--paper)}
 .fase-notas.tem{border-style:solid}
+
+/* caso encerrado: carimbo vermelho + foto e nome do culpado */
+.carimbo-concluido{position:absolute;z-index:6;bottom:14px;right:10px;padding:4px 12px 3px;border:4px double #c0281c;border-radius:7px;color:#c0281c;font:800 21px/1.1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;transform:rotate(-9deg);opacity:.93;filter:url(#tinta-carimbo);pointer-events:none}
+.quadro .caso-card.resolvido{background:#fbf7e8}
+.caso-card.encerrado .caso-prog .cad-nota{color:#b3261e;font-weight:700}
+.ficha-culpado{display:flex;align-items:center;gap:14px;margin-top:6px;padding-top:12px;border-top:1px dashed rgba(60,40,20,.28)}
+.ficha-foto{position:relative;flex:none;width:84px;margin:0;padding:6px 6px 5px;background:#fff;box-shadow:0 4px 9px rgba(0,0,0,.36);transform:rotate(-3deg)}
+.ficha-foto::before{content:"";position:absolute;z-index:2;top:-7px;left:50%;width:13px;height:13px;margin-left:-6px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff9a8a,#c0281c 60%,#7a1209);box-shadow:0 2px 3px rgba(0,0,0,.45),inset -2px -2px 3px rgba(0,0,0,.35)}
+.ficha-retrato{position:relative;aspect-ratio:100/105;overflow:hidden;background:linear-gradient(#d3dce2,#aebcc6);border:1px solid rgba(0,0,0,.18)}
+.ficha-retrato::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(transparent 0 11px,rgba(0,0,0,.13) 11px 12px);-webkit-mask:linear-gradient(90deg,#000 0 16%,transparent 16%);mask:linear-gradient(90deg,#000 0 16%,transparent 16%)}
+.ficha-retrato svg{position:relative;z-index:1;display:block;width:100%;height:100%}
+.ficha-foto figcaption{margin-top:5px;color:#2b2a26;font:700 19px/1 var(--f-mao);text-align:center}
+.ficha-texto{display:flex;flex-direction:column;gap:1px;min-width:0}
+.ficha-texto small{color:#b3261e;font:700 11px var(--f-mono);letter-spacing:.1em;text-transform:uppercase}
+.ficha-texto b{color:#1c1a14;font:700 26px/1.05 var(--f-mao)}
+.ficha-texto span{color:#524f43;font:.78rem/1.35 var(--f-body)}
+.ficha-culpado.grande{justify-content:center;gap:22px;margin:4px 0 0;padding:6px 0 0;border-top:0}
+.ficha-culpado.grande .ficha-foto{width:150px;padding:9px 9px 7px;transform:rotate(-2.5deg)}
+.ficha-culpado.grande .ficha-texto b{font-size:34px}
+.ficha-culpado.grande .ficha-texto span{font-size:.9rem}
+.enc-painel{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;margin:30px 0 8px;padding:34px 22px 22px;border:2px dashed #c0281c;border-radius:12px;background:var(--paper);color:var(--ink);text-align:center}
+.enc-painel .carimbo-concluido{top:12px;right:14px;bottom:auto;font-size:25px;color:var(--stamp);border-color:var(--stamp)}
+.enc-caso{margin:0;color:var(--muted);font:600 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase}
+.enc-painel h2{margin:0 0 6px;font:400 clamp(30px,6vw,44px)/1.05 var(--f-display,Impact,sans-serif);letter-spacing:.02em}
+.enc-painel .ficha-texto{align-items:flex-start;text-align:left;max-width:320px}
+.enc-painel .ficha-texto b{color:var(--ink)}
+.enc-painel .ficha-texto small{color:var(--stamp)}
+.enc-painel .ficha-texto span{color:var(--muted)}
+.enc-acoes{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:14px}
+.enc-painel.novo .carimbo-concluido{animation:carimbo-bate .55s cubic-bezier(.2,1.4,.4,1) both}
+.enc-painel.novo .ficha-foto{animation:foto-cai .6s .15s ease-out both}
+@keyframes carimbo-bate{0%{transform:rotate(-9deg) scale(2.6);opacity:0}60%{opacity:.95}100%{transform:rotate(-9deg) scale(1);opacity:.93}}
+@keyframes foto-cai{0%{transform:translateY(-22px) rotate(8deg);opacity:0}100%{transform:rotate(-2.5deg);opacity:1}}
+@media (prefers-reduced-motion:reduce){.enc-painel.novo .carimbo-concluido,.enc-painel.novo .ficha-foto{animation:none}}
+@media (max-width:520px){
+  .ficha-culpado.grande{flex-direction:column;gap:14px}
+  .ficha-culpado.grande .ficha-texto{align-items:center;text-align:center}
+  .enc-painel .carimbo-concluido{position:static;margin-bottom:6px;transform:rotate(-6deg)}
+}

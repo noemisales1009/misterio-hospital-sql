@@ -947,6 +947,151 @@
     c.appendChild(el("p", "cad-nota", Object.keys(r.habil).length + " de " + ordem.length + " aprendidos."));
   }
 
+  // ------------------------------------------------------------------ caso encerrado: carimbo + culpado
+  // quem é o culpado de cada caso (aparece só quando todas as fases do caso foram concluídas)
+  var CULPADOS = {
+    "guia.html":   { nome: "Vitória Albuquerque", rotulo: "A mandante", papel: "Mandou sabotar a geladeira · executor: Rogério Valadares" },
+    "caso2.html":  { nome: "Rogério Mendonça", papel: "Cargo: Técnico de Enfermagem · Enfermaria" },
+    "caso3.html":  { nome: "Edson Carvalhaes", papel: "Cargo: Técnico de Farmácia · Farmácia Central" },
+    "caso4.html":  { nome: "BI-07", rotulo: "O aparelho culpado", papel: "Bomba de infusão · UTI Adulto", tipo: "aparelho" },
+    "caso5.html":  { nome: "Bianca Furtado", papel: "Faturista · assinou o lote L-0830-C" },
+    "caso6.html":  { nome: "Valéria Montenegro", papel: "Deixou a geladeira G-03 aberta" },
+    "caso7.html":  { nome: "Cláudio Menezes", papel: "Cargo: Atendente · criou os cadastros em dobro" },
+    "caso8.html":  { nome: "Leonel Guedes", papel: "Setor: Manutenção · 14 plantões sem entrada" },
+    "caso9.html":  { nome: "Sérgio Paixão", papel: "Cargo: Faturista · Faturamento (noite)" },
+    "caso10.html": { nome: "Renan Duarte", papel: "Conta do portal · login renan.duarte" }
+  };
+  function casoCompleto(cs, st) {
+    return !!cs && cs.fases.length > 0 && cs.fases.every(function (f) { return st[f.id]; });
+  }
+  function hashTexto(s) {
+    var h = 2166136261;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+  // retrato desenhado (ficha de investigação): traços variam de forma estável a partir do nome
+  function svgBusto(nome) {
+    var h = hashTexto(nome);
+    var pick = function (arr, k) { return arr[(h >>> k) % arr.length]; };
+    var pele = pick(["#f3d2b3", "#e8b88f", "#d19a6e", "#b27a52", "#8a5a3a"], 0);
+    var cabelo = pick(["#201a17", "#3d2415", "#6b4423", "#a9783a", "#8c8c8c", "#101010"], 3);
+    var roupa = pick(["#2f7a6b", "#3b6ea5", "#7a5aa6", "#b5503c", "#46505c", "#2a8f8f"], 7);
+    var estilo = (h >>> 11) % 4;
+    var oculos = (h >>> 15) % 3 === 0;
+    var atras = "", frente = "";
+    if (estilo === 1) atras = '<path d="M27 50 C22 16 78 16 73 50 L77 86 L23 86 Z" fill="' + cabelo + '"/>';
+    if (estilo === 2) atras = '<circle cx="50" cy="38" r="30" fill="' + cabelo + '"/><circle cx="26" cy="44" r="9" fill="' + cabelo + '"/><circle cx="74" cy="44" r="9" fill="' + cabelo + '"/>';
+    if (estilo === 3) atras = '<circle cx="50" cy="14" r="10" fill="' + cabelo + '"/>';
+    frente = '<path d="M30 46 C27 20 73 20 70 46 C64 35 36 35 30 46 Z" fill="' + cabelo + '"/>';
+    var olhos = '<ellipse cx="42" cy="50" rx="1.9" ry="2.3" fill="#1b1b1b"/><ellipse cx="58" cy="50" rx="1.9" ry="2.3" fill="#1b1b1b"/>' +
+      '<path d="M37 45 Q42 42 47 45 M53 45 Q58 42 63 45" stroke="' + cabelo + '" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+    var lentes = oculos ? '<circle cx="42" cy="50" r="7" fill="rgba(255,255,255,.18)" stroke="#2b2a26" stroke-width="1.6"/><circle cx="58" cy="50" r="7" fill="rgba(255,255,255,.18)" stroke="#2b2a26" stroke-width="1.6"/><path d="M49 50 H51" stroke="#2b2a26" stroke-width="1.6"/>' : "";
+    return '<svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Retrato de ' + nome + '">' +
+      atras +
+      '<path d="M6 112 C8 88 28 80 50 80 C72 80 92 88 94 112 Z" fill="' + roupa + '"/>' +
+      '<path d="M40 80 L50 95 L60 80 Z" fill="#f4f1e6"/>' +
+      '<rect x="43" y="62" width="14" height="22" rx="6" fill="' + pele + '"/><rect x="43" y="70" width="14" height="8" rx="4" fill="rgba(0,0,0,.14)"/>' +
+      '<ellipse cx="30" cy="52" rx="3.2" ry="5" fill="' + pele + '"/><ellipse cx="70" cy="52" rx="3.2" ry="5" fill="' + pele + '"/>' +
+      '<ellipse cx="50" cy="50" rx="20" ry="24" fill="' + pele + '"/>' +
+      frente + olhos + lentes +
+      '<path d="M50 53 L48 60 H52" stroke="rgba(0,0,0,.28)" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="M43 66 Q50 69 57 66" stroke="#7a3b2e" stroke-width="1.8" fill="none" stroke-linecap="round"/>' +
+      '</svg>';
+  }
+  function svgAparelho(codigo) {
+    return '<svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Aparelho ' + codigo + '">' +
+      '<path d="M50 4 V26" stroke="#6b7480" stroke-width="3"/><path d="M34 6 H66" stroke="#6b7480" stroke-width="3" stroke-linecap="round"/>' +
+      '<path d="M38 8 C34 18 34 24 40 28 H46 C52 24 52 18 48 8 Z" fill="#cfe9f2" stroke="#6b7480" stroke-width="1.6"/>' +
+      '<rect x="24" y="30" width="52" height="58" rx="7" fill="#e3e7ea" stroke="#6b7480" stroke-width="2.4"/>' +
+      '<rect x="30" y="37" width="40" height="22" rx="3" fill="#10332e"/>' +
+      '<text x="50" y="52" font-size="11" font-weight="700" fill="#7fffd4" text-anchor="middle" font-family="monospace">' + codigo + '</text>' +
+      '<circle cx="36" cy="72" r="4.5" fill="#c0281c"/><circle cx="50" cy="72" r="4.5" fill="#2c9b57"/><rect x="58" y="68" width="12" height="8" rx="2" fill="#6b7480"/>' +
+      '<path d="M60 88 C60 100 70 100 74 108" stroke="#9fb7c4" stroke-width="2.4" fill="none" stroke-linecap="round"/>' +
+      '</svg>';
+  }
+  // filtro de "tinta de carimbo" (bordas irregulares e falhas), criado uma vez por página
+  function filtroCarimbo() {
+    if (document.getElementById("tintaCarimbo")) return;
+    var s = el("div"); s.id = "tintaCarimbo"; s.setAttribute("aria-hidden", "true");
+    s.style.cssText = "position:absolute;width:0;height:0;overflow:hidden";
+    s.innerHTML = '<svg width="0" height="0" xmlns="http://www.w3.org/2000/svg"><defs><filter id="tinta-carimbo" x="-5%" y="-10%" width="110%" height="120%">' +
+      '<feTurbulence type="fractalNoise" baseFrequency=".05" numOctaves="2" seed="4" result="n"/>' +
+      '<feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" result="d"/>' +
+      '<feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="1" seed="9" result="g"/>' +
+      '<feColorMatrix in="g" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.3 2.05" result="m"/>' +
+      '<feComposite in="d" in2="m" operator="in"/></filter></defs></svg>';
+    document.body.appendChild(s);
+  }
+  function carimboConcluido() {
+    filtroCarimbo();
+    var c = el("span", "carimbo-concluido", "Concluído");
+    c.setAttribute("aria-label", "Caso concluído");
+    return c;
+  }
+  // foto presa + nome de quem fez (no cartão da home e no painel do caso)
+  function fichaCulpado(cul, grande) {
+    var box = el("div", "ficha-culpado" + (grande ? " grande" : ""));
+    var fig = el("figure", "ficha-foto");
+    var ret = el("div", "ficha-retrato");
+    ret.innerHTML = cul.tipo === "aparelho" ? svgAparelho(cul.nome) : svgBusto(cul.nome);
+    fig.appendChild(ret);
+    if (grande) fig.appendChild(el("figcaption", null, cul.nome));
+    var tx = el("div", "ficha-texto");
+    tx.appendChild(el("small", null, cul.rotulo || "A pessoa culpada"));
+    tx.appendChild(el("b", null, cul.nome));
+    tx.appendChild(el("span", null, cul.papel));
+    box.appendChild(fig); box.appendChild(tx);
+    return box;
+  }
+  // cartão do caso na home
+  function marcaEncerrado(card, cs, st) {
+    [].forEach.call(card.querySelectorAll(".ficha-culpado,.carimbo-concluido,.carimbo-ok"), function (n) { n.remove(); });
+    var feito = casoCompleto(cs, st);
+    card.classList.toggle("encerrado", feito);
+    card.classList.toggle("resolvido", feito);
+    if (!feito) return;
+    card.appendChild(carimboConcluido());
+    var cul = CULPADOS[cs.arq];
+    if (cul) card.insertBefore(fichaCulpado(cul, false), card.querySelector(".caso-go"));
+  }
+  // painel no fim da página do caso
+  var jaEncerrado = false;
+  function atualizaEncerrado(aoVivo) {
+    var cs = casoDaPagina(); if (!cs) return;
+    var feito = casoCompleto(cs, estado());
+    var atual = document.getElementById("casoEncerrado");
+    if (!feito) { if (atual) atual.remove(); jaEncerrado = false; return; }
+    if (atual) { jaEncerrado = true; return; }
+    var cul = CULPADOS[cs.arq];
+    var p = el("section", "enc-painel"); p.id = "casoEncerrado";
+    p.setAttribute("aria-label", "Caso encerrado");
+    p.appendChild(carimboConcluido());
+    p.appendChild(el("p", "enc-caso", "Caso " + cs.n + " · " + cs.titulo));
+    p.appendChild(el("h2", null, jog.nome ? "Caso encerrado, " + jog.nome.split(" ")[0] + "!" : "Caso encerrado!"));
+    if (cul) p.appendChild(fichaCulpado(cul, true));
+    var prox = CAT[CAT.indexOf(cs) + 1];
+    var acoes = el("div", "enc-acoes");
+    if (prox) { var a = el("a", "btn", "Próximo: Caso " + prox.n + " · " + prox.titulo + " →"); a.href = prox.arq; acoes.appendChild(a); }
+    var home = el("a", "btn ghost", "Todos os casos"); home.href = "index.html"; acoes.appendChild(home);
+    p.appendChild(acoes);
+    var nav = document.querySelector(".caso-nav");
+    var wrap = document.querySelector(".wrap");
+    if (nav && nav.parentNode) nav.parentNode.insertBefore(p, nav);
+    else if (wrap) wrap.appendChild(p);
+    else return;
+    if (aoVivo && !jaEncerrado) {
+      p.classList.add("novo");
+      try { p.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
+      toast("🏆 Caso encerrado!" + (cul ? " Culpado: " + cul.nome : ""));
+    }
+    jaEncerrado = true;
+  }
+  function encerradoIniciar() {
+    if (!casoDaPagina() || !document.querySelector("section.fase")) return;
+    jaEncerrado = false;
+    atualizaEncerrado(false);
+  }
+
   // ------------------------------------------------------------------ navegação entre casos
   function arqAtual() {
     var p = location.pathname.split("/").pop() || "index.html";
@@ -978,6 +1123,7 @@
       if (!cs) return;
       var f = cs.fases.filter(function (fa) { return r.st[fa.id]; }).length;
       var antiga = card.querySelector(".caso-prog"); if (antiga) antiga.remove();
+      marcaEncerrado(card, cs, r.st);
       var linha = el("div", "caso-prog");
       linha.appendChild(barra(cs.fases.length ? Math.round(f / cs.fases.length * 100) : 0));
       linha.appendChild(el("span", "cad-nota", f === cs.fases.length && f > 0 ? "✓ Caso encerrado" : f + " de " + cs.fases.length + " fases"));
@@ -1073,6 +1219,7 @@
       if (e.key === "Escape" && g.classList.contains("aberta")) { e.preventDefault(); fechaGaveta(); gavetaAba.focus(); }
     });
     document.body.appendChild(g);
+    document.body.classList.add("tem-gaveta");
     gaveta = g;
     return g;
   }
@@ -1143,6 +1290,7 @@
   function observaFases() {
     if (!window.MutationObserver) return;
     var obs = new MutationObserver(function () {
+      atualizaEncerrado(true);
       if (!gaveta || !gaveta.classList.contains("aberta")) return;
       var sec = document.querySelector("section.fase.aberta");
       if (sec && sec.id !== gavetaFase) abreGaveta(sec.id, { semFoco: true });
@@ -1232,6 +1380,7 @@
     criaBotao();
     rodapeNav();
     gavetaIniciar();
+    encerradoIniciar();
     homeExtras();
     document.addEventListener("misterio:login", function () { puxaNuvem(function () { homeRefaz(); talvezBoasVindas(); }); });
     document.addEventListener("misterio:sessao", function () { atualizaSair(); atualizaBotao(); });

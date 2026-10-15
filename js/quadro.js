@@ -97,8 +97,7 @@
       var arq = card.getAttribute("data-arq");
       var cs = CAT.filter(function (c) { return c.arq === arq; })[0];
       if (cs && cs.fases.length && cs.fases.every(function (f) { return st[f.id]; })) {
-        card.classList.add("resolvido");
-        card.appendChild(el("span", "carimbo-ok", "RESOLVIDO"));
+        card.classList.add("resolvido");   // o carimbo e a ficha do culpado vêm do caderno.js
       }
     });
 
