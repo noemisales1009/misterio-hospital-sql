@@ -478,6 +478,11 @@
           box.appendChild(b);
         });
       },
+      // antes de qualquer alteração: já deixa claro que o que for escrito é salvo sozinho
+      inicia: function () {
+        if (nuvem()) api.mostra("☁ Salva sozinho: no aparelho e na nuvem", "");
+        else api.mostra("✓ Salva sozinho neste aparelho. Entre na conta para guardar na nuvem.", "");
+      },
       pendente: false
     };
     avisosPendentes.push(api);
@@ -887,9 +892,10 @@
       notas[fa.id] = ta.value; gravar(K_NOTAS, notas);
       avisoNota.alterou();
     });
+    avisoNota.inicia();
     raiz.appendChild(ta);
-    raiz.appendChild(areaImg);
     raiz.appendChild(avisoNota.no);
+    raiz.appendChild(areaImg);
     return {
       no: raiz,
       foca: function () { ta.focus(); },
