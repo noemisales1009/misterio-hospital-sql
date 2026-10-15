@@ -106,7 +106,9 @@ function arquivo(req) {
 
 // páginas: tenta a internet (versão mais nova); sem internet, usa a guardada
 function pagina(req, url) {
-  return fetch(req).then(function (res) { return guarda(req, res); }).catch(function () {
+  // cache: "no-cache" = confere com o servidor (ETag) antes de usar a cópia do navegador;
+  // sem isso uma página velha pode ficar "fresca" por um tempo e a novidade demora a aparecer
+  return fetch(new Request(req, { cache: "no-cache" })).then(function (res) { return guarda(req, res); }).catch(function () {
     var base = new URL("./", self.registration.scope);
     var rel = url.pathname.slice(base.pathname.length);
     var tentativas = [req];

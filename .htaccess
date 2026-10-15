@@ -1,3 +1,12 @@
 # Tipos de arquivo que algumas hospedagens nao conhecem
 AddType application/wasm .wasm
 AddType application/manifest+json .webmanifest
+
+# Paginas e service worker: o navegador sempre confere com o servidor antes de usar a copia guardada
+# (resposta 304 e barata). Sem isso, a pagina antiga fica "fresca" por um tempo e a novidade demora a aparecer.
+# css/js continuam guardados por muito tempo: o nome deles muda (?v=hash) a cada versao.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|webmanifest)$|^sw\.js$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>

@@ -950,6 +950,8 @@
   // ------------------------------------------------------------------ navegação entre casos
   function arqAtual() {
     var p = location.pathname.split("/").pop() || "index.html";
+    // alguns servidores (como o do "npm run dev") tiram o .html do endereço: /guia vira guia.html
+    if (!/[.][a-z0-9]+$/i.test(p)) p += ".html";
     return p;
   }
   function rodapeNav() {

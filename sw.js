@@ -1,6 +1,6 @@
 // Gerado por scripts/gerar-sw.js. Não edite à mão.
 // Guarda o jogo no aparelho para funcionar sem internet.
-var VERSAO = "a10d008215";
+var VERSAO = "17c5b5d4f7";
 var CACHE = "misterio-sql-" + VERSAO;
 var ARQUIVOS = [
   "./",
@@ -34,7 +34,7 @@ var ARQUIVOS = [
   "icons/icon-maskable-512.png",
   "index.html",
   "js/app.js?v=5417c6c0",
-  "js/caderno.js?v=4e0d4352",
+  "js/caderno.js?v=bbed78be",
   "js/catalogo.js?v=cd3ff46d",
   "js/computador.js?v=8b659794",
   "js/config.js?v=58dc78bb",
@@ -106,7 +106,9 @@ function arquivo(req) {
 
 // páginas: tenta a internet (versão mais nova); sem internet, usa a guardada
 function pagina(req, url) {
-  return fetch(req).then(function (res) { return guarda(req, res); }).catch(function () {
+  // cache: "no-cache" = confere com o servidor (ETag) antes de usar a cópia do navegador;
+  // sem isso uma página velha pode ficar "fresca" por um tempo e a novidade demora a aparecer
+  return fetch(new Request(req, { cache: "no-cache" })).then(function (res) { return guarda(req, res); }).catch(function () {
     var base = new URL("./", self.registration.scope);
     var rel = url.pathname.slice(base.pathname.length);
     var tentativas = [req];
