@@ -594,9 +594,9 @@
         vista.addEventListener("click", function () { vista.classList.toggle("grande"); });
         var pintaImg = function () {
           if (imagemAtual) {
-            vista.src = imagemAtual; vista.hidden = false; rmImg.hidden = false; addImg.textContent = "🖼 Trocar imagem";
+            vista.src = imagemAtual; vista.hidden = false; moldura.hidden = false; rmImg.hidden = false; addImg.textContent = "🖼 Trocar imagem";
           } else {
-            vista.hidden = true; vista.removeAttribute("src"); rmImg.hidden = true; addImg.textContent = "🖼 Adicionar imagem";
+            vista.hidden = true; moldura.hidden = true; vista.removeAttribute("src"); rmImg.hidden = true; addImg.textContent = "🖼 Adicionar imagem";
           }
         };
         var defineImg = function (d) {
@@ -634,7 +634,11 @@
           if (f && /^image[/]/.test(f.type || "")) { e.preventDefault(); processaImagem(f, defineImg); }
         });
         botoesImg.appendChild(addImg); botoesImg.appendChild(rmImg);
-        areaImg.appendChild(botoesImg); areaImg.appendChild(vista);
+        // a imagem aparece como uma foto presa no quadro: moldura branca, alfinete e barbante vermelho
+        var moldura = el("figure", "cad-evidencia"); moldura.hidden = true;
+        moldura.appendChild(vista);
+        moldura.appendChild(el("figcaption", null, "Evidência · " + (fa.titulo || fa.nome)));
+        areaImg.appendChild(botoesImg); areaImg.appendChild(moldura);
         ta.addEventListener("input", function () {
           notas[fa.id] = ta.value; gravar(K_NOTAS, notas);
           avisoNota.alterou();
