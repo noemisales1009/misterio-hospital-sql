@@ -1005,3 +1005,27 @@ body{transition:padding-right .26s ease,padding-bottom .26s ease}
 .ach-fim .carimbo-concluido{position:absolute;top:2px;right:6px;bottom:auto;font-size:17px}
 .ach-fim .ficha-culpado{margin-top:10px}
 .ach-caso.completo>summary{color:#b3261e}
+
+/* Achados: detalhes de cada pista */
+.ach-detalhes-btn{margin-top:8px;padding:5px 11px;border:1.5px solid #bdb48f;border-radius:8px;background:rgba(255,253,243,.9);color:#1f6b5b;font:700 .8rem var(--f-body);cursor:pointer}
+.ach-detalhes-btn:hover,.ach-detalhes-btn:focus-visible{border-color:#1f6b5b;background:#fff}
+.ach-det{margin-top:10px;padding-top:6px;border-top:1px dashed #cfc7ab}
+.ach-det[hidden]{display:none}
+.ach-sec{margin-top:10px}
+.ach-sec h4{margin:0 0 6px;color:#b3261e;font:700 11px var(--f-mono);letter-spacing:.1em;text-transform:uppercase}
+.ach-consulta{margin-bottom:12px}
+.ach-rotulo{margin-bottom:3px;color:#6f6a5c;font:600 11px var(--f-mono)}
+.ach-sql{margin:0;padding:8px 10px;max-height:190px;overflow:auto;border-radius:6px;background:#10201c;color:#bfeee0;font:12px/1.5 var(--f-mono);white-space:pre-wrap;word-break:break-word}
+.ach-res{margin-top:6px;overflow:auto;border:1px solid #cfc7ab;border-radius:6px;background:#fff}
+.ach-tab{width:100%;border-collapse:collapse;font:12px var(--f-mono);color:#2b2a26}
+.ach-tab th{padding:5px 8px;background:#e4efe9;color:#1f6b5b;text-align:left;white-space:nowrap}
+.ach-tab td{padding:4px 8px;border-top:1px solid #ece6d2;white-space:nowrap}
+.ach-tab td.nulo{color:#9a937c;font-style:italic}
+.ach-total{margin-top:4px;color:#6f6a5c;font:.75rem var(--f-body)}
+.ach-vazio{margin:0;color:#6f6a5c;font:.85rem var(--f-body)}
+.ach-nota-cheia{margin:0;padding:8px 10px;border-left:3px solid #f3d64e;background:rgba(243,214,78,.18);color:#2b2a26;font:.88rem/1.5 var(--f-body);white-space:pre-wrap;word-break:break-word}
+.ach-grandes{display:flex;flex-wrap:wrap;gap:10px}
+.ach-grande{padding:5px 5px 4px;border:0;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.32);cursor:zoom-in;transform:rotate(-1.5deg)}
+.ach-grande:nth-child(even){transform:rotate(1.5deg)}
+.ach-grande img{display:block;width:150px;height:110px;object-fit:cover}
+.ach-mini{cursor:zoom-in}

@@ -209,7 +209,9 @@
   }
   // popup para ver as imagens da anotação em detalhe (uma por vez, com setas para passar entre elas)
   var IMG_MAX_POR_FASE = 6;
-  var visorEl = null, visorFoto = null, visorImg = null, visorLegenda = null, visorAnt = null, visorProx = null, visorAtual = null;
+  var TEXTO_DICA_EDITAR = "Clique na imagem para ver no tamanho real · setas ← → passam de imagem · Ctrl+V adiciona outra · Esc fecha";
+  var TEXTO_DICA_LER = "Clique na imagem para ver no tamanho real · setas ← → passam de imagem · Esc fecha";
+  var visorEl = null, visorFoto = null, visorImg = null, visorLegenda = null, visorAnt = null, visorProx = null, visorAtual = null, visorAcoes = null, visorDica = null;
   function criaVisor() {
     if (visorEl) return visorEl;
     var d = el("dialog", "cad-visor"); d.tabIndex = -1;
@@ -234,7 +236,9 @@
     var remover = el("button", "btn", "Remover imagem"); remover.type = "button";
     remover.title = "Tira só esta imagem da anotação";
     acoes.appendChild(trocar); acoes.appendChild(copiar); acoes.appendChild(remover);
-    var dica = el("p", "cad-visor-dica", "Clique na imagem para ver no tamanho real · setas ← → passam de imagem · Ctrl+V adiciona outra · Esc fecha");
+    visorAcoes = acoes;
+    var dica = el("p", "cad-visor-dica", TEXTO_DICA_EDITAR);
+    visorDica = dica;
     painel.appendChild(topo); painel.appendChild(quadro); painel.appendChild(acoes); painel.appendChild(dica);
     d.appendChild(painel);
     x.addEventListener("click", fechaVisor);
@@ -268,7 +272,7 @@
       if (a && a.ctrl.aoFechar) a.ctrl.aoFechar();
     });
     // Ctrl+V com o popup aberto adiciona outra imagem à anotação
-    d.addEventListener("paste", function (e) { if (visorAtual) visorAtual.ctrl.cola(e); });
+    d.addEventListener("paste", function (e) { if (visorAtual && visorAtual.ctrl.cola) visorAtual.ctrl.cola(e); });
     document.body.appendChild(d);
     visorEl = d;
     return d;
@@ -284,6 +288,9 @@
     visorFoto.classList.remove("real");
     visorImg.title = "Clique para ver no tamanho real";
     visorAnt.hidden = visorProx.hidden = n < 2;
+    // na aba Achados as imagens só podem ser vistas: sem trocar, copiar nem remover
+    visorAcoes.hidden = !!c.ctrl.somenteLeitura;
+    visorDica.textContent = c.ctrl.somenteLeitura ? TEXTO_DICA_LER : TEXTO_DICA_EDITAR;
   }
   function moveVisor(passo) {
     var c = visorAtual; if (!c) return;
@@ -1165,6 +1172,97 @@
     "c10-f4": "O papel portal_web tem 12 privilégios, inclusive de escrita, e as 3 políticas de RLS usam a condição true: nada filtra.",
     "c10-f5": "O ataque partiu do IP 203.0.113.59, que antes tinha um login confirmado: renan.duarte (Renan Duarte). Esse é o culpado."
   };
+  // popup só para ver (sem editar) as imagens de uma fase
+  function ctrlSomenteLeitura(lista, titulo) {
+    return {
+      somenteLeitura: true,
+      n: function () { return lista.length; },
+      src: function (i) { return lista[i]; },
+      legenda: function (i) { return (lista.length > 1 ? "Evidência " + (i + 1) + " de " + lista.length + " · " : "Evidência · ") + titulo; },
+      aoFechar: function () {}
+    };
+  }
+  // consultas de solução e o que devolvem (js/achados-dados.json, gerado por scripts/gerar-achados.mjs)
+  var achadosDados = null, achadosPromessa = null;
+  function carregaAchadosDados() {
+    if (achadosDados) return Promise.resolve(achadosDados);
+    if (!achadosPromessa) {
+      achadosPromessa = fetch(new URL("js/achados-dados.json", document.baseURI).href, { cache: "no-cache" })
+        .then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.json(); })
+        .then(function (d) { achadosDados = d; return d; })
+        .catch(function () { achadosPromessa = null; return null; });
+    }
+    return achadosPromessa;
+  }
+  // detalhes de um achado: a consulta, o que ela devolveu, a anotação inteira e as imagens
+  function preencheDetalhes(det, fa, pegaFotos) {
+    var s1 = el("section", "ach-sec");
+    s1.appendChild(el("h4", null, "Como você descobriu"));
+    var lugar = el("div", "ach-consultas");
+    lugar.appendChild(el("p", "ach-vazio", "Carregando as consultas…"));
+    s1.appendChild(lugar);
+    det.appendChild(s1);
+    carregaAchadosDados().then(function (d) {
+      lugar.textContent = "";
+      if (!d) { lugar.appendChild(el("p", "ach-vazio", "Não consegui carregar as consultas agora. Tente de novo daqui a pouco.")); return; }
+      var lista = d[fa.id];
+      if (!lista || !lista.length) {
+        lugar.appendChild(el("p", "ach-vazio", "Esta fase não tem consulta de solução: o que vale é o passo a passo que você fez nela."));
+        return;
+      }
+      lista.forEach(function (q, i) {
+        var bloco = el("div", "ach-consulta");
+        if (lista.length > 1) bloco.appendChild(el("div", "ach-rotulo", "Consulta " + (i + 1) + " de " + lista.length));
+        bloco.appendChild(el("pre", "ach-sql", q.sql));
+        if (q.colunas) {
+          var res = el("div", "ach-res");
+          var tab = el("table", "ach-tab");
+          var cab = el("tr");
+          q.colunas.forEach(function (nome) { cab.appendChild(el("th", null, nome)); });
+          tab.appendChild(cab);
+          q.linhas.forEach(function (l) {
+            var tr = el("tr");
+            l.forEach(function (v) { tr.appendChild(el("td", v === null ? "nulo" : null, v === null ? "NULL" : v)); });
+            tab.appendChild(tr);
+          });
+          res.appendChild(tab);
+          bloco.appendChild(res);
+          var resumo = "Devolveu " + q.total + (q.total === 1 ? " linha" : " linhas");
+          if (q.total > q.linhas.length) resumo += " (mostrando as " + q.linhas.length + " primeiras)";
+          if (q.maisColunas) resumo += " · mais " + q.maisColunas + " coluna(s) não mostrada(s)";
+          bloco.appendChild(el("div", "ach-total", resumo));
+        } else if (q.erro) {
+          bloco.appendChild(el("div", "ach-total", "Esta consulta depende de algo que você cria durante a fase."));
+        } else {
+          bloco.appendChild(el("div", "ach-total", "Comando executado (não devolve linhas)."));
+        }
+        lugar.appendChild(bloco);
+      });
+    });
+    var nota = (notas[fa.id] || "").trim();
+    if (nota) {
+      var s2 = el("section", "ach-sec");
+      s2.appendChild(el("h4", null, "Sua anotação"));
+      s2.appendChild(el("p", "ach-nota-cheia", nota));
+      det.appendChild(s2);
+    }
+    var imgs = pegaFotos();
+    if (imgs.length) {
+      var s3 = el("section", "ach-sec");
+      s3.appendChild(el("h4", null, "Suas imagens (" + imgs.length + ")"));
+      var grade = el("div", "ach-grandes");
+      imgs.forEach(function (src, k) {
+        var fig = el("button", "ach-grande"); fig.type = "button";
+        fig.title = "Clique para ver em detalhe";
+        var im = el("img"); im.src = src; im.alt = "Imagem " + (k + 1) + " da anotação";
+        fig.appendChild(im);
+        fig.addEventListener("click", function () { abreVisor(ctrlSomenteLeitura(imgs, fa.titulo || fa.nome), k); });
+        grade.appendChild(fig);
+      });
+      s3.appendChild(grade);
+      det.appendChild(s3);
+    }
+  }
   // aba "Achados": uma linha vermelha por caso, com um cartão para cada fase
   function paginaAchados(r) {
     var c = corpo;
@@ -1191,22 +1289,41 @@
         if (feita) li.appendChild(el("p", "ach-achado", DESCOBERTAS[fa.id] || "Fase concluída."));
         else li.appendChild(el("p", "ach-achado vazio", lib ? "? Ainda por descobrir" : "🔒 Conclua a fase anterior"));
         var nota = (notas[fa.id] || "").trim();
-        if (nota) {
-          var pn = el("p", "ach-nota", "📓 " + (nota.length > 140 ? nota.slice(0, 140) + "…" : nota));
-          li.appendChild(pn);
-        }
+        if (nota) li.appendChild(el("p", "ach-nota", "📓 " + (nota.length > 200 ? nota.slice(0, 200) + "…" : nota)));
         var fotos = el("div", "ach-fotos"); fotos.hidden = true;
         li.appendChild(fotos);
+        var listaFotos = [];
         idbGet(fa.id).then(function (v) {
-          var l = listaImagens(v);
-          if (!l.length) return;
+          listaFotos = listaImagens(v);
+          if (!listaFotos.length) return;
           fotos.hidden = false;
-          l.slice(0, 4).forEach(function (src, k) {
+          listaFotos.slice(0, 4).forEach(function (src, k) {
             var im = el("img", "ach-mini"); im.src = src; im.alt = "Imagem " + (k + 1) + " da anotação";
+            im.tabIndex = 0; im.setAttribute("role", "button"); im.title = "Clique para ver em detalhe";
+            var abre = function () { abreVisor(ctrlSomenteLeitura(listaFotos, fa.titulo || fa.nome), k); };
+            im.addEventListener("click", abre);
+            im.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abre(); } });
             fotos.appendChild(im);
           });
-          if (l.length > 4) fotos.appendChild(el("span", "ach-mais", "+" + (l.length - 4)));
+          if (listaFotos.length > 4) fotos.appendChild(el("span", "ach-mais", "+" + (listaFotos.length - 4)));
         });
+        if (feita) {
+          var btn = el("button", "ach-detalhes-btn", "Ver detalhes ▾"); btn.type = "button";
+          btn.setAttribute("aria-expanded", "false");
+          var det = el("div", "ach-det"); det.hidden = true;
+          btn.addEventListener("click", function () {
+            var abre = det.hidden;
+            det.hidden = !abre;
+            btn.textContent = abre ? "Ocultar detalhes ▴" : "Ver detalhes ▾";
+            btn.setAttribute("aria-expanded", abre ? "true" : "false");
+            if (abre && !det.getAttribute("data-pronto")) {
+              det.setAttribute("data-pronto", "1");
+              preencheDetalhes(det, fa, function () { return listaFotos; });
+            }
+          });
+          li.appendChild(btn);
+          li.appendChild(det);
+        }
         linha.appendChild(li);
       });
       var cul = CULPADOS[cs.arq];
