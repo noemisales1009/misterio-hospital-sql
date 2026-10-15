@@ -145,37 +145,7 @@
     return null;
   }
 
-  // ------------------------------------------------------------------ teclado e digitação
-  var TECLAS = [
-    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-    ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
-    ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-    ["Z", "X", "C", "V", "B", "N", "M"]
-  ];
-  function criaTeclado() {
-    var t = el("div", "pc-teclado"); t.setAttribute("aria-hidden", "true");
-    TECLAS.forEach(function (linha) {
-      var l = el("div", "pc-linha");
-      linha.forEach(function (k) { var b = el("span", "pc-tecla", k); b.setAttribute("data-k", k); l.appendChild(b); });
-      t.appendChild(l);
-    });
-    var base = el("div", "pc-linha");
-    var esc = el("span", "pc-tecla larga", "⌫"); esc.setAttribute("data-k", "BACKSPACE");
-    var esp = el("span", "pc-tecla espaco", ""); esp.setAttribute("data-k", " ");
-    var ent = el("span", "pc-tecla larga", "↵"); ent.setAttribute("data-k", "ENTER");
-    base.appendChild(esc); base.appendChild(esp); base.appendChild(ent);
-    t.appendChild(base);
-    return t;
-  }
-  function acendeTecla(teclado, e) {
-    var k = e.key;
-    if (!k) return;
-    k = k.length === 1 ? k.toUpperCase() : k.toUpperCase();
-    var alvo = teclado.querySelector('[data-k="' + k.replace(/"/g, "") + '"]');
-    if (!alvo) return;
-    alvo.classList.add("on");
-    setTimeout(function () { alvo.classList.remove("on"); }, 110);
-  }
+  // ------------------------------------------------------------------ digitação
   // escreve um texto na tela, letra por letra
   function digita(no, texto, ms) {
     if (SEM_ANIMACAO) { no.textContent += texto; return Promise.resolve(); }
@@ -258,8 +228,6 @@
     monitor.appendChild(el("div", "pc-base"));
     pc.appendChild(monitor);
 
-    var teclado = criaTeclado();
-    pc.appendChild(teclado);
 
     // ---------------- estado visual
     function marca(estado, texto) {
@@ -472,7 +440,6 @@
     });
     area.addEventListener("input", guardaRascunho);
     area.addEventListener("keydown", function (e) {
-      acendeTecla(teclado, e);
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); roda(); return; }
       if (e.key === "Tab" && !e.shiftKey) {
         e.preventDefault();

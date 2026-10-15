@@ -820,3 +820,7 @@ html{padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
 .code{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
 .code pre{order:1;flex:1 1 100%}
 .code .btn,.code .btn.pc-leva{position:static;order:2}
+
+/* computador sem teclado: só o monitor antigo */
+.pc-teclado{display:none}
+.pc{gap:0}
