@@ -983,44 +983,194 @@
     for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
     return h >>> 0;
   }
-  // retrato desenhado (ficha de investigação): traços variam de forma estável a partir do nome
+  // ---- retratos: personagens desenhados em SVG
+  // Cada personagem tem seus traços definidos aqui (pele, cabelo, barba, óculos, roupa...).
+  // Quem não está na lista (casos novos) recebe traços estáveis calculados a partir do nome.
+  var PELES = {
+    clara: ["#f7dcc4", "#e4b995"], media: ["#ebc095", "#d2a072"], morena: ["#c68e60", "#a87548"],
+    escura: ["#8a5836", "#724427"], negra: ["#5b3723", "#46291a"]
+  };
+  var CABELOS = {
+    preto: "#1a1512", castanho: "#4a2c19", ruivo: "#9a4a22", loiro: "#b98a46", grisalho: "#8f8f8f", branco: "#d6d6d0"
+  };
+  var ROUPA_COR = {
+    "scrub-verde": "#2f8f7e", "scrub-azul": "#3b74b8", "scrub-bordo": "#8d3b52", "scrub-roxo": "#6a55a8",
+    "polo-azul": "#2f4f86", "polo-cinza": "#5b6673", casual: "#6e8a5f", moletom: "#4b5563",
+    macacao: "#d9822b", social: "#dbe4ee", blazer: "#2f3a4a", jaleco: "#f3f2ec"
+  };
+  // p=pele  h=cabelo  c=cor do cabelo  b=barba  o=óculos  r=roupa  x=extra  s=sorriso  f=rosto
+  var RETRATOS = {
+    "Otávio Brandão":      { p: "media",  h: "social",   c: "castanho", b: "bigode",  o: "redondo",    r: "casual",      s: "leve" },
+    "Lorena Bittencourt":  { p: "morena", h: "ondulado", c: "preto",                                   r: "casual",      s: "leve" },
+    "Rogério Valadares":   { p: "media",  h: "curto",    c: "castanho", b: "barba",                    r: "moletom",     s: "serio" },
+    "Jeremias Paiva":      { p: "escura", h: "raspado",  c: "preto",                  o: "retangular", r: "polo-cinza",  s: "leve" },
+    "Vitória Albuquerque": { p: "clara",  h: "coque",    c: "loiro",                                   r: "blazer",      s: "serio", f: "fino" },
+    "Rogério Mendonça":    { p: "morena", h: "curto",    c: "preto",    b: "bigode",                   r: "scrub-verde", x: "cracha", s: "serio" },
+    "Márcia Albuquerque":  { p: "media",  h: "rabo",     c: "castanho",                               r: "scrub-azul",  x: "cracha", s: "leve" },
+    "Renata Figueiredo":   { p: "clara",  h: "ondulado", c: "ruivo",                                  r: "scrub-bordo", x: "cracha", s: "largo" },
+    "Fábio Bittencourt":   { p: "media",  h: "raspado",  c: "preto",                                  r: "scrub-verde", x: "cracha", s: "leve" },
+    "Cláudia Lourenço":    { p: "escura", h: "cacheado", c: "preto",                                  r: "jaleco",      x: "cracha", s: "largo" },
+    "Edson Carvalhaes":    { p: "media",  h: "social",   c: "grisalho", b: "bigode",  o: "retangular", r: "jaleco",      x: "cracha", s: "serio", f: "largo" },
+    "Marta Figueiredo":    { p: "clara",  h: "coque",    c: "castanho",                               r: "jaleco",      x: "cracha", s: "leve" },
+    "Lúcia Bittencourt":   { p: "morena", h: "ondulado", c: "preto",                  o: "redondo",    r: "jaleco",      x: "cracha", s: "leve" },
+    "Sônia Lourenço":      { p: "negra",  h: "volume",   c: "preto",                                   r: "jaleco",      x: "cracha", s: "largo" },
+    "Gilson Albuquerque":  { p: "escura", h: "careca",   c: "preto",    b: "cav",                      r: "jaleco",      x: "cracha", s: "leve" },
+    "Bianca Furtado":      { p: "media",  h: "comprido", c: "castanho",                               r: "social",      x: "cracha", s: "leve" },
+    "Valéria Montenegro":  { p: "morena", h: "rabo",     c: "preto",                                  r: "polo-azul",   x: "cracha", s: "serio" },
+    "Dulce Albuquerque":   { p: "clara",  h: "curto",    c: "branco",                 o: "redondo",    r: "polo-azul",   x: "cracha", s: "leve" },
+    "Cláudio Menezes":     { p: "media",  h: "social",   c: "castanho", b: "cav",                      r: "social",      x: "cracha", s: "serio" },
+    "Rosângela Freitas":   { p: "escura", h: "cacheado", c: "preto",                                  r: "polo-cinza",  x: "cracha", s: "largo" },
+    "Hugo Amaral":         { p: "clara",  h: "curto",    c: "loiro",                  o: "retangular", r: "polo-cinza",  x: "cracha", s: "leve" },
+    "Leonel Guedes":       { p: "morena", h: "raspado",  c: "preto",    b: "barba",                    r: "macacao",     s: "serio", f: "largo" },
+    "Irene Castilho":      { p: "clara",  h: "curto",    c: "grisalho",                               r: "macacao",     s: "leve" },
+    "Marta Guimarães":     { p: "media",  h: "rabo",     c: "castanho",                               r: "macacao",     s: "leve" },
+    "Moacir Teles":        { p: "escura", h: "careca",   c: "preto",    b: "bigode",                   r: "macacao",     s: "serio" },
+    "Lia Moraes":          { p: "media",  h: "comprido", c: "castanho",                               r: "casual",      s: "leve" },
+    "Beatriz Falcão":      { p: "clara",  h: "ondulado", c: "loiro",                                  r: "social",      x: "cracha", s: "leve" },
+    "Jaqueline Prado":     { p: "escura", h: "cacheado", c: "preto",                                  r: "social",      x: "cracha", s: "leve" },
+    "Daniela Couto":       { p: "media",  h: "coque",    c: "preto",                                  r: "social",      x: "cracha", s: "largo" },
+    "Caio Linhares":       { p: "clara",  h: "curto",    c: "castanho",               o: "redondo",    r: "scrub-azul",  x: "cracha", s: "leve" },
+    "Fábio Rezende":       { p: "morena", h: "social",   c: "preto",    b: "barba",                    r: "scrub-verde", x: "cracha", s: "serio" },
+    "Renata Godoy":        { p: "clara",  h: "rabo",     c: "ruivo",                                  r: "social",      x: "cracha", s: "serio" },
+    "Sérgio Paixão":       { p: "media",  h: "raspado",  c: "castanho", b: "barba",   o: "retangular", r: "social",      x: "cracha", s: "serio", f: "largo" },
+    "Renan Duarte":        { p: "morena", h: "cacheado", c: "preto",                  o: "redondo",    r: "moletom",     s: "serio" }
+  };
+  // traços estáveis para quem não está na lista
+  function retratoPeloNome(nome) {
+    var h = hashTexto(nome), pick = function (arr, k) { return arr[(h >>> k) % arr.length]; };
+    return {
+      p: pick(["clara", "media", "morena", "escura", "negra"], 0),
+      h: pick(["curto", "social", "raspado", "ondulado", "cacheado", "coque", "rabo", "comprido"], 3),
+      c: pick(["preto", "castanho", "castanho", "ruivo", "loiro", "grisalho"], 7),
+      b: pick(["", "", "", "bigode", "barba"], 11),
+      o: pick(["", "", "redondo", "retangular"], 15),
+      r: pick(["scrub-verde", "scrub-azul", "polo-azul", "social", "casual", "jaleco"], 19),
+      x: "cracha", s: pick(["leve", "serio", "largo"], 23)
+    };
+  }
+  function cabeloTras(h, cor) {
+    var f = ' fill="' + cor + '"';
+    if (h === "comprido") return '<path d="M27 52 C20 14 80 14 73 52 L78 94 C60 100 40 100 22 94 Z"' + f + '/>';
+    if (h === "ondulado") return '<path d="M27 50 C19 14 81 14 73 50 C80 62 74 72 79 86 C71 88 67 80 62 88 L38 88 C33 80 29 88 21 86 C26 72 20 62 27 50Z"' + f + '/>';
+    if (h === "cacheado") return '<circle cx="50" cy="38" r="26"' + f + '/><circle cx="27" cy="52" r="10"' + f + '/><circle cx="73" cy="52" r="10"' + f + '/><circle cx="32" cy="64" r="8"' + f + '/><circle cx="68" cy="64" r="8"' + f + '/>';
+    if (h === "volume") return '<circle cx="50" cy="35" r="30"' + f + '/><circle cx="24" cy="48" r="11"' + f + '/><circle cx="76" cy="48" r="11"' + f + '/><circle cx="30" cy="26" r="12"' + f + '/><circle cx="70" cy="26" r="12"' + f + '/>';
+    if (h === "coque") return '<circle cx="50" cy="13" r="10"' + f + '/><rect x="46" y="18" width="8" height="8"' + f + '/>';
+    if (h === "rabo") return '<path d="M66 34 C86 32 92 58 82 80 C80 66 74 56 66 50Z"' + f + '/>';
+    return "";
+  }
+  function cabeloFrente(h, cor) {
+    var f = ' fill="' + cor + '"';
+    if (h === "careca") return '<path d="M31 52 C29 45 31 40 34 38 L34 54Z"' + f + '/><path d="M69 52 C71 45 69 40 66 38 L66 54Z"' + f + '/><ellipse cx="50" cy="31" rx="9" ry="3" fill="#fff" opacity=".2"/>';
+    if (h === "raspado") return '<path d="M30.5 45 C29 27 71 27 69.5 45 C66.5 38 58 35.5 50 35.5 C42 35.5 33.5 38 30.5 45Z"' + f + ' opacity=".9"/>';
+    if (h === "social") return '<path d="M30 47 C27 20 73 18 70 47 C68 36 61 31 52 30 C45 29 37 33 34 39 C32 41 31 44 30 47Z"' + f + '/><path d="M43 30 C47 32 52 33 56 32" stroke="rgba(255,255,255,.22)" stroke-width="1.4" fill="none"/>';
+    if (h === "comprido") return '<path d="M30 47 C27 22 50 19 50 31 C50 19 73 22 70 47 C66 38 58 34 50 34 C42 34 34 38 30 47Z"' + f + '/>';
+    if (h === "ondulado") return '<path d="M30 48 C26 20 74 17 70 48 C68 37 62 31 52 30 C44 30 36 33 33 40 C31.5 42 30.5 45 30 48Z"' + f + '/>';
+    if (h === "cacheado") return '<path d="M30 45 C29 27 71 27 70 45 C66 37 58 34 50 34 C42 34 34 37 30 45Z"' + f + '/><circle cx="35" cy="31" r="6"' + f + '/><circle cx="44" cy="26" r="6.5"' + f + '/><circle cx="54" cy="25" r="6.5"' + f + '/><circle cx="63" cy="29" r="6"' + f + '/><circle cx="68" cy="37" r="5"' + f + '/><circle cx="32" cy="39" r="5"' + f + '/>';
+    if (h === "volume") return '<path d="M29 46 C27 24 73 24 71 46 C66 36 58 33 50 33 C42 33 34 36 29 46Z"' + f + '/><circle cx="36" cy="28" r="8"' + f + '/><circle cx="50" cy="24" r="9"' + f + '/><circle cx="64" cy="28" r="8"' + f + '/>';
+    if (h === "coque" || h === "rabo") return '<path d="M30 47 C27 21 73 21 70 47 C68 36 60 31 50 31 C40 31 32 36 30 47Z"' + f + '/><path d="M50 31 L50 36" stroke="rgba(0,0,0,.25)" stroke-width="1.2"/>';
+    // curto
+    return '<path d="M30.5 46 C28 22 72 22 69.5 46 C67 34 59 30 50 30 C41 30 33 34 30.5 46Z"' + f + '/>';
+  }
+  function barbaSVG(b, cor) {
+    var f = ' fill="' + cor + '"';
+    if (b === "barba") return '<path d="M30.5 51 C30 70 41 77 50 77 C59 77 70 70 69.5 51 C67 58 63 60.5 58 61 C54.5 59 45.5 59 42 61 C37 60.5 33 58 30.5 51Z"' + f + '/>';
+    if (b === "bigode") return '<path d="M41.5 62 Q46 58.5 50 61 Q54 58.5 58.5 62 Q54 65.5 50 63.5 Q46 65.5 41.5 62Z"' + f + '/>';
+    if (b === "cav") return '<path d="M41.5 62 Q46 58.5 50 61 Q54 58.5 58.5 62 Q54 65.5 50 63.5 Q46 65.5 41.5 62Z"' + f + '/><path d="M44.5 70 Q50 77 55.5 70 Q50 73 44.5 70Z"' + f + '/>';
+    return "";
+  }
+  function oculosSVG(o) {
+    if (!o) return "";
+    var arm = '<path d="M35.4 48 L30.5 47 M64.6 48 L69.5 47" stroke="#23201c" stroke-width="1.4" fill="none"/>';
+    var ponte = '<path d="M48.4 48.5 Q50 46.8 51.6 48.5" stroke="#23201c" stroke-width="1.5" fill="none"/>';
+    if (o === "retangular") {
+      return '<rect x="35.6" y="44.6" width="12.8" height="9" rx="2.2" fill="rgba(255,255,255,.16)" stroke="#23201c" stroke-width="1.6"/>' +
+        '<rect x="51.6" y="44.6" width="12.8" height="9" rx="2.2" fill="rgba(255,255,255,.16)" stroke="#23201c" stroke-width="1.6"/>' + ponte + arm;
+    }
+    return '<circle cx="42" cy="49" r="6.6" fill="rgba(255,255,255,.16)" stroke="#23201c" stroke-width="1.6"/>' +
+      '<circle cx="58" cy="49" r="6.6" fill="rgba(255,255,255,.16)" stroke="#23201c" stroke-width="1.6"/>' + ponte + arm;
+  }
+  function roupaSVG(r, x, pele) {
+    var cor = ROUPA_COR[r] || "#5b6673", s = '<path d="M3 112 C5 90 26 81 50 81 C74 81 95 90 97 112 Z" fill="' + cor + '"/>';
+    s += '<path d="M9 112 C12 94 28 86 40 84" stroke="rgba(0,0,0,.12)" stroke-width="1.2" fill="none"/>';
+    if (r.indexOf("scrub") === 0) {
+      s += '<path d="M39 81 L50 99 L61 81 Z" fill="' + pele[0] + '"/><path d="M39 81 L50 99 L61 81" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="1.8" stroke-linejoin="round"/>' +
+        '<rect x="65" y="98" width="15" height="12" rx="2" fill="none" stroke="rgba(0,0,0,.28)" stroke-width="1.2"/>';
+    } else if (r === "jaleco") {
+      s += '<path d="M42 81 L50 96 L58 81 Z" fill="#6fa8cf"/><path d="M37 82 L47 102 L41 112 M63 82 L53 102 L59 112" fill="none" stroke="#cfccbf" stroke-width="1.4"/>' +
+        '<path d="M37 82 L44 84 M63 82 L56 84" stroke="#cfccbf" stroke-width="1.4"/><rect x="66" y="97" width="16" height="13" rx="2" fill="none" stroke="#cfccbf" stroke-width="1.2"/><path d="M71 97 V92" stroke="#2f6db0" stroke-width="2"/>';
+    } else if (r === "social") {
+      s += '<path d="M41 80 L50 94 L59 80 L56.5 77.5 L50 86 L43.5 77.5 Z" fill="#fff"/><path d="M48.4 89 L51.6 89 L53.6 112 L50 107.5 L46.4 112 Z" fill="#7a2230"/>';
+    } else if (r === "blazer") {
+      s += '<path d="M40 81 L50 102 L60 81 Z" fill="#f6f1e7"/><path d="M36 82 L48 106 L42 112 M64 82 L52 106 L58 112" fill="none" stroke="#1f2833" stroke-width="2"/>' +
+        '<path d="M44 84 Q50 90 56 84" stroke="#f1e3c6" stroke-width="1.6" fill="none" stroke-dasharray="1.2 2.2" stroke-linecap="round"/>';
+    } else if (r.indexOf("polo") === 0) {
+      s += '<path d="M40 80 L50 91 L60 80 L65 84 L50 99 L35 84 Z" fill="rgba(255,255,255,.2)"/><path d="M50 91 V102" stroke="rgba(255,255,255,.5)" stroke-width="1.4"/>';
+    } else if (r === "moletom") {
+      s += '<path d="M32 85 C35 75 65 75 68 85 C63 92 37 92 32 85 Z" fill="rgba(0,0,0,.22)"/><path d="M45 90 L44 102 M55 90 L56 102" stroke="rgba(255,255,255,.55)" stroke-width="1.3"/>';
+    } else if (r === "macacao") {
+      s += '<path d="M40 80 L50 92 L60 80 L66 85 L50 100 L34 85 Z" fill="rgba(0,0,0,.18)"/><path d="M50 92 V112" stroke="rgba(0,0,0,.3)" stroke-width="1.4"/>' +
+        '<path d="M8 100 H92" stroke="#f1ec7a" stroke-width="2.2" opacity=".85"/>';
+    } else {
+      s += '<path d="M39 81 C43 91 57 91 61 81 Z" fill="' + pele[0] + '"/><path d="M39 81 C43 91 57 91 61 81" fill="none" stroke="rgba(0,0,0,.2)" stroke-width="1.4"/>';
+    }
+    if (x === "cracha") {
+      s += '<path d="M40 82 L47 103 M60 82 L53 103" stroke="#2c6fb7" stroke-width="1.5" fill="none"/>' +
+        '<rect x="43.5" y="102" width="13" height="9.5" rx="1.6" fill="#fff" stroke="#4a5560" stroke-width="1"/><rect x="43.5" y="102" width="13" height="2.6" fill="#2c6fb7"/>' +
+        '<path d="M46 107 H54" stroke="#9aa3ab" stroke-width="1"/>';
+    }
+    return s;
+  }
+  // retrato desenhado (ficha de investigação)
   function svgBusto(nome) {
-    var h = hashTexto(nome);
-    var pick = function (arr, k) { return arr[(h >>> k) % arr.length]; };
-    var pele = pick(["#f3d2b3", "#e8b88f", "#d19a6e", "#b27a52", "#8a5a3a"], 0);
-    var cabelo = pick(["#201a17", "#3d2415", "#6b4423", "#a9783a", "#8c8c8c", "#101010"], 3);
-    var roupa = pick(["#2f7a6b", "#3b6ea5", "#7a5aa6", "#b5503c", "#46505c", "#2a8f8f"], 7);
-    var estilo = (h >>> 11) % 4;
-    var oculos = (h >>> 15) % 3 === 0;
-    var atras = "", frente = "";
-    if (estilo === 1) atras = '<path d="M27 50 C22 16 78 16 73 50 L77 86 L23 86 Z" fill="' + cabelo + '"/>';
-    if (estilo === 2) atras = '<circle cx="50" cy="38" r="30" fill="' + cabelo + '"/><circle cx="26" cy="44" r="9" fill="' + cabelo + '"/><circle cx="74" cy="44" r="9" fill="' + cabelo + '"/>';
-    if (estilo === 3) atras = '<circle cx="50" cy="14" r="10" fill="' + cabelo + '"/>';
-    frente = '<path d="M30 46 C27 20 73 20 70 46 C64 35 36 35 30 46 Z" fill="' + cabelo + '"/>';
-    var olhos = '<ellipse cx="42" cy="50" rx="1.9" ry="2.3" fill="#1b1b1b"/><ellipse cx="58" cy="50" rx="1.9" ry="2.3" fill="#1b1b1b"/>' +
-      '<path d="M37 45 Q42 42 47 45 M53 45 Q58 42 63 45" stroke="' + cabelo + '" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
-    var lentes = oculos ? '<circle cx="42" cy="50" r="7" fill="rgba(255,255,255,.18)" stroke="#2b2a26" stroke-width="1.6"/><circle cx="58" cy="50" r="7" fill="rgba(255,255,255,.18)" stroke="#2b2a26" stroke-width="1.6"/><path d="M49 50 H51" stroke="#2b2a26" stroke-width="1.6"/>' : "";
-    return '<svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Retrato de ' + nome + '">' +
-      atras +
-      '<path d="M6 112 C8 88 28 80 50 80 C72 80 92 88 94 112 Z" fill="' + roupa + '"/>' +
-      '<path d="M40 80 L50 95 L60 80 Z" fill="#f4f1e6"/>' +
-      '<rect x="43" y="62" width="14" height="22" rx="6" fill="' + pele + '"/><rect x="43" y="70" width="14" height="8" rx="4" fill="rgba(0,0,0,.14)"/>' +
-      '<ellipse cx="30" cy="52" rx="3.2" ry="5" fill="' + pele + '"/><ellipse cx="70" cy="52" rx="3.2" ry="5" fill="' + pele + '"/>' +
-      '<ellipse cx="50" cy="50" rx="20" ry="24" fill="' + pele + '"/>' +
-      frente + olhos + lentes +
-      '<path d="M50 53 L48 60 H52" stroke="rgba(0,0,0,.28)" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<path d="M43 66 Q50 69 57 66" stroke="#7a3b2e" stroke-width="1.8" fill="none" stroke-linecap="round"/>' +
-      '</svg>';
+    var t = RETRATOS[nome] || retratoPeloNome(nome);
+    var pele = PELES[t.p] || PELES.media, cab = CABELOS[t.c] || CABELOS.castanho;
+    var rx = t.f === "largo" ? 21 : t.f === "fino" ? 18 : 19.5, ry = t.f === "fino" ? 24 : t.f === "largo" ? 22 : 23;
+    var s = '<svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Retrato de ' + nome + '">';
+    s += cabeloTras(t.h, cab);
+    s += '<rect x="43" y="62" width="14" height="24" rx="6" fill="' + pele[0] + '"/><rect x="43" y="71" width="14" height="9" rx="4" fill="' + pele[1] + '" opacity=".7"/>';
+    s += roupaSVG(t.r || "casual", t.x, pele);
+    // orelhas e cabeça
+    s += '<ellipse cx="' + (50 - rx - 0.4) + '" cy="51" rx="3.4" ry="5.2" fill="' + pele[0] + '"/><ellipse cx="' + (50 + rx + 0.4) + '" cy="51" rx="3.4" ry="5.2" fill="' + pele[0] + '"/>';
+    s += '<ellipse cx="50" cy="48" rx="' + rx + '" ry="' + ry + '" fill="' + pele[0] + '"/>';
+    s += '<path d="M31.5 57 C34 73 66 73 68.5 57 C64 67 36 67 31.5 57Z" fill="' + pele[1] + '" opacity=".22"/>';
+    s += '<ellipse cx="37.5" cy="58" rx="4.2" ry="2.8" fill="#e0675c" opacity=".16"/><ellipse cx="62.5" cy="58" rx="4.2" ry="2.8" fill="#e0675c" opacity=".16"/>';
+    // sobrancelhas, olhos, nariz
+    var espessa = t.b || t.s === "serio" ? 2.3 : 1.7;
+    s += '<path d="M36 44.2 Q42 40.8 47.6 43.6 M52.4 43.6 Q58 40.8 64 44.2" stroke="' + cab + '" stroke-width="' + espessa + '" fill="none" stroke-linecap="round"/>';
+    s += '<ellipse cx="42" cy="49" rx="3.7" ry="2.6" fill="#fff"/><ellipse cx="58" cy="49" rx="3.7" ry="2.6" fill="#fff"/>';
+    s += '<circle cx="42.3" cy="49.2" r="2" fill="#3a2a1d"/><circle cx="58.3" cy="49.2" r="2" fill="#3a2a1d"/>';
+    s += '<circle cx="42.4" cy="49.2" r="1" fill="#0d0b0a"/><circle cx="58.4" cy="49.2" r="1" fill="#0d0b0a"/>';
+    s += '<circle cx="43.1" cy="48.4" r=".6" fill="#fff"/><circle cx="59.1" cy="48.4" r=".6" fill="#fff"/>';
+    s += '<path d="M38.2 47.6 Q42 45.6 45.8 47.6 M54.2 47.6 Q58 45.6 61.8 47.6" stroke="' + pele[1] + '" stroke-width="1" fill="none"/>';
+    s += '<path d="M50 50 C49 55 47.4 58.6 48.8 60.4 Q50 61.4 51.2 60.4 C52.6 58.6 51 55 50 50" stroke="' + pele[1] + '" stroke-width="1.3" fill="none" stroke-linejoin="round"/>';
+    s += cabeloFrente(t.h, cab);
+    // boca (por cima da barba)
+    var boca = t.s === "serio" ? '<path d="M44.5 67 Q50 68.4 55.5 67" stroke="#7a3b2e" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
+      : t.s === "largo" ? '<path d="M43 65.6 Q50 73 57 65.6 Q50 68 43 65.6Z" fill="#fff" stroke="#7a3b2e" stroke-width="1.4" stroke-linejoin="round"/>'
+      : '<path d="M43.8 66 Q50 70.6 56.2 66" stroke="#7a3b2e" stroke-width="1.9" fill="none" stroke-linecap="round"/>';
+    s += barbaSVG(t.b, cab) + boca + oculosSVG(t.o);
+    return s + '</svg>';
+  }
+  // nome do arquivo da ilustração: minúsculas, sem acento, hífen no lugar dos espaços
+  function slugRetrato(nome) {
+    return String(nome).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+  // usa a ilustração de img/personagens/ quando o arquivo existe; senão, o desenho
+  function retratoMarkup(nome, aparelho) {
+    var arq = (window.MISTERIO_PERSONAGENS || {})[slugRetrato(nome)];
+    if (arq) return '<img src="' + arq + '" alt="Retrato de ' + nome + '" decoding="async">';
+    return aparelho ? svgAparelho(nome) : svgBusto(nome);
   }
   function svgAparelho(codigo) {
     return '<svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Aparelho ' + codigo + '">' +
-      '<path d="M50 4 V26" stroke="#6b7480" stroke-width="3"/><path d="M34 6 H66" stroke="#6b7480" stroke-width="3" stroke-linecap="round"/>' +
-      '<path d="M38 8 C34 18 34 24 40 28 H46 C52 24 52 18 48 8 Z" fill="#cfe9f2" stroke="#6b7480" stroke-width="1.6"/>' +
-      '<rect x="24" y="30" width="52" height="58" rx="7" fill="#e3e7ea" stroke="#6b7480" stroke-width="2.4"/>' +
-      '<rect x="30" y="37" width="40" height="22" rx="3" fill="#10332e"/>' +
-      '<text x="50" y="52" font-size="11" font-weight="700" fill="#7fffd4" text-anchor="middle" font-family="monospace">' + codigo + '</text>' +
-      '<circle cx="36" cy="72" r="4.5" fill="#c0281c"/><circle cx="50" cy="72" r="4.5" fill="#2c9b57"/><rect x="58" y="68" width="12" height="8" rx="2" fill="#6b7480"/>' +
-      '<path d="M60 88 C60 100 70 100 74 108" stroke="#9fb7c4" stroke-width="2.4" fill="none" stroke-linecap="round"/>' +
+      '<path d="M50 2 V28" stroke="#6b7480" stroke-width="3"/><path d="M30 5 H70" stroke="#6b7480" stroke-width="3" stroke-linecap="round"/>' +
+      '<path d="M36 8 C31 18 31 26 38 31 H46 C53 26 53 18 48 8 Z" fill="#cfe9f2" stroke="#6b7480" stroke-width="1.6"/><path d="M34 20 H50" stroke="#8fc3d6" stroke-width="2"/>' +
+      '<rect x="20" y="30" width="60" height="62" rx="8" fill="#e6eaed" stroke="#5f6b76" stroke-width="2.4"/>' +
+      '<rect x="26" y="36" width="48" height="26" rx="4" fill="#0f2d28" stroke="#33413d" stroke-width="1.5"/>' +
+      '<text x="50" y="50" font-size="12" font-weight="700" fill="#7fffd4" text-anchor="middle" font-family="monospace">' + codigo + '</text>' +
+      '<text x="50" y="59" font-size="6" fill="#3fbf9a" text-anchor="middle" font-family="monospace">125 ml/h</text>' +
+      '<circle cx="33" cy="75" r="5" fill="#c0281c"/><circle cx="47" cy="75" r="5" fill="#2c9b57"/><rect x="58" y="70" width="16" height="10" rx="3" fill="#8a96a1"/>' +
+      '<path d="M40 92 C40 102 56 102 60 108" stroke="#9fb7c4" stroke-width="2.6" fill="none" stroke-linecap="round"/>' +
       '</svg>';
   }
   // filtro de "tinta de carimbo" (bordas irregulares e falhas), criado uma vez por página
@@ -1047,7 +1197,7 @@
     var box = el("div", "ficha-culpado" + (grande ? " grande" : ""));
     var fig = el("figure", "ficha-foto");
     var ret = el("div", "ficha-retrato");
-    ret.innerHTML = cul.tipo === "aparelho" ? svgAparelho(cul.nome) : svgBusto(cul.nome);
+    ret.innerHTML = retratoMarkup(cul.nome, cul.tipo === "aparelho");
     fig.appendChild(ret);
     if (grande) fig.appendChild(el("figcaption", null, cul.nome));
     var tx = el("div", "ficha-texto");
@@ -1345,6 +1495,171 @@
     if (!algumAberto && primeiro) primeiro.open = true;
   }
 
+  // ------------------------------------------------------------------ mural do caso (laterais de telas grandes)
+  // quem aparece em cada fase: [nome, papel, marcas]  (marcas: "c" = culpado, "a" = aparelho)
+  var MURAL_PESSOAS = {
+    fase3: [["Otávio Brandão", "Testemunha 1"], ["Lorena Bittencourt", "Testemunha 2"]],
+    fase5: [["Rogério Valadares", "Suspeito"], ["Jeremias Paiva", "Suspeito"]],
+    fase6: [["Rogério Valadares", "Desligou a geladeira", "c"]],
+    fase7: [["Vitória Albuquerque", "A mandante", "c"]],
+    "c2-f2": [["Márcia Albuquerque", "Senha usada"], ["Renata Figueiredo", "Senha usada"]],
+    "c2-f3": [["Márcia Albuquerque", "Estava de folga"]],
+    "c2-f4": [["Rogério Mendonça", "Entrou na porta"], ["Fábio Bittencourt", "Entrou na porta"], ["Cláudia Lourenço", "Entrou na porta"]],
+    "c2-f5": [["Rogério Mendonça", "O culpado", "c"]],
+    "c3-f2": [["Gilson Albuquerque", "Saída sem receita"]],
+    "c3-f3": [["Edson Carvalhaes", "28 a mais"], ["Marta Figueiredo", "6 a mais"], ["Lúcia Bittencourt", "2 a mais"], ["Sônia Lourenço", "2 a mais"]],
+    "c3-f4": [["Marta Figueiredo", "Justificou"], ["Sônia Lourenço", "Justificou"], ["Edson Carvalhaes", "Sem justificativa"], ["Lúcia Bittencourt", "Sem justificativa"]],
+    "c3-f5": [["Edson Carvalhaes", "O culpado", "c"]],
+    "c4-f3": [["BI-02", "Bomba de infusão", "a"], ["BI-07", "Bomba de infusão", "a"], ["VT-03", "Ventilador", "a"]],
+    "c4-f5": [["BI-07", "Sem limpeza em agosto", "ac"]],
+    "c5-f5": [["Bianca Furtado", "Assinou o lote L-0830-C", "c"]],
+    "c6-f4": [["Dulce Albuquerque", "Abriu a G-03"], ["Valéria Montenegro", "Abriu a G-03"]],
+    "c6-f5": [["Valéria Montenegro", "O culpado", "c"]],
+    "c7-f3": [["Cláudio Menezes", "13 cadastros"], ["Rosângela Freitas", "6 cadastros"], ["Hugo Amaral", "5 cadastros"]],
+    "c7-f5": [["Cláudio Menezes", "O responsável", "c"]],
+    "c8-f3": [["Leonel Guedes", "120 h extras"], ["Irene Castilho", "114 h extras"], ["Marta Guimarães", "44,5 h extras"]],
+    "c8-f5": [["Leonel Guedes", "O culpado", "c"]],
+    "c9-f1": [["Lia Moraes", "Prontuário espiado"], ["Beatriz Falcão", "Imprimiu"], ["Jaqueline Prado", "Imprimiu"]],
+    "c9-f2": [["Daniela Couto", "Fora da equipe"], ["Caio Linhares", "Fora da equipe"], ["Fábio Rezende", "Fora da equipe"]],
+    "c9-f3": [["Jaqueline Prado", "Acesso fora do turno"]],
+    "c9-f4": [["Renata Godoy", "6 senhas erradas"]],
+    "c9-f5": [["Sérgio Paixão", "O culpado", "c"]],
+    "c10-f5": [["Renan Duarte", "O culpado", "c"]]
+  };
+  var MURAL_LARGURA_MIN = 1500;      // abaixo disso a página não tem sobra nas laterais
+  var mural = null, muralEsq = null, muralDir = null, muralTimer = null;
+  function muralIniciar() {
+    if (!casoDaPagina() || !document.querySelector("section.fase")) return;
+    mural = el("div", "mural"); mural.setAttribute("aria-hidden", "true");
+    muralEsq = el("div", "mural-lado esq"); muralDir = el("div", "mural-lado dir");
+    mural.appendChild(muralEsq); mural.appendChild(muralDir);
+    document.body.appendChild(mural);
+    window.addEventListener("resize", agendaMural);
+    atualizaMural();
+  }
+  function agendaMural(ms) { clearTimeout(muralTimer); muralTimer = setTimeout(atualizaMural, typeof ms === "number" ? ms : 140); }
+  var muralChaves = null;   // o que já estava no mural (para animar só o que acabou de chegar)
+  function pessoasDoCaso(cs, st) {
+    var lista = [];   // ordem de descoberta; quem reaparece vai para o fim, com o papel novo
+    cs.fases.forEach(function (fa) {
+      if (!st[fa.id]) return;
+      (MURAL_PESSOAS[fa.id] || []).forEach(function (p) {
+        for (var i = 0; i < lista.length; i++) { if (lista[i].nome === p[0]) { lista.splice(i, 1); break; } }
+        var m = p[2] || "";
+        lista.push({ nome: p[0], papel: p[1], culpado: m.indexOf("c") > -1, aparelho: m.indexOf("a") > -1 });
+      });
+    });
+    return lista;
+  }
+  function atualizaMural() {
+    if (!mural) return;
+    var cs = casoDaPagina(); if (!cs) return;
+    muralEsq.textContent = ""; muralDir.textContent = "";
+    if (window.innerWidth < MURAL_LARGURA_MIN) { muralEsq.hidden = muralDir.hidden = true; return; }
+    var stReal = estado();
+    // o mural acompanha a fase que está sendo lida: só entra o que foi descoberto até ela
+    var aberta = document.querySelector("section.fase.aberta");
+    var limite = cs.fases.length;
+    if (aberta) { for (var li = 0; li < cs.fases.length; li++) { if (cs.fases[li].id === aberta.id) { limite = li + 1; break; } } }
+    var st = {};
+    cs.fases.slice(0, limite).forEach(function (fa) { if (stReal[fa.id]) st[fa.id] = true; });
+    var pinos = ["vermelho", "azul", "amarelo", "verde"];
+    var chaves = {};
+    var marcaNovo = function (no, chave) {
+      chaves[chave] = true;
+      if (muralChaves && !muralChaves[chave]) no.classList.add("novo");
+    };
+    // à esquerda: as pessoas (e aparelhos) que já apareceram na investigação
+    pessoasDoCaso(cs, st).slice(-4).forEach(function (p, i) {
+      var fig = el("figure", "mural-item mural-foto");
+      marcaNovo(fig, "p:" + p.nome + "|" + p.papel);
+      fig.style.setProperty("--giro", (i % 2 ? 2.4 : -2.8) + "deg");
+      fig.appendChild(el("span", "pino pino-" + pinos[i % 4]));
+      var ret = el("div", "ficha-retrato");
+      ret.innerHTML = retratoMarkup(p.nome, p.aparelho);
+      fig.appendChild(ret);
+      var leg = el("figcaption");
+      leg.appendChild(el("b", null, p.nome));
+      leg.appendChild(el("small", null, p.papel));
+      fig.appendChild(leg);
+      if (p.culpado) fig.appendChild(el("span", "mural-selo", "Culpado"));
+      muralEsq.appendChild(fig);
+    });
+    // à direita: os últimos achados, em post-its
+    var cores = ["#fff1a0", "#ffd9e2", "#d6f0c5", "#cfe6fb"];
+    cs.fases.filter(function (fa) { return st[fa.id] && DESCOBERTAS[fa.id] && DESCOBERTAS[fa.id] !== MONTADO; })
+      .slice(-4).forEach(function (fa, i) {
+        var nota = el("div", "mural-item mural-nota");
+        marcaNovo(nota, "n:" + fa.id);
+        nota.style.setProperty("--cor", cores[i % 4]);
+        nota.style.setProperty("--giro", (i % 2 ? -2 : 1.8) + "deg");
+        nota.appendChild(el("span", "pino pino-" + pinos[(i + 2) % 4]));
+        nota.appendChild(el("small", null, "Fase " + fa.num + " · " + (fa.titulo || fa.nome)));
+        nota.appendChild(el("p", null, DESCOBERTAS[fa.id]));
+        muralDir.appendChild(nota);
+      });
+    muralChaves = chaves;
+    medeMural();
+  }
+  // encaixa cada coluna na sobra da lateral; tira os itens que não cabem na altura e traça os fios
+  function medeMural() {
+    var wrap = document.querySelector(".wrap");
+    if (!mural || !wrap) return;
+    var r = wrap.getBoundingClientRect();
+    var larguraEsq = r.left - 28;
+    // limite da direita: a abinha das anotações (64px) ou, com a gaveta aberta, a borda dela
+    var limiteDir = window.innerWidth - 64;
+    if (gaveta && gaveta.classList.contains("aberta")) {
+      var gp = gaveta.querySelector(".gaveta-painel");
+      var gb = gp && gp.getBoundingClientRect();
+      if (gb && gb.width > 0 && gb.left > r.right) limiteDir = Math.min(limiteDir, gb.left - 8);
+    }
+    var larguraDir = limiteDir - r.right - 28;
+    var lados = [
+      { no: muralEsq, w: Math.min(larguraEsq, 250), x0: 0, sobra: larguraEsq, min: 190, ref: 0 },
+      { no: muralDir, w: Math.min(larguraDir, 250), x0: r.right, sobra: larguraDir, min: 200, ref: r.right }
+    ];
+    lados.forEach(function (l, k) {
+      var tem = l.no.childElementCount > 0 && l.sobra >= l.min;
+      l.no.hidden = !tem;
+      l.no.classList.toggle("com-novo", !!l.no.querySelector(".novo"));
+      var fio = l.no.querySelector("svg.mural-fios"); if (fio) fio.remove();
+      if (!tem) return;
+      l.no.style.width = l.w + "px";
+      var centro = k === 0 ? r.left / 2 : (r.right + limiteDir) / 2;
+      l.no.style.left = Math.round(centro - l.w / 2) + "px";
+      var itens = [].slice.call(l.no.querySelectorAll(".mural-item"));
+      // faltou altura: some o mais antigo (o mais recente, como o culpado, é o que importa)
+      while (itens.length > 1 && l.no.scrollHeight > l.no.clientHeight + 2) { itens.shift().remove(); }
+      desenhaFios(l.no);
+    });
+  }
+  function desenhaFios(lado) {
+    var itens = [].slice.call(lado.querySelectorAll(".mural-item"));
+    if (itens.length < 2) return;
+    var NS = "http://www.w3.org/2000/svg";
+    var box = lado.getBoundingClientRect();
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("class", "mural-fios");
+    svg.setAttribute("width", Math.ceil(box.width)); svg.setAttribute("height", Math.ceil(lado.scrollHeight));
+    var ponto = function (item) {
+      var p = item.querySelector(".pino").getBoundingClientRect();
+      return [p.left + p.width / 2 - box.left, p.top + p.height / 2 - box.top];
+    };
+    for (var i = 0; i < itens.length - 1; i++) {
+      var a = ponto(itens[i]), b = ponto(itens[i + 1]);
+      var cx = (a[0] + b[0]) / 2 + (i % 2 ? 34 : -34), cy = (a[1] + b[1]) / 2 + 26;
+      var d = "M" + a[0].toFixed(1) + " " + a[1].toFixed(1) + " Q" + cx.toFixed(1) + " " + cy.toFixed(1) + " " + b[0].toFixed(1) + " " + b[1].toFixed(1);
+      var sombra = document.createElementNS(NS, "path");
+      sombra.setAttribute("d", d); sombra.setAttribute("fill", "none"); sombra.setAttribute("stroke", "rgba(0,0,0,.35)"); sombra.setAttribute("stroke-width", "3.4");
+      sombra.setAttribute("transform", "translate(1.5 2.5)");
+      var fio = document.createElementNS(NS, "path");
+      fio.setAttribute("d", d); fio.setAttribute("fill", "none"); fio.setAttribute("stroke", "#c0281c"); fio.setAttribute("stroke-width", "2.2"); fio.setAttribute("stroke-linecap", "round");
+      svg.appendChild(sombra); svg.appendChild(fio);
+    }
+    lado.insertBefore(svg, lado.firstChild);
+  }
+
   // ------------------------------------------------------------------ navegação entre casos
   function arqAtual() {
     var p = location.pathname.split("/").pop() || "index.html";
@@ -1501,19 +1816,38 @@
     gavetaCorpo.appendChild(gavetaEditor.no);
     g.classList.add("aberta");
     document.body.classList.add("com-gaveta");
+    ajustaEmpurrao();
     gavetaAba.setAttribute("aria-expanded", "true");
     gavetaAba.title = "Guardar o caderno";
     if (!semFoco) gavetaEditor.foca();
+    setTimeout(function () { agendaMural(0); }, 400);
+  }
+  // com a gaveta aberta a página sai da frente: desliza para a esquerda (transform, sem refazer o texto)
+  // quando há sobra na lateral; se não houver, encolhe com padding. Telas largas nem precisam mexer.
+  var MQ_GAVETA_EMBAIXO = "(max-width:899px) and (min-height:521px), (max-width:599px)";
+  function ajustaEmpurrao() {
+    var b = document.body;
+    b.classList.remove("gav-desliza", "gav-empurra");
+    if (!gaveta || !gaveta.classList.contains("aberta")) return;
+    if (window.matchMedia && window.matchMedia(MQ_GAVETA_EMBAIXO).matches) return;   // sobe de baixo: não empurra de lado
+    var wrap = document.querySelector(".wrap"); if (!wrap) return;
+    var natEsq = wrap.offsetLeft, natDir = natEsq + wrap.offsetWidth;                  // sem contar o deslocamento
+    var gw = gaveta.offsetWidth || 420;
+    var shift = Math.ceil(natDir - (window.innerWidth - gw - 16));
+    if (shift <= 0) return;                                                           // cabe sem mexer em nada
+    if (natEsq - shift >= 12) { b.style.setProperty("--gav-shift", shift + "px"); b.classList.add("gav-desliza"); }
+    else b.classList.add("gav-empurra");
   }
   function fechaGaveta() {
     if (!gaveta || !gaveta.classList.contains("aberta")) return;
     if (gavetaEditor) gavetaEditor.descarrega();
     gavetaEditor = null; gavetaFase = null;
     gaveta.classList.remove("aberta");
-    document.body.classList.remove("com-gaveta");
+    document.body.classList.remove("com-gaveta", "gav-desliza", "gav-empurra");
     gavetaAba.setAttribute("aria-expanded", "false");
     gavetaAba.title = "Puxar o caderno para anotar";
     marcaBotoesFase();
+    setTimeout(function () { agendaMural(0); }, 400);
   }
   // botão "Anotar nesta fase" dentro de cada fase da página do caso
   function botoesDasFases() {
@@ -1549,6 +1883,7 @@
     if (!window.MutationObserver) return;
     var obs = new MutationObserver(function () {
       atualizaEncerrado(true);
+      agendaMural();
       if (!gaveta || !gaveta.classList.contains("aberta")) return;
       var sec = document.querySelector("section.fase.aberta");
       if (sec && sec.id !== gavetaFase) abreGaveta(sec.id, { semFoco: true });
@@ -1562,6 +1897,7 @@
     criaGaveta();
     botoesDasFases();
     observaFases();
+    window.addEventListener("resize", ajustaEmpurrao);
   }
 
   // ------------------------------------------------------------------ pop-up da primeira entrada
@@ -1639,6 +1975,7 @@
     rodapeNav();
     gavetaIniciar();
     encerradoIniciar();
+    muralIniciar();
     homeExtras();
     document.addEventListener("misterio:login", function () { puxaNuvem(function () { homeRefaz(); talvezBoasVindas(); }); });
     document.addEventListener("misterio:sessao", function () { atualizaSair(); atualizaBotao(); });
@@ -1656,7 +1993,7 @@
     var b = document.getElementById("cadBoasVindas");
     if (b) { b.remove(); homeExtras(); }
   }
-  window.MisterioCaderno = { abrir: abrir, anotar: abreGaveta, guardar: fechaGaveta };
+  window.MisterioCaderno = { abrir: abrir, anotar: abreGaveta, guardar: fechaGaveta, retrato: svgBusto, aparelho: svgAparelho, retratoMarkup: retratoMarkup, slug: slugRetrato };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar);
   else iniciar();
 })();

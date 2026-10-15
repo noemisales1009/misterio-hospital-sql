@@ -1,0 +1,19 @@
+ILUSTRACOES DOS PERSONAGENS
+===========================
+
+Coloque aqui uma imagem para cada personagem. Quando o arquivo existe, o jogo usa a sua
+ilustracao no lugar do desenho que ja vem pronto. Quem nao tem arquivo continua com o desenho.
+
+COMO NOMEAR O ARQUIVO
+  nome da pessoa, tudo em minusculas, sem acento, com hifen no lugar dos espacos
+  Exemplos:  otavio-brandao.png   rogerio-mendonca.webp   claudia-lourenco.jpg   bi-07.png
+
+FORMATOS ACEITOS:  .png  .jpg  .jpeg  .webp
+
+TAMANHO RECOMENDADO
+  quadrado, de 600 x 600 a 800 x 800 pixels; o rosto no meio, de ombros para cima;
+  fundo liso e claro (cinza claro funciona bem, o jogo ja coloca a moldura de foto).
+
+DEPOIS DE COLOCAR OS ARQUIVOS
+  rode  npm run build  (ou  npm run dev)  e envie ao GitHub como de costume.
+  A lista de arquivos e lida automaticamente.

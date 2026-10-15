@@ -29,6 +29,7 @@ function arquivosDe(dir, filtro) {
 ['manifest.webmanifest', 'js/achados-dados.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png']
   .forEach((f) => lista.add(f));
 arquivosDe('fonts', (f) => /\.(woff2|css)$/.test(f)).forEach((f) => lista.add(f));
+arquivosDe('img/personagens', (f) => /\.(png|jpe?g|webp)$/i.test(f)).forEach((f) => lista.add(f));
 arquivosDe('vendor/pglite', (f) => /\.(js|wasm|data)$/.test(f)).forEach((f) => lista.add(f));
 arquivosDe('vendor/mermaid', (f) => /\.js$/.test(f)).forEach((f) => lista.add(f));
 

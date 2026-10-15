@@ -49,6 +49,16 @@ const saida = casos.map((c) => {
   return Object.assign({}, c, { fases });
 });
 
-const conteudo = '// Gerado por scripts/gerar-catalogo.js. Não edite à mão.\nwindow.MISTERIO_CATALOGO = ' + JSON.stringify(saida) + ';\n';
+// ilustrações dos personagens: img/personagens/<nome-sem-acento>.(png|jpg|jpeg|webp)
+const pastaPers = path.join(raiz, 'img', 'personagens');
+const personagens = {};
+if (fs.existsSync(pastaPers)) {
+  fs.readdirSync(pastaPers).sort().forEach((f) => {
+    const m = f.match(/^(.+)\.(png|jpe?g|webp)$/i);
+    if (m) personagens[m[1].toLowerCase()] = 'img/personagens/' + f;
+  });
+}
+const conteudo = '// Gerado por scripts/gerar-catalogo.js. Não edite à mão.\nwindow.MISTERIO_CATALOGO = ' + JSON.stringify(saida) + ';\n' +
+  'window.MISTERIO_PERSONAGENS = ' + JSON.stringify(personagens) + ';\n';
 fs.writeFileSync(path.join(raiz, 'js', 'catalogo.js'), conteudo, 'utf8');
-console.log('catalogo.js gerado:', saida.map((c) => `${c.arq}=${c.fases.length}`).join(' '));
+console.log('catalogo.js gerado:', saida.map((c) => `${c.arq}=${c.fases.length}`).join(' '), '| ilustrações:', Object.keys(personagens).length);
