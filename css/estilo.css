@@ -844,11 +844,10 @@ html{padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
 .cad-img-vista{display:block;max-width:100%;max-height:170px;margin-top:8px;border:1px solid #bdb48f;border-radius:8px;background:#fff;object-fit:contain;cursor:zoom-in}
 .cad-img-vista.grande{max-height:none;cursor:zoom-out}
 
-/* imagem da anotação como foto presa no quadro de detetive */
+/* imagem da anotação como foto presa com alfinete (sem barbante) */
 .cad-evidencia{position:relative;display:inline-block;max-width:min(100%,380px);margin:16px 0 6px 10px;padding:10px 10px 8px;border-radius:2px;background:#fff;box-shadow:0 7px 14px rgba(0,0,0,.36);transform:rotate(-1.6deg)}
 .cad-evidencia[hidden]{display:none}
 .cad-evidencia:has(.cad-img-vista.grande){display:block;max-width:100%}
 .cad-evidencia::before{content:"";position:absolute;z-index:2;top:-9px;left:50%;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff9a8a,#c0281c 60%,#7a1209);box-shadow:0 3px 4px rgba(0,0,0,.45),inset -2px -2px 4px rgba(0,0,0,.35)}
-.cad-evidencia::after{content:"";position:absolute;z-index:1;top:0;left:50%;width:190px;height:80px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='190' height='80' viewBox='0 0 190 80'%3E%3Cpath d='M0 4 Q80 70 188 24' fill='none' stroke='%23b3261e' stroke-width='2.6' stroke-linecap='round'/%3E%3Cpath d='M0 3 Q80 69 188 23' fill='none' stroke='rgba(255,255,255,.35)' stroke-width='.8' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat;pointer-events:none}
 .cad-evidencia .cad-img-vista{margin:0;border:0;border-radius:0;max-height:210px}
 .cad-evidencia figcaption{margin-top:6px;color:#2b2a26;font:700 20px/1 var(--f-mao);text-align:center}
