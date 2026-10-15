@@ -1,0 +1,1606 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6b5b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mistério SQL">
+<title>Caso 10 · A invasão</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="js/tema.js?v=45d4af28"></script>
+<link rel="stylesheet" href="css/estilo.css?v=3df7b43f">
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+  <div class="tag"><a href="index.html">← Todos os casos</a> · Caso 10 · segurança</div>
+  <h1>Caso 10: a <span>invasão</span></h1>
+  <div class="case">
+    <div class="stamp">INCIDENTE</div>
+    <h2>10 de outubro de 2026 · Portal do Paciente</h2>
+    <p>Na madrugada de <mark>10 de outubro de 2026</mark>, resultados de exame de dezenas de pacientes do hospital apareceram <mark>à venda na internet</mark>. A denúncia chegou pelo próprio convênio: alguém estava oferecendo laudos reais, com nome e tudo, em um fórum qualquer.</p>
+    <p>O vazamento veio do <strong>Portal do Paciente</strong>, o site onde cada pessoa consulta seus próprios exames. O time de TI isolou o servidor e trouxe uma pista: o site monta a consulta ao banco colando direto o texto que a pessoa digita na <mark>caixa de busca de exames</mark>, sem nenhum cuidado. Isso é uma porta aberta chamada <strong>injeção de SQL</strong>.</p>
+    <p>O servidor registra toda requisição que recebe: IP, horário, o texto exato do parâmetro, se deu certo e quantas linhas voltaram. É nesse log — a tabela <code>portal_requisicao</code> — que está a história completa do ataque, minuto a minuto. A resposta deste caso é o <strong>nome completo</strong> de quem invadiu.</p>
+  </div>
+  <p class="lead">Este é o segundo caso de <strong>segurança</strong> da série. A novidade é olhar para três ideias que não aparecem nas consultas do dia a dia, mas são essenciais: <strong>injeção de SQL</strong> (como um campo de busca mal escrito vira uma porta aberta), <strong>menor privilégio</strong> (dar só o acesso que cada papel precisa, nem mais) e <strong>RLS</strong> — Row Level Security, as regras que limitam quais linhas cada papel pode ver. Dá para jogar depois do Caso 9. Travou? Abra a dica, depois a solução.</p>
+</header>
+<nav class="trail" aria-label="Etapas do caso">
+  <div class="trail-inner" id="trail"></div>
+  <div class="bar"><i id="bar"></i></div>
+</nav>
+<section class="fase" id="c10-f0" data-fase="0" data-nome="Montar">
+  <div class="fase-head"><div class="num">0</div><div class="t"><h2>Montar o caso</h2><div class="sub">Supabase · SQL Editor</div></div></div>
+  <div class="box"><b class="l">Para que serve</b><p>Cada caso tem as <strong>próprias tabelas</strong>, com nomes diferentes. Você pode instalar no mesmo projeto do Supabase dos outros casos: nada se mistura e nada é apagado.</p></div>
+  <ol class="steps">
+    <li>No Supabase, abra o <strong>SQL Editor</strong> e clique em <strong>New query</strong>.</li>
+    <li>Clique no botão abaixo para copiar o banco do caso, cole no editor e clique em <strong>Run</strong>.</li>
+    <li>Deve aparecer: <code>✅ Caso 10 instalado!</code>. Para recomeçar, rode de novo.</li>
+  </ol>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <button class="btn big" id="copyAll" type="button">Copiar banco do Caso 10 (SQL)</button>
+    <span class="foot">São 4 tabelas e umas 1200 linhas. O arquivo <code>caso10.sql</code> também está na pasta do projeto.</span>
+  </div>
+  <div class="mapa">
+    <div class="lbl" style="margin-bottom:8px">Mapa do banco · quem se liga com quem</div>
+<pre class="mermaid">
+erDiagram
+  portal_usuario { int id PK
+    text login
+    text nome
+    date criado_em }
+  exame_pedido { text codigo PK
+    text paciente_login FK
+    text exame
+    date data
+    text status }
+  exame_resultado { int id PK
+    text paciente_login FK
+    text exame
+    date data
+    text resultado }
+  portal_requisicao { int id PK
+    timestamp momento
+    text ip
+    text login
+    text rota
+    text parametro
+    int status
+    int linhas }
+  portal_usuario ||--o{ exame_pedido : "paciente_login"
+  portal_usuario ||--o{ exame_resultado : "paciente_login"
+</pre>
+  </div>
+  <ul class="list"><li>Os IPs usados são de faixas <strong>reservadas para documentação e exemplos</strong> (RFC 5737: <code>192.0.2.0/24</code>, <code>198.51.100.0/24</code>, <code>203.0.113.0/24</code>) — não pertencem a ninguém de verdade.</li><li>Em <code>portal_requisicao</code>, <code>status</code> é o código que o servidor devolveu: <strong>200</strong> deu certo, <strong>403</strong> foi bloqueado pelo firewall antes de chegar ao banco, <strong>500</strong> chegou ao banco e deu erro (geralmente um erro de sintaxe SQL). <code>linhas</code> é quantas linhas a resposta trouxe.</li><li><code>login</code> em <code>portal_requisicao</code> é quem estava autenticado <em>naquela</em> requisição — pode ser nulo quando a requisição não carregou uma sessão válida.</li><li>Existe um papel de banco chamado <code>portal_web</code> (sem login direto): é o usuário técnico que o site usa para falar com o banco. As três tabelas do portal têm <strong>RLS ligado</strong>, mas as políticas estão escritas como <code>USING (true)</code> — ou seja, "sempre verdadeiro", o que não filtra nada. É essa falha que as fases 4 e 5 investigam e corrigem.</li><li>Todos os horários são locais, sem fuso.</li></ul>
+  <div class="done-row"><input type="checkbox" id="c10-ok0"><label for="c10-ok0">Instalei o caso no Supabase</label></div>
+</section>
+<section class="fase" id="c10-f1" data-fase="1" data-nome="O ataque">
+  <div class="fase-head"><div class="num">1</div><div class="t"><h2>O que é injeção de SQL</h2><div class="sub">LIKE · ILIKE · aspas dentro de texto</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>A busca de exames do portal monta a consulta assim, colando o texto digitado direto na string: <code>"SELECT codigo, exame, data, status FROM exame_pedido WHERE codigo = '" + texto + "'"</code>. Se <code>texto</code> for <code>EX-24871</code>, tudo bem. O problema é que o banco não sabe de onde veio aquele texto: ele só vê o comando final, pronto, e executa o que estiver escrito.</p></div>
+  <div class="tw"><table><tr><th>o que a pessoa digita</th><th>a consulta que o banco recebe</th></tr><tr><td><code>EX-24871</code></td><td><code>… WHERE codigo = 'EX-24871'</code> (normal)</td></tr><tr><td><code>' OR '1'='1</code></td><td><code>… WHERE codigo = '' OR '1'='1'</code> — a condição fica sempre verdadeira, devolve <strong>a tabela inteira</strong></td></tr><tr><td><code>' UNION SELECT … --</code></td><td><code>… WHERE codigo = '' UNION SELECT … --'</code> — <strong>soma</strong> outra consulta (de outra tabela!) ao resultado</td></tr><tr><td><code>--</code> no final</td><td>tudo que vem depois na linha é tratado como <strong>comentário</strong> e some, mesmo que sobrasse uma aspa solta</td></tr></table></div>
+  <div class="box novo"><b class="l">Ferramenta nova · LIKE, ILIKE e aspas dentro de texto</b><p><code>LIKE padrão</code> compara texto com curingas: <code>%</code> é "qualquer coisa" e <code>_</code> é "um caractere qualquer". <code>ILIKE</code> faz o mesmo sem diferenciar maiúsculas de minúsculas — útil porque um ataque pode vir em <code>UNION</code>, <code>Union</code> ou <code>union</code>. Para procurar um texto que contenha uma aspa simples, escreva <strong>duas aspas simples</strong> seguidas dentro do literal: o padrão para achar <code>' or </code> se escreve <code>'%'' or %'</code>.</p></div>
+  <div class="tw"><table><tr><th>padrão</th><th>o que acha</th></tr><tr><td><code>parametro ILIKE '%union%'</code></td><td>contém <code>union</code>, em qualquer caixa</td></tr><tr><td><code>parametro LIKE '%--%'</code></td><td>contém dois hifens seguidos (comentário SQL)</td></tr><tr><td><code>parametro ILIKE '%'' or %'</code></td><td>contém uma aspa seguida de <code>or</code> (o <code>''</code> representa UMA aspa dentro do texto)</td></tr></table></div>
+  <div class="code"><pre data-sql>-- Dá uma espiada nos parâmetros mais estranhos do log (não é missão, é só para explorar)
+SELECT ip, parametro, status
+FROM portal_requisicao
+WHERE parametro LIKE '%--%'
+LIMIT 15;</pre></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantas requisições têm, no <code>parametro</code>, o padrão <code>' or </code> (um OR sempre verdadeiro) ou <code>--</code> (corta o resto do comando) ou as palavras <code>union</code> e <code>select</code> juntas? Conte o <strong>total</strong>.</li><li>Agora agrupe essas mesmas requisições por <code>ip</code> e conte quantas cada IP tem. Vai aparecer mais de um IP suspeito — guarde os dois números, a próxima fase explica qual é qual.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Para a aspa dentro do padrão do <code>ILIKE</code>, escreva <code>''</code> (duas aspas simples) onde você quer UMA aspa: <code>'%'' or %'</code>. Junte as três condições com <code>OR</code>, e lembre de colocar a condição de <code>union</code>+<code>select</code> entre parênteses: <code>(parametro ILIKE '%union%' AND parametro ILIKE '%select%') OR parametro ILIKE '%'' or %' OR parametro LIKE '%--%'</code>. Na segunda missão, é a mesma condição com <code>GROUP BY ip</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT COUNT(*) AS suspeitas
+FROM portal_requisicao
+WHERE (parametro ILIKE '%union%' AND parametro ILIKE '%select%')
+   OR parametro ILIKE '%'' or %'
+   OR parametro LIKE '%--%';</pre></div>
+    <div class="code"><pre data-sql>SELECT ip, COUNT(*) AS suspeitas
+FROM portal_requisicao
+WHERE (parametro ILIKE '%union%' AND parametro ILIKE '%select%')
+   OR parametro ILIKE '%'' or %'
+   OR parametro LIKE '%--%'
+GROUP BY ip
+ORDER BY suspeitas DESC;</pre></div>
+    <p>Para conferir: 59 requisições suspeitas no total, vindas de <strong>dois IPs</strong>: <code>198.51.100.23</code> com 50 e <code>203.0.113.59</code> com 9. Qual dos dois é o ataque de verdade? É o que a próxima fase descobre.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c10-ok1"><label for="c10-ok1">Etapa 1 concluída</label></div>
+</section>
+<section class="fase" id="c10-f2" data-fase="2" data-nome="A linha do tempo">
+  <div class="fase-head"><div class="num">2</div><div class="t"><h2>A linha do tempo de cada IP</h2><div class="sub">ORDER BY · MIN/MAX · COUNT(*) FILTER</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Dois IPs apareceram na fase anterior com requisições suspeitas. Só que "suspeito" não é a mesma coisa que "culpado": um deles pode ser só um <strong>bot de varredura</strong>, daqueles que testam o mesmo punhado de ataques prontos em qualquer site, o dia inteiro, sem nunca ter sucesso. Para separar o bot do ataque de verdade, é preciso olhar a <strong>sequência</strong> de cada IP: quando começou, quando parou, e principalmente, o que conseguiu.</p></div>
+  <div class="box novo"><b class="l">Ferramenta nova · resumindo uma sequência em uma linha</b><p><code>MIN(coluna)</code> e <code>MAX(coluna)</code> trazem o menor e o maior valor de um grupo — com datas, o mais antigo e o mais recente. <code>COUNT(*) FILTER (WHERE condição)</code> conta só as linhas do grupo que cumprem a condição, sem precisar de uma consulta separada para cada contagem: dá para colocar vários <code>COUNT(*) FILTER (…)</code> diferentes no mesmo <code>SELECT</code>.</p></div>
+  <div class="tw"><table><tr><th>o que queremos saber</th><th>como calcular</th></tr><tr><td>primeira tentativa suspeita daquele IP</td><td><code>MIN(momento)</code></td></tr><tr><td>última tentativa suspeita daquele IP</td><td><code>MAX(momento)</code></td></tr><tr><td>quantas vezes deu erro de sintaxe (500)</td><td><code>COUNT(*) FILTER (WHERE status = 500)</code></td></tr><tr><td>quantas vezes funcionou e trouxe um vazamento grande (200, mais de 10 linhas)</td><td><code>COUNT(*) FILTER (WHERE status = 200 AND linhas &gt; 10)</code></td></tr></table></div>
+  <div class="box"><b class="l">Lembrete · o que cada status conta</b><p><strong>403</strong> quer dizer que o firewall bloqueou a requisição <em>antes</em> dela chegar ao banco — nunca vira um 500 nem um 200, porque nunca chega a executar nada. <strong>500</strong> quer dizer que chegou ao banco e o banco reclamou (geralmente sintaxe SQL errada). <strong>200</strong> quer dizer que o banco executou e devolveu alguma coisa — o que foi devolvido é que importa.</p></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para cada IP com alguma requisição suspeita (mesmo filtro da fase anterior), mostre numa linha só: o IP, a primeira e a última tentativa, quantos erros 500 e quantos sucessos (200 com mais de 10 linhas) ele teve. Ordene do IP com mais sucessos para o com menos.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Use o filtro da fase anterior no <code>WHERE</code>, agrupe por <code>ip</code> e coloque <code>MIN(momento)</code>, <code>MAX(momento)</code>, <code>COUNT(*) FILTER (WHERE status = 500)</code> e <code>COUNT(*) FILTER (WHERE status = 200 AND linhas &gt; 10)</code> no <code>SELECT</code>. Termine com <code>ORDER BY</code> na contagem de sucessos, decrescente.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT ip,
+       MIN(momento) AS primeira_tentativa,
+       MAX(momento) AS ultima_tentativa,
+       COUNT(*) FILTER (WHERE status = 500) AS erros_500,
+       COUNT(*) FILTER (WHERE status = 200 AND linhas &gt; 10) AS sucessos
+FROM portal_requisicao
+WHERE (parametro ILIKE '%union%' AND parametro ILIKE '%select%')
+   OR parametro ILIKE '%'' or %'
+   OR parametro LIKE '%--%'
+GROUP BY ip
+ORDER BY sucessos DESC;</pre></div>
+    <p>Para conferir: o IP <code>198.51.100.23</code> espalha tentativas pelos três dias, sempre bloqueadas (<strong>0</strong> erros 500 e <strong>0</strong> sucessos) — é só o bot de varredura, pode descartar. Já o IP <code>203.0.113.59</code> concentra tudo numa janela curta na noite de 10/10, com <strong>3</strong> erros 500 (tentando acertar a sintaxe) e <strong>3</strong> sucessos grandes — esse é o ataque de verdade.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c10-ok2"><label for="c10-ok2">Etapa 2 concluída</label></div>
+</section>
+<section class="fase" id="c10-f3" data-fase="3" data-nome="O que vazou">
+  <div class="fase-head"><div class="num">3</div><div class="t"><h2>UNION SELECT: somando tabelas que não deviam aparecer juntas</h2><div class="sub">UNION SELECT · information_schema</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Depois de descobrir que o campo aceitava um <code>OR</code> sempre verdadeiro, o próximo passo clássico de quem ataca é o <code>UNION SELECT</code>: ele soma ao resultado as linhas de <strong>outra consulta</strong>, desde que o número de colunas seja igual. A busca de exames do portal devolve 4 colunas (<code>codigo</code>, <code>exame</code>, <code>data</code>, <code>status</code>), então um <code>UNION SELECT</code> também precisa vir com 4 colunas — e foi exatamente por isso que algumas tentativas do IP invasor deram erro 500: contagem de colunas errada.</p></div>
+  <div class="box novo"><b class="l">Ferramenta nova · information_schema, o mapa das tabelas</b><p><code>information_schema.tables</code> lista as tabelas que existem no banco, e <code>information_schema.columns</code> lista as colunas de cada tabela. Qualquer pessoa com acesso ao banco pode consultar essas duas visões — inclusive quem está injetando SQL por um campo de busca. É assim que um ataque "sem saber nada do banco" descobre os nomes reais das tabelas e colunas: primeiro pergunta ao banco o que existe, depois pede para ler.</p></div>
+  <div class="code"><pre data-sql>-- Exatamente o que Renan usou para descobrir os nomes das tabelas e colunas
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
+SELECT column_name FROM information_schema.columns WHERE table_name = 'exame_resultado';</pre></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>A partir do IP confirmado na fase anterior, liste as requisições com <code>linhas &gt; 0</code> e <code>parametro</code> contendo <code>union</code> — isso mostra a escalada, do teste mais bobo até o vazamento completo.</li><li>Quantos pacientes <strong>diferentes</strong> tiveram resultado de exame exposto? (Pista: a consulta vencedora do ataque devolveu a tabela <code>exame_resultado</code> inteira, sem filtro nenhum.)</li></ul></div>
+  <details><summary>Dica</summary><div><p>Primeira: <code>WHERE ip = '203.0.113.59' AND linhas &gt; 0 AND parametro ILIKE '%union%'</code>. Segunda: se a consulta vazou a tabela inteira sem <code>WHERE</code>, a resposta é simplesmente <code>SELECT COUNT(DISTINCT paciente_login) FROM exame_resultado;</code></p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT momento, parametro, status, linhas
+FROM portal_requisicao
+WHERE ip = '203.0.113.59' AND linhas &gt; 0 AND parametro ILIKE '%union%';</pre></div>
+    <div class="code"><pre data-sql>SELECT COUNT(DISTINCT paciente_login) AS pacientes_expostos
+FROM exame_resultado;</pre></div>
+    <p>Para conferir: <strong>5 requisições</strong> mostram a escalada do <code>UNION</code> — da tentativa trivial (1 linha) até o mapeamento das tabelas, das colunas, e por fim o vazamento completo. E <strong>112 pacientes diferentes</strong> tiveram resultado de exame exposto: a tabela inteira de <code>exame_resultado</code> saiu numa única requisição.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c10-ok3"><label for="c10-ok3">Etapa 3 concluída</label></div>
+</section>
+<section class="fase" id="c10-f4" data-fase="4" data-nome="Portas abertas">
+  <div class="fase-head"><div class="num">4</div><div class="t"><h2>Menor privilégio e RLS: duas portas que ficaram abertas</h2><div class="sub">GRANT/REVOKE · ROW LEVEL SECURITY · pg_policies</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>A injeção de SQL foi a porta de entrada, mas duas outras decisões tornaram o estrago muito maior do que precisava ser. <strong>Primeira:</strong> o papel que o site usa para falar com o banco, <code>portal_web</code>, recebeu privilégio demais — mais do que uma busca de exames jamais precisaria. <strong>Segunda:</strong> as tabelas têm RLS (Row Level Security) ligado, mas a política de segurança não filtra nada de verdade.</p></div>
+  <div class="box novo"><b class="l">Ferramenta nova · GRANT, REVOKE e RLS em termos simples</b><p><code>GRANT privilégio ON tabela TO papel</code> dá um privilégio a um papel; <code>REVOKE privilégio ON tabela FROM papel</code> tira. <strong>Menor privilégio</strong> quer dizer: dê só o que aquele papel realmente usa — se o site só lê dados, não devia ter <code>INSERT</code>, <code>UPDATE</code> nem <code>DELETE</code>. Já o <strong>RLS</strong> é outra camada, por linha: <code>ALTER TABLE t ENABLE ROW LEVEL SECURITY</code> liga a trava, e <code>CREATE POLICY nome ON t USING (condição)</code> decide quais linhas cada papel pode ver. O problema é quando a condição é <code>USING (true)</code>: "verdadeiro" não filtra nada, então a trava está ligada mas não tranca porta nenhuma.</p></div>
+  <div class="tw"><table><tr><th>comando</th><th>o que faz</th></tr><tr><td><code>GRANT SELECT ON t TO papel</code></td><td>deixa <code>papel</code> ler <code>t</code></td></tr><tr><td><code>REVOKE INSERT ON t FROM papel</code></td><td>tira de <code>papel</code> o direito de inserir em <code>t</code></td></tr><tr><td><code>ALTER TABLE t ENABLE ROW LEVEL SECURITY</code></td><td>liga o filtro por linha em <code>t</code></td></tr><tr><td><code>CREATE POLICY nome ON t USING (condição)</code></td><td>só mostra as linhas em que <code>condição</code> é verdadeira</td></tr><tr><td><code>USING (true)</code></td><td>condição sempre verdadeira — RLS ligado, mas sem filtrar nada</td></tr></table></div>
+  <div class="box"><b class="l">Veja a falha funcionando (não é missão — é para você testar no computador)</b><p>Troque de papel para <code>portal_web</code>, exatamente como o site faz, e peça resultados de exame sem filtrar por paciente nenhum. Se o RLS estivesse funcionando de verdade, isso não devia devolver nada sem antes dizer de quem é a sessão.</p></div>
+  <div class="code"><pre data-sql>SET ROLE portal_web;
+SELECT paciente_login, exame, resultado
+FROM exame_resultado
+LIMIT 5;
+RESET ROLE;</pre></div>
+  <div class="box"><b class="l">O que você deve ter visto</b><p>Mesmo como <code>portal_web</code> — o papel do site, não o dono do banco — a consulta devolveu linhas de <strong>vários pacientes diferentes</strong>, de uma vez, sem pedir login de ninguém. O RLS está ligado (você pode confirmar na missão 2), mas a política deixa passar tudo.</p></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Veja o que o papel <code>portal_web</code> pode fazer em cada tabela: consulte <code>information_schema.role_table_grants</code> filtrando por esse papel, mostrando a tabela e o tipo de privilégio.</li><li>Veja as políticas de RLS das três tabelas do portal em <code>pg_policies</code>: mostre a tabela, o nome da política e a condição (<code>qual</code>). Repare que a condição é igual nas três.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Primeira: <code>SELECT table_name, privilege_type FROM information_schema.role_table_grants WHERE grantee = 'portal_web' ORDER BY table_name;</code>. Segunda: <code>SELECT tablename, policyname, qual FROM pg_policies WHERE tablename IN ('portal_usuario', 'exame_pedido', 'exame_resultado') ORDER BY tablename;</code></p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT table_name, privilege_type
+FROM information_schema.role_table_grants
+WHERE grantee = 'portal_web'
+ORDER BY table_name;</pre></div>
+    <div class="code"><pre data-sql>SELECT tablename, policyname, qual
+FROM pg_policies
+WHERE tablename IN ('portal_usuario', 'exame_pedido', 'exame_resultado')
+ORDER BY tablename;</pre></div>
+    <p>Para conferir: a primeira missão traz <strong>12 linhas</strong> — <code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code> e <code>DELETE</code> em cada uma das 3 tabelas. Um site que só precisa <em>mostrar</em> exame não devia ter <code>INSERT</code>, <code>UPDATE</code> nem <code>DELETE</code> em nada — isso é mais privilégio do que o necessário. A segunda traz <strong>3 linhas</strong>, uma por tabela, e a coluna <code>qual</code> é <code>true</code> nas três: RLS ligado, mas sem filtrar ninguém.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c10-ok4"><label for="c10-ok4">Etapa 4 concluída</label></div>
+</section>
+<section class="fase" id="c10-f5" data-fase="5" data-nome="Corrigindo">
+  <div class="fase-head"><div class="num">5</div><div class="t"><h2>Consertando as duas portas</h2><div class="sub">parâmetros · CREATE POLICY · current_setting</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Agora que você viu as três falhas — o campo de busca colando texto direto na consulta, o papel do site com privilégio demais, e a política de RLS que não filtra nada — é hora de ver como cada uma se corrige. As duas primeiras são mudanças que valem para o código do site e para o banco; a última você pode aplicar e testar agora mesmo, no seu computador.</p></div>
+  <div class="box"><b class="l">Conserto 1 · parâmetros em vez de colar texto</b><p>O conserto da injeção de SQL não é no banco, é no <strong>código do site</strong>: em vez de colar o texto digitado dentro da string da consulta, o programa envia a consulta com um <strong>espaço reservado</strong> (um parâmetro, tipo <code>$1</code> ou <code>?</code>, dependendo da linguagem) e manda o valor digitado <em>separado</em>. O banco então sabe, sem dúvida, que aquele valor é só um dado — nunca um pedaço de comando. SQL puro não tem como demonstrar isso de verdade (o parâmetro é uma proteção da camada do programa, não do banco), mas a ideia fica clara na comparação:</p></div>
+  <div class="tw"><table><tr><th>jeito errado (concatenar texto)</th><th>jeito certo (parâmetro)</th></tr><tr><td><code>"WHERE codigo = '" + texto + "'"</code></td><td><code>"WHERE codigo = $1"</code>, com <code>texto</code> enviado à parte</td></tr><tr><td>o banco recebe um comando já pronto, com o texto da pessoa misturado dentro</td><td>o banco recebe o comando E o valor separados — não há como o valor "virar" parte do comando</td></tr></table></div>
+  <div class="box novo"><b class="l">Conserto 2 · tirar o privilégio que não é usado</b><p>No banco, isso é mais simples: revogue do <code>portal_web</code> o que ele nunca usa. Se o site só lê, ele não precisa de <code>INSERT</code>, <code>UPDATE</code> nem <code>DELETE</code>.</p></div>
+  <div class="code"><pre data-sql>REVOKE INSERT, UPDATE, DELETE ON portal_usuario, exame_pedido, exame_resultado FROM portal_web;</pre></div>
+  <div class="box novo"><b class="l">Conserto 3 · uma política de RLS que filtra de verdade</b><p>Troque a política <code>USING (true)</code> por uma que compare o paciente da linha com o paciente da <strong>sessão atual</strong>. Aqui usamos <code>current_setting('app.paciente_login', true)</code> — uma configuração que o site definiria a cada sessão, logo depois do login, com o <code>true</code> extra dizendo "se não tiver sido definida, devolva nulo em vez de dar erro".</p></div>
+  <div class="code"><pre data-sql>DROP POLICY exame_resultado_tudo ON exame_resultado;
+CREATE POLICY exame_resultado_do_paciente ON exame_resultado
+  FOR SELECT TO portal_web
+  USING (paciente_login = current_setting('app.paciente_login', true));</pre></div>
+  <div class="box"><b class="l">Teste o conserto</b><p>Agora simule uma sessão de um paciente real: troque para o papel portal_web, defina qual é o paciente da sessão, e peça os resultados sem filtro nenhum no WHERE. A política é que vai filtrar.</p></div>
+  <div class="code"><pre data-sql>SET ROLE portal_web;
+SET app.paciente_login = 'antonio.souza';
+SELECT paciente_login, exame, resultado FROM exame_resultado;
+RESET ROLE;</pre></div>
+  <div class="box"><b class="l">Atenção</b><p>Esses três comandos alteram o <strong>mesmo banco</strong> que todas as fases do caso usam — se depois disso a fase 4 parecer "errada" (a política não vai mais aparecer como <code>true</code>), é só isso: você mudou o banco de verdade. Clique em <strong>Reiniciar banco</strong> para voltar tudo ao ponto de partida.</p></div>
+  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Agora que você já viu o problema todo, identifique o culpado: qual paciente tinha <strong>login confirmado</strong> (sessão de verdade, não anônima) vindo do mesmo IP que, mais tarde naquela mesma noite, disparou o ataque? Confira com <code>SELECT verificar_caso10('Nome Completo');</code>.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Filtre <code>portal_requisicao</code> por <code>ip = '203.0.113.59'</code> e <code>login IS NOT NULL</code> — essas são as buscas que ele fez logado, antes do ataque anônimo. Junte com <code>portal_usuario</code> pelo <code>login</code> para pegar o nome.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT DISTINCT r.ip, r.login, u.nome
+FROM portal_requisicao r
+JOIN portal_usuario u ON u.login = r.login
+WHERE r.ip = '203.0.113.59' AND r.login IS NOT NULL;</pre></div>
+    <p>Para conferir: <strong>1 linha</strong> — o IP <code>203.0.113.59</code> aparece com login confirmado só para um paciente, nas buscas legítimas que ele fez por volta das 20h daquela mesma noite, bem antes do ataque anônimo começar às 23h.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c10-ok5"><label for="c10-ok5">Etapa 5 concluída</label></div>
+</section>
+<section class="fase" id="c10-cola" style="gap:12px">
+  <h2 style="font-size:32px">Cola rápida</h2>
+  <div class="tw"><table>
+    <tr><th>Comando</th><th>Lembrete rápido</th></tr>
+    <tr><td><code>LIKE '%x%' / ILIKE '%x%'</code></td><td>contém x (ILIKE ignora maiúsculas/minúsculas)</td></tr>
+    <tr><td><code>'%'' or %'</code></td><td>padrão para achar uma aspa simples seguida de "or" (aspa dentro de texto = '')</td></tr>
+    <tr><td><code>' UNION SELECT c1,c2,… --</code></td><td>soma outra consulta ao resultado; precisa do mesmo nº de colunas</td></tr>
+    <tr><td><code>information_schema.tables / .columns</code></td><td>lista tabelas / colunas que existem no banco</td></tr>
+    <tr><td><code>GRANT priv ON t TO papel</code></td><td>dá um privilégio</td></tr>
+    <tr><td><code>REVOKE priv ON t FROM papel</code></td><td>tira um privilégio</td></tr>
+    <tr><td><code>information_schema.role_table_grants</code></td><td>o que cada papel pode fazer em cada tabela</td></tr>
+    <tr><td><code>pg_policies</code></td><td>as políticas de RLS existentes, e sua condição (qual)</td></tr>
+    <tr><td><code>CREATE POLICY nome ON t USING (condição)</code></td><td>só libera as linhas em que condição é verdadeira</td></tr>
+  </table></div>
+  <p class="foot"><a href="index.html">← Todos os casos</a> · Personagens e dados são fictícios.</p>
+</section>
+</div>
+<script type="text/plain" id="sqlsrc">-- =====================================================================
+--  MISTÉRIO NO HOSPITAL SQL  ·  CASO 10: A invasão
+--  Cole tudo isto no SQL Editor do Supabase e clique em RUN.
+--  Pode rodar de novo quando quiser: recria só as tabelas deste caso.
+--  Não mexe nas tabelas dos outros casos.
+-- =====================================================================
+
+DROP FUNCTION IF EXISTS verificar_caso10(text);
+DROP TABLE IF EXISTS portal_requisicao, exame_resultado, exame_pedido, portal_usuario CASCADE;
+DROP ROLE IF EXISTS portal_web;
+CREATE ROLE portal_web NOLOGIN;
+
+-- Pacientes com conta no Portal do Paciente
+CREATE TABLE portal_usuario (
+  id         integer PRIMARY KEY,
+  login      text UNIQUE NOT NULL,
+  nome       text NOT NULL,
+  criado_em  date
+);
+
+-- Pedidos de exame: o que a busca do portal devolve normalmente
+CREATE TABLE exame_pedido (
+  codigo          text PRIMARY KEY,
+  paciente_login  text REFERENCES portal_usuario(login),
+  exame           text,
+  data            date,
+  status          text   -- 'pronto' ou 'em análise'
+);
+
+-- Resultados de exame: o alvo de verdade do ataque
+CREATE TABLE exame_resultado (
+  id              integer PRIMARY KEY,
+  paciente_login  text REFERENCES portal_usuario(login),
+  exame           text,
+  data            date,
+  resultado       text
+);
+
+-- Log do servidor: uma linha por requisição recebida pelo site
+CREATE TABLE portal_requisicao (
+  id         integer PRIMARY KEY,
+  momento    timestamp,
+  ip         text,
+  login      text,    -- quem estava autenticado nessa requisição (pode ser nulo)
+  rota       text,    -- 'login' · 'listar' · 'buscar_exame' · 'ver_resultado'
+  parametro  text,    -- o texto cru que a pessoa digitou na busca, quando houver
+  status     integer, -- 200 ok · 403 bloqueado pelo firewall · 500 erro no banco
+  linhas     integer  -- quantas linhas a resposta trouxe
+);
+
+
+INSERT INTO portal_usuario (id,login,nome,criado_em) VALUES
+(1,'renan.duarte','Renan Duarte','2024-03-14'),
+(2,'gabriela.fernandes','Gabriela Fernandes','2026-06-15'),
+(3,'mateus.marques','Mateus Marques','2022-04-12'),
+(4,'rodrigo.gomes','Rodrigo Gomes','2024-02-01'),
+(5,'juliana.rocha','Juliana Rocha','2022-06-18'),
+(6,'gabriel.nunes','Gabriel Nunes','2022-06-07'),
+(7,'aline.lima','Aline Lima','2025-04-30'),
+(8,'rosa.martins','Rosa Martins','2025-02-06'),
+(9,'juliana.pereira','Juliana Pereira','2024-01-28'),
+(10,'mateus.ribeiro','Mateus Ribeiro','2025-09-13'),
+(11,'antonia.gomes','Antônia Gomes','2022-11-02'),
+(12,'conceicao.andrade','Conceição Andrade','2022-09-24'),
+(13,'bruna.pereira','Bruna Pereira','2026-01-08'),
+(14,'antonio.souza','Antônio Souza','2023-11-09'),
+(15,'francisco.soares','Francisco Soares','2022-10-04'),
+(16,'iara.pinto','Iara Pinto','2023-07-30'),
+(17,'eduardo.cardoso','Eduardo Cardoso','2022-04-20'),
+(18,'gustavo.goncalves','Gustavo Gonçalves','2025-12-11'),
+(19,'leticia.mendes','Letícia Mendes','2024-11-18'),
+(20,'maria.vieira','Maria Vieira','2026-01-02'),
+(21,'fernanda.martins','Fernanda Martins','2022-05-04'),
+(22,'marcia.barbosa','Márcia Barbosa','2025-09-15'),
+(23,'gabriela.costa','Gabriela Costa','2024-06-18'),
+(24,'bruno.machado','Bruno Machado','2025-04-19'),
+(25,'rosa.goncalves','Rosa Gonçalves','2022-03-20'),
+(26,'amanda.oliveira','Amanda Oliveira','2025-08-03'),
+(27,'beatriz.soares','Beatriz Soares','2026-02-11'),
+(28,'vera.teixeira','Vera Teixeira','2022-06-01'),
+(29,'rafael.gomes','Rafael Gomes','2025-02-21'),
+(30,'rosa.almeida','Rosa Almeida','2024-03-25'),
+(31,'pedro.mendes','Pedro Mendes','2022-03-30'),
+(32,'daniel.ribeiro','Daniel Ribeiro','2025-05-25'),
+(33,'eduardo.rodrigues','Eduardo Rodrigues','2024-05-25'),
+(34,'marcelo.barbosa','Marcelo Barbosa','2024-11-10'),
+(35,'rosa.ramos','Rosa Ramos','2026-02-08'),
+(36,'julia.oliveira','Júlia Oliveira','2022-10-17'),
+(37,'vera.goncalves','Vera Gonçalves','2023-09-23'),
+(38,'aline.araujo','Aline Araújo','2026-08-31'),
+(39,'antonio.lima','Antônio Lima','2025-07-29'),
+(40,'fernanda.pinto','Fernanda Pinto','2023-01-02'),
+(41,'jessica.ferreira','Jéssica Ferreira','2025-10-29'),
+(42,'francisco.lopes','Francisco Lopes','2024-07-01'),
+(43,'andre.nascimento','André Nascimento','2024-07-18'),
+(44,'antonia.marques','Antônia Marques','2023-07-29'),
+(45,'ana.pereira','Ana Pereira','2024-09-29'),
+(46,'lucas.teixeira','Lucas Teixeira','2025-08-12'),
+(47,'felipe.santos','Felipe Santos','2025-08-09'),
+(48,'gustavo.costa','Gustavo Costa','2025-12-08'),
+(49,'irene.machado','Irene Machado','2022-07-25'),
+(50,'camila.alves','Camila Alves','2025-03-26'),
+(51,'luciana.nunes','Luciana Nunes','2026-09-11'),
+(52,'adriana.ribeiro','Adriana Ribeiro','2026-09-20'),
+(53,'camila.nascimento','Camila Nascimento','2024-07-13'),
+(54,'marcelo.nunes','Marcelo Nunes','2023-03-01'),
+(55,'jessica.machado','Jéssica Machado','2024-08-18'),
+(56,'felipe.ramos','Felipe Ramos','2022-03-06'),
+(57,'lucas.oliveira','Lucas Oliveira','2022-07-24'),
+(58,'paulo.santos','Paulo Santos','2025-11-23'),
+(59,'luciana.teixeira','Luciana Teixeira','2023-12-17'),
+(60,'eduardo.vieira','Eduardo Vieira','2022-11-21'),
+(61,'thiago.dias','Thiago Dias','2022-03-02'),
+(62,'jose.gomes','José Gomes','2024-01-24'),
+(63,'gabriel.almeida','Gabriel Almeida','2026-02-15'),
+(64,'fabio.martins','Fábio Martins','2022-01-27'),
+(65,'carlos.martins','Carlos Martins','2023-04-29'),
+(66,'marcos.martins','Marcos Martins','2023-04-01'),
+(67,'francisco.machado','Francisco Machado','2023-04-20'),
+(68,'paulo.rocha','Paulo Rocha','2023-04-21'),
+(69,'mateus.lopes','Mateus Lopes','2025-06-30'),
+(70,'gustavo.rocha','Gustavo Rocha','2022-01-14'),
+(71,'jose.araujo','José Araújo','2024-03-15'),
+(72,'julia.araujo','Júlia Araújo','2024-12-23'),
+(73,'sandra.barbosa','Sandra Barbosa','2024-07-26'),
+(74,'julia.carvalho','Júlia Carvalho','2023-03-21'),
+(75,'felipe.almeida','Felipe Almeida','2023-06-21'),
+(76,'vanessa.dias','Vanessa Dias','2024-12-24'),
+(77,'fabio.souza','Fábio Souza','2025-06-02'),
+(78,'thiago.alves','Thiago Alves','2023-05-07'),
+(79,'carlos.rodrigues','Carlos Rodrigues','2022-03-29'),
+(80,'irene.nascimento','Irene Nascimento','2023-06-06'),
+(81,'juliana.ramos','Juliana Ramos','2023-12-26'),
+(82,'paulo.barbosa','Paulo Barbosa','2023-07-25'),
+(83,'rosa.souza','Rosa Souza','2025-02-01'),
+(84,'marcos.ribeiro','Marcos Ribeiro','2025-02-18'),
+(85,'pedro.pinto','Pedro Pinto','2025-11-04'),
+(86,'antonio.rocha','Antônio Rocha','2025-11-10'),
+(87,'francisco.silva','Francisco Silva','2026-01-28'),
+(88,'bruno.almeida','Bruno Almeida','2026-04-06'),
+(89,'rodrigo.martins','Rodrigo Martins','2022-01-05'),
+(90,'antonia.dias','Antônia Dias','2026-03-22'),
+(91,'paulo.almeida','Paulo Almeida','2026-06-22'),
+(92,'ana.machado','Ana Machado','2025-11-25'),
+(93,'luiz.goncalves','Luiz Gonçalves','2024-04-03'),
+(94,'vanessa.vieira','Vanessa Vieira','2023-11-30'),
+(95,'rogerio.dias','Rogério Dias','2024-02-18'),
+(96,'carlos.lima','Carlos Lima','2022-07-05'),
+(97,'marcos.gomes','Marcos Gomes','2022-11-21'),
+(98,'francisco.nascimento','Francisco Nascimento','2025-11-16'),
+(99,'paulo.goncalves','Paulo Gonçalves','2022-07-31'),
+(100,'francisca.pereira','Francisca Pereira','2024-03-23'),
+(101,'bruno.araujo','Bruno Araújo','2023-02-03'),
+(102,'antonia.moreira','Antônia Moreira','2024-10-04'),
+(103,'julia.goncalves','Júlia Gonçalves','2022-10-29'),
+(104,'daniel.cardoso','Daniel Cardoso','2023-02-02'),
+(105,'larissa.souza','Larissa Souza','2026-08-18'),
+(106,'bruna.cardoso','Bruna Cardoso','2023-05-29'),
+(107,'felipe.marques','Felipe Marques','2022-09-25'),
+(108,'jessica.marques','Jéssica Marques','2026-01-07'),
+(109,'antonio.rodrigues','Antônio Rodrigues','2024-04-15'),
+(110,'ana.carvalho','Ana Carvalho','2025-04-28'),
+(111,'irene.barbosa','Irene Barbosa','2026-03-11'),
+(112,'bruno.nunes','Bruno Nunes','2024-12-03'),
+(113,'rafael.goncalves','Rafael Gonçalves','2025-03-18'),
+(114,'bruno.teixeira','Bruno Teixeira','2025-08-21'),
+(115,'juliana.goncalves','Juliana Gonçalves','2023-01-02'),
+(116,'maria.costa','Maria Costa','2024-02-04'),
+(117,'rogerio.vieira','Rogério Vieira','2024-03-04'),
+(118,'carlos.souza','Carlos Souza','2023-02-02'),
+(119,'amanda.dias','Amanda Dias','2024-03-15'),
+(120,'eduardo.pinto','Eduardo Pinto','2024-09-06');
+
+INSERT INTO exame_pedido (codigo,paciente_login,exame,data,status) VALUES
+('EX-86070','vera.teixeira','Glicemia de jejum','2026-09-12','em análise'),
+('EX-95728','antonio.souza','Colesterol total','2026-01-25','pronto'),
+('EX-43507','francisco.silva','Sorologia para hepatite B','2026-07-16','pronto'),
+('EX-76672','marcia.barbosa','Glicemia de jejum','2026-01-12','pronto'),
+('EX-52185','pedro.mendes','Glicemia de jejum','2026-04-02','pronto'),
+('EX-22494','lucas.oliveira','Glicemia de jejum','2026-08-11','em análise'),
+('EX-87062','antonio.rocha','Hemograma completo','2026-05-11','pronto'),
+('EX-96826','bruno.teixeira','Exame toxicológico','2026-06-22','em análise'),
+('EX-78586','antonia.moreira','Colesterol total','2026-02-27','pronto'),
+('EX-48614','francisco.nascimento','Raio-X de tórax','2026-05-19','pronto'),
+('EX-45340','pedro.pinto','Sorologia para hepatite B','2026-05-18','pronto'),
+('EX-54302','francisco.silva','TSH (hormônio da tireoide)','2026-01-17','em análise'),
+('EX-19517','vera.teixeira','Glicemia de jejum','2026-03-04','pronto'),
+('EX-76658','rogerio.vieira','Colesterol total','2026-08-01','pronto'),
+('EX-66199','daniel.cardoso','Sorologia para hepatite B','2026-10-04','em análise'),
+('EX-32926','francisco.lopes','Eletrocardiograma','2026-07-29','pronto'),
+('EX-60984','carlos.rodrigues','Hemograma completo','2026-04-10','em análise'),
+('EX-46145','maria.costa','Glicemia de jejum','2026-04-10','pronto'),
+('EX-24832','eduardo.pinto','Hemograma completo','2026-09-21','pronto'),
+('EX-60164','paulo.goncalves','Hemograma completo','2026-05-10','pronto'),
+('EX-73260','marcos.ribeiro','Colesterol total','2026-04-22','pronto'),
+('EX-24311','vanessa.vieira','Hemograma completo','2026-07-18','em análise'),
+('EX-62965','larissa.souza','Urina tipo I','2026-09-10','pronto'),
+('EX-70241','maria.vieira','Eletrocardiograma','2026-06-17','em análise'),
+('EX-60132','pedro.pinto','Glicemia de jejum','2026-10-05','em análise'),
+('EX-97075','bruno.nunes','Urina tipo I','2026-09-25','pronto'),
+('EX-50012','fernanda.pinto','Sorologia para hepatite B','2026-06-04','em análise'),
+('EX-49411','iara.pinto','Raio-X de tórax','2026-05-25','pronto'),
+('EX-70164','francisco.silva','Raio-X de tórax','2026-09-10','em análise'),
+('EX-65642','larissa.souza','Colesterol total','2026-08-07','pronto'),
+('EX-38606','antonia.moreira','Urina tipo I','2026-01-12','pronto'),
+('EX-70333','gabriela.fernandes','Raio-X de tórax','2026-03-11','pronto'),
+('EX-50044','bruno.nunes','Ultrassom abdominal','2026-04-22','pronto'),
+('EX-98157','camila.alves','Colesterol total','2026-03-13','em análise'),
+('EX-42957','antonio.rodrigues','Eletrocardiograma','2026-06-15','pronto'),
+('EX-39285','irene.nascimento','Sorologia para hepatite B','2026-04-30','pronto'),
+('EX-19440','vera.goncalves','Exame toxicológico','2026-05-29','pronto'),
+('EX-44050','eduardo.pinto','Exame toxicológico','2026-03-12','pronto'),
+('EX-53234','gustavo.rocha','TSH (hormônio da tireoide)','2026-06-17','pronto'),
+('EX-17861','mateus.ribeiro','Eletrocardiograma','2026-07-02','pronto'),
+('EX-64067','eduardo.cardoso','Colesterol total','2026-07-21','pronto'),
+('EX-82263','juliana.pereira','Exame toxicológico','2026-04-20','pronto'),
+('EX-57182','julia.araujo','Ultrassom abdominal','2026-08-17','pronto'),
+('EX-83466','gustavo.goncalves','Raio-X de tórax','2026-10-03','pronto'),
+('EX-67137','rosa.souza','Hemograma completo','2026-01-26','pronto'),
+('EX-63546','julia.oliveira','Glicemia de jejum','2026-05-27','pronto'),
+('EX-95018','beatriz.soares','TSH (hormônio da tireoide)','2026-08-28','pronto'),
+('EX-19295','rogerio.vieira','Hemograma completo','2026-09-28','pronto'),
+('EX-52230','felipe.ramos','Ultrassom abdominal','2026-08-25','pronto'),
+('EX-61474','antonio.lima','Glicemia de jejum','2026-09-26','pronto'),
+('EX-93949','julia.carvalho','Sorologia para hepatite B','2026-02-09','em análise'),
+('EX-63938','antonia.marques','Hemograma completo','2026-05-05','em análise'),
+('EX-40538','fernanda.pinto','TSH (hormônio da tireoide)','2026-01-14','pronto'),
+('EX-82559','conceicao.andrade','Ultrassom abdominal','2026-01-23','em análise'),
+('EX-44418','jessica.machado','Ultrassom abdominal','2026-03-24','em análise'),
+('EX-84389','francisco.soares','Urina tipo I','2026-09-29','em análise'),
+('EX-73059','carlos.martins','Ultrassom abdominal','2026-04-03','pronto'),
+('EX-98928','lucas.oliveira','Urina tipo I','2026-01-15','pronto'),
+('EX-85789','bruno.machado','Sorologia para hepatite B','2026-01-06','pronto'),
+('EX-44159','luciana.nunes','Eletrocardiograma','2026-05-15','pronto'),
+('EX-19610','julia.carvalho','Glicemia de jejum','2026-07-09','pronto'),
+('EX-34964','francisco.nascimento','Exame toxicológico','2026-03-17','em análise'),
+('EX-28842','juliana.goncalves','Hemograma completo','2026-05-27','em análise'),
+('EX-69371','francisco.soares','Hemograma completo','2026-02-01','pronto'),
+('EX-65349','luiz.goncalves','TSH (hormônio da tireoide)','2026-01-13','pronto'),
+('EX-22504','aline.lima','Glicemia de jejum','2026-08-31','pronto'),
+('EX-74873','julia.oliveira','Ultrassom abdominal','2026-09-05','em análise'),
+('EX-59060','francisco.lopes','TSH (hormônio da tireoide)','2026-02-27','pronto'),
+('EX-50881','vanessa.vieira','Urina tipo I','2026-04-14','pronto'),
+('EX-22397','felipe.almeida','Hemograma completo','2026-06-26','pronto'),
+('EX-97891','thiago.alves','Glicemia de jejum','2026-04-25','pronto'),
+('EX-90767','carlos.martins','TSH (hormônio da tireoide)','2026-07-22','pronto'),
+('EX-26940','pedro.mendes','Glicemia de jejum','2026-04-01','pronto'),
+('EX-56954','antonia.marques','Urina tipo I','2026-08-29','em análise'),
+('EX-80737','rosa.goncalves','Hemograma completo','2026-05-22','pronto'),
+('EX-38063','luciana.nunes','Exame toxicológico','2026-02-15','pronto'),
+('EX-30072','conceicao.andrade','Raio-X de tórax','2026-04-14','pronto'),
+('EX-12385','vera.goncalves','Hemograma completo','2026-03-10','em análise'),
+('EX-70061','juliana.goncalves','Hemograma completo','2026-01-29','pronto'),
+('EX-85346','carlos.souza','Raio-X de tórax','2026-04-22','pronto'),
+('EX-95542','ana.machado','Sorologia para hepatite B','2026-09-18','pronto'),
+('EX-32438','bruno.araujo','Hemograma completo','2026-08-11','em análise'),
+('EX-61332','antonia.dias','Hemograma completo','2026-03-21','pronto'),
+('EX-37977','francisca.pereira','Colesterol total','2026-06-25','pronto'),
+('EX-15531','antonia.moreira','Exame toxicológico','2026-05-06','pronto'),
+('EX-85158','antonia.marques','Hemograma completo','2026-02-05','pronto'),
+('EX-13400','camila.alves','Glicemia de jejum','2026-05-11','em análise'),
+('EX-70889','marcelo.barbosa','Urina tipo I','2026-06-01','em análise'),
+('EX-88169','julia.goncalves','Hemograma completo','2026-08-17','em análise'),
+('EX-94812','larissa.souza','Glicemia de jejum','2026-06-24','em análise'),
+('EX-36161','francisco.soares','Hemograma completo','2026-09-20','pronto'),
+('EX-27592','bruna.cardoso','Hemograma completo','2026-07-11','em análise'),
+('EX-79406','gustavo.costa','Exame toxicológico','2026-08-10','pronto'),
+('EX-86199','jessica.marques','Eletrocardiograma','2026-08-21','pronto'),
+('EX-92734','jose.araujo','Colesterol total','2026-02-23','pronto'),
+('EX-11055','bruna.pereira','Ultrassom abdominal','2026-01-05','pronto'),
+('EX-93334','marcelo.barbosa','Urina tipo I','2026-07-26','pronto'),
+('EX-94063','beatriz.soares','Raio-X de tórax','2026-09-06','pronto'),
+('EX-33591','luciana.nunes','Urina tipo I','2026-08-11','pronto'),
+('EX-64103','fabio.martins','Ultrassom abdominal','2026-09-18','pronto'),
+('EX-47799','bruno.machado','Hemograma completo','2026-01-14','pronto'),
+('EX-12681','jose.gomes','Urina tipo I','2026-06-27','pronto'),
+('EX-99449','lucas.oliveira','Sorologia para hepatite B','2026-01-15','em análise'),
+('EX-14686','carlos.rodrigues','Raio-X de tórax','2026-05-05','em análise'),
+('EX-11195','aline.araujo','Hemograma completo','2026-08-25','pronto'),
+('EX-74526','mateus.marques','Sorologia para hepatite B','2026-03-04','pronto'),
+('EX-28191','conceicao.andrade','Glicemia de jejum','2026-05-21','em análise'),
+('EX-77118','gustavo.goncalves','Colesterol total','2026-01-10','pronto'),
+('EX-84463','fernanda.martins','Urina tipo I','2026-08-13','pronto'),
+('EX-27375','aline.lima','Eletrocardiograma','2026-05-12','pronto'),
+('EX-56437','felipe.marques','Hemograma completo','2026-09-10','em análise'),
+('EX-98488','gabriela.fernandes','Urina tipo I','2026-09-28','em análise'),
+('EX-64293','mateus.ribeiro','Hemograma completo','2026-04-08','pronto'),
+('EX-49536','bruna.pereira','TSH (hormônio da tireoide)','2026-06-15','pronto'),
+('EX-27364','marcos.martins','Glicemia de jejum','2026-04-09','pronto'),
+('EX-73315','juliana.goncalves','Hemograma completo','2026-05-24','pronto'),
+('EX-65651','rogerio.vieira','Urina tipo I','2026-01-29','pronto'),
+('EX-68637','vera.teixeira','Colesterol total','2026-05-16','pronto'),
+('EX-92595','daniel.cardoso','Urina tipo I','2026-01-24','pronto'),
+('EX-74895','rafael.goncalves','Glicemia de jejum','2026-01-17','pronto'),
+('EX-11008','julia.oliveira','Sorologia para hepatite B','2026-08-22','pronto'),
+('EX-97494','antonia.moreira','Glicemia de jejum','2026-01-21','pronto'),
+('EX-48776','rosa.ramos','Urina tipo I','2026-04-01','pronto'),
+('EX-27140','vera.goncalves','Exame toxicológico','2026-06-22','pronto'),
+('EX-49774','beatriz.soares','Glicemia de jejum','2026-05-06','em análise'),
+('EX-88764','marcos.ribeiro','Sorologia para hepatite B','2026-09-01','pronto'),
+('EX-31096','francisca.pereira','Hemograma completo','2026-05-23','em análise'),
+('EX-54737','francisco.soares','Hemograma completo','2026-08-27','pronto'),
+('EX-12891','lucas.teixeira','TSH (hormônio da tireoide)','2026-07-17','pronto'),
+('EX-23058','bruno.almeida','Raio-X de tórax','2026-02-02','pronto'),
+('EX-90697','thiago.alves','TSH (hormônio da tireoide)','2026-09-11','pronto'),
+('EX-38376','antonio.souza','TSH (hormônio da tireoide)','2026-08-22','em análise'),
+('EX-38288','gustavo.goncalves','Hemograma completo','2026-02-12','em análise'),
+('EX-42706','rogerio.dias','Exame toxicológico','2026-03-10','em análise'),
+('EX-13184','ana.pereira','Colesterol total','2026-08-10','pronto'),
+('EX-12300','lucas.oliveira','Exame toxicológico','2026-07-01','pronto'),
+('EX-75623','carlos.souza','Colesterol total','2026-02-26','pronto'),
+('EX-15548','bruno.nunes','Ultrassom abdominal','2026-05-06','pronto'),
+('EX-22462','carlos.souza','Colesterol total','2026-01-31','pronto'),
+('EX-85678','daniel.cardoso','Sorologia para hepatite B','2026-02-26','pronto'),
+('EX-44511','francisco.silva','Exame toxicológico','2026-01-30','em análise'),
+('EX-10372','thiago.alves','Hemograma completo','2026-08-12','pronto'),
+('EX-57451','julia.araujo','Ultrassom abdominal','2026-06-24','pronto'),
+('EX-80050','paulo.barbosa','Glicemia de jejum','2026-04-10','em análise'),
+('EX-44827','antonia.moreira','Ultrassom abdominal','2026-02-28','em análise'),
+('EX-62683','julia.oliveira','Ultrassom abdominal','2026-04-29','pronto'),
+('EX-85203','paulo.rocha','Glicemia de jejum','2026-07-03','pronto'),
+('EX-84652','gabriel.almeida','Glicemia de jejum','2026-03-04','pronto'),
+('EX-80387','fabio.souza','Ultrassom abdominal','2026-02-22','pronto'),
+('EX-46643','ana.machado','Hemograma completo','2026-09-26','pronto'),
+('EX-43744','jose.gomes','Raio-X de tórax','2026-04-26','pronto'),
+('EX-10501','ana.machado','TSH (hormônio da tireoide)','2026-05-06','pronto'),
+('EX-88897','thiago.dias','Glicemia de jejum','2026-04-26','pronto'),
+('EX-16737','francisco.silva','Glicemia de jejum','2026-03-11','pronto'),
+('EX-91614','rogerio.vieira','Eletrocardiograma','2026-02-15','pronto'),
+('EX-79066','adriana.ribeiro','Urina tipo I','2026-04-23','pronto'),
+('EX-30562','irene.barbosa','Raio-X de tórax','2026-08-31','pronto'),
+('EX-32557','rogerio.vieira','Glicemia de jejum','2026-03-08','pronto'),
+('EX-65195','bruno.teixeira','Hemograma completo','2026-08-24','pronto'),
+('EX-52917','marcos.gomes','Exame toxicológico','2026-03-06','pronto'),
+('EX-87836','francisco.silva','Glicemia de jejum','2026-04-04','em análise'),
+('EX-11387','vanessa.dias','TSH (hormônio da tireoide)','2026-06-15','pronto'),
+('EX-31938','aline.lima','Ultrassom abdominal','2026-04-12','pronto'),
+('EX-45273','rodrigo.gomes','Ultrassom abdominal','2026-09-07','pronto'),
+('EX-43711','rogerio.vieira','Exame toxicológico','2026-01-22','pronto'),
+('EX-49375','bruna.pereira','Exame toxicológico','2026-06-18','em análise'),
+('EX-61075','conceicao.andrade','Urina tipo I','2026-06-19','pronto'),
+('EX-58591','lucas.oliveira','Colesterol total','2026-06-05','em análise'),
+('EX-91656','francisca.pereira','Ultrassom abdominal','2026-01-10','em análise'),
+('EX-55122','andre.nascimento','TSH (hormônio da tireoide)','2026-02-26','pronto'),
+('EX-41697','gabriel.nunes','Urina tipo I','2026-08-21','em análise'),
+('EX-49063','gustavo.rocha','Glicemia de jejum','2026-04-25','pronto'),
+('EX-25502','paulo.santos','Raio-X de tórax','2026-07-06','pronto'),
+('EX-76050','vanessa.vieira','Raio-X de tórax','2026-02-07','pronto'),
+('EX-93281','gustavo.goncalves','Ultrassom abdominal','2026-09-24','em análise'),
+('EX-94358','maria.vieira','Glicemia de jejum','2026-08-07','em análise'),
+('EX-73140','gustavo.costa','Sorologia para hepatite B','2026-05-11','pronto'),
+('EX-71854','maria.costa','Glicemia de jejum','2026-03-29','em análise'),
+('EX-61603','antonia.moreira','Raio-X de tórax','2026-06-09','em análise'),
+('EX-56522','antonia.marques','Eletrocardiograma','2026-02-08','pronto'),
+('EX-45040','gabriel.almeida','Colesterol total','2026-07-28','pronto'),
+('EX-35387','conceicao.andrade','Hemograma completo','2026-01-27','pronto'),
+('EX-80124','irene.machado','Raio-X de tórax','2026-02-27','pronto'),
+('EX-82718','eduardo.cardoso','Colesterol total','2026-05-06','pronto'),
+('EX-87711','amanda.oliveira','TSH (hormônio da tireoide)','2026-09-16','em análise'),
+('EX-47132','bruno.machado','Hemograma completo','2026-03-21','pronto'),
+('EX-17701','rosa.souza','Hemograma completo','2026-01-23','pronto'),
+('EX-84439','carlos.lima','Hemograma completo','2026-09-26','pronto'),
+('EX-11778','bruno.almeida','Hemograma completo','2026-02-10','em análise'),
+('EX-33430','beatriz.soares','Colesterol total','2026-10-02','pronto'),
+('EX-69827','lucas.teixeira','Exame toxicológico','2026-02-23','pronto'),
+('EX-12258','juliana.pereira','Glicemia de jejum','2026-08-21','em análise'),
+('EX-73224','bruno.almeida','Eletrocardiograma','2026-01-29','em análise'),
+('EX-98233','eduardo.rodrigues','Hemograma completo','2026-01-31','pronto'),
+('EX-77205','lucas.oliveira','Glicemia de jejum','2026-03-15','pronto'),
+('EX-18528','vera.teixeira','Hemograma completo','2026-05-15','pronto'),
+('EX-72721','jessica.machado','Sorologia para hepatite B','2026-10-05','pronto'),
+('EX-10205','paulo.almeida','Urina tipo I','2026-04-03','em análise'),
+('EX-17129','rodrigo.gomes','Eletrocardiograma','2026-10-06','em análise'),
+('EX-68166','eduardo.rodrigues','Urina tipo I','2026-02-08','pronto'),
+('EX-47947','mateus.lopes','Glicemia de jejum','2026-09-08','pronto'),
+('EX-18600','beatriz.soares','Urina tipo I','2026-06-02','em análise'),
+('EX-98990','bruna.pereira','Exame toxicológico','2026-06-21','em análise'),
+('EX-91281','daniel.ribeiro','Colesterol total','2026-07-17','pronto'),
+('EX-59698','thiago.alves','Glicemia de jejum','2026-04-15','pronto'),
+('EX-90446','conceicao.andrade','Eletrocardiograma','2026-08-01','pronto'),
+('EX-60731','antonia.gomes','Hemograma completo','2026-04-09','pronto'),
+('EX-83136','fernanda.pinto','Colesterol total','2026-09-30','em análise'),
+('EX-90225','lucas.teixeira','Urina tipo I','2026-04-12','pronto'),
+('EX-27124','daniel.cardoso','Urina tipo I','2026-04-15','pronto'),
+('EX-36152','carlos.lima','Eletrocardiograma','2026-06-24','pronto'),
+('EX-61366','pedro.pinto','Colesterol total','2026-05-11','pronto'),
+('EX-11918','antonia.marques','Hemograma completo','2026-02-17','pronto'),
+('EX-50485','bruno.machado','Glicemia de jejum','2026-01-30','em análise'),
+('EX-64181','bruno.araujo','Colesterol total','2026-04-11','pronto'),
+('EX-20098','daniel.cardoso','Glicemia de jejum','2026-07-17','em análise'),
+('EX-89369','felipe.marques','Sorologia para hepatite B','2026-06-04','em análise'),
+('EX-19442','carlos.souza','Urina tipo I','2026-04-11','em análise'),
+('EX-78911','gabriela.fernandes','TSH (hormônio da tireoide)','2026-03-23','pronto'),
+('EX-48234','vanessa.dias','Hemograma completo','2026-10-01','pronto'),
+('EX-31767','fernanda.martins','Glicemia de jejum','2026-02-09','pronto'),
+('EX-28603','antonia.dias','Exame toxicológico','2026-02-22','pronto'),
+('EX-13803','vera.goncalves','TSH (hormônio da tireoide)','2026-03-14','pronto'),
+('EX-76273','maria.costa','Exame toxicológico','2026-05-21','pronto'),
+('EX-61022','carlos.martins','Eletrocardiograma','2026-06-27','pronto'),
+('EX-35009','eduardo.pinto','Glicemia de jejum','2026-08-08','pronto'),
+('EX-17689','amanda.oliveira','Colesterol total','2026-02-20','em análise'),
+('EX-85077','paulo.santos','Hemograma completo','2026-05-08','pronto'),
+('EX-11996','francisco.nascimento','Glicemia de jejum','2026-04-14','pronto'),
+('EX-64878','mateus.lopes','Glicemia de jejum','2026-07-16','pronto'),
+('EX-51311','aline.araujo','Colesterol total','2026-04-04','pronto'),
+('EX-56629','rogerio.vieira','Hemograma completo','2026-05-12','pronto'),
+('EX-38777','gabriel.nunes','TSH (hormônio da tireoide)','2026-02-02','pronto'),
+('EX-94394','luciana.nunes','Raio-X de tórax','2026-07-22','em análise'),
+('EX-23967','paulo.santos','Hemograma completo','2026-06-25','em análise'),
+('EX-53198','antonio.rodrigues','Hemograma completo','2026-07-05','pronto'),
+('EX-96940','rosa.souza','Glicemia de jejum','2026-06-05','pronto'),
+('EX-21260','felipe.almeida','Urina tipo I','2026-05-27','pronto'),
+('EX-11696','marcelo.nunes','TSH (hormônio da tireoide)','2026-08-17','pronto'),
+('EX-38952','larissa.souza','Hemograma completo','2026-07-04','em análise'),
+('EX-16378','fernanda.martins','Eletrocardiograma','2026-07-29','em análise'),
+('EX-86100','thiago.alves','Ultrassom abdominal','2026-05-04','pronto'),
+('EX-39486','julia.carvalho','Hemograma completo','2026-03-02','pronto'),
+('EX-91391','vanessa.dias','Hemograma completo','2026-02-27','pronto'),
+('EX-59904','paulo.goncalves','Urina tipo I','2026-10-08','pronto'),
+('EX-54425','gustavo.costa','Hemograma completo','2026-04-15','pronto'),
+('EX-26932','larissa.souza','Ultrassom abdominal','2026-06-04','pronto'),
+('EX-77252','fernanda.pinto','Hemograma completo','2026-01-25','pronto'),
+('EX-66545','paulo.santos','Hemograma completo','2026-05-23','em análise'),
+('EX-45157','juliana.pereira','TSH (hormônio da tireoide)','2026-04-09','pronto'),
+('EX-73235','rafael.goncalves','TSH (hormônio da tireoide)','2026-05-19','em análise'),
+('EX-29761','bruno.teixeira','Colesterol total','2026-04-19','pronto'),
+('EX-93901','rosa.almeida','Hemograma completo','2026-08-28','pronto'),
+('EX-15456','carlos.rodrigues','TSH (hormônio da tireoide)','2026-08-23','pronto'),
+('EX-97011','francisco.silva','Eletrocardiograma','2026-10-03','pronto'),
+('EX-62208','jessica.ferreira','Urina tipo I','2026-01-31','pronto'),
+('EX-95899','marcos.martins','TSH (hormônio da tireoide)','2026-08-08','pronto'),
+('EX-28956','rodrigo.martins','Urina tipo I','2026-06-23','em análise'),
+('EX-13107','fernanda.martins','Hemograma completo','2026-05-04','pronto'),
+('EX-60292','antonio.rocha','Hemograma completo','2026-01-27','pronto'),
+('EX-42681','vera.goncalves','Hemograma completo','2026-01-22','pronto'),
+('EX-20117','bruno.teixeira','Hemograma completo','2026-06-03','pronto'),
+('EX-18542','marcos.martins','Colesterol total','2026-05-22','pronto'),
+('EX-66213','sandra.barbosa','Exame toxicológico','2026-03-14','em análise'),
+('EX-67841','jessica.marques','Raio-X de tórax','2026-08-07','em análise'),
+('EX-71066','rosa.martins','Glicemia de jejum','2026-07-01','pronto'),
+('EX-82744','adriana.ribeiro','Exame toxicológico','2026-05-05','em análise'),
+('EX-73672','rogerio.vieira','TSH (hormônio da tireoide)','2026-06-12','pronto'),
+('EX-91019','iara.pinto','Exame toxicológico','2026-10-01','pronto'),
+('EX-58836','fernanda.martins','Hemograma completo','2026-01-30','pronto'),
+('EX-27396','bruna.cardoso','Colesterol total','2026-04-22','pronto'),
+('EX-57302','paulo.almeida','Glicemia de jejum','2026-09-01','em análise'),
+('EX-68301','beatriz.soares','Exame toxicológico','2026-07-07','pronto'),
+('EX-14127','bruna.cardoso','Urina tipo I','2026-07-22','pronto'),
+('EX-90794','felipe.ramos','TSH (hormônio da tireoide)','2026-08-31','pronto'),
+('EX-25091','bruno.teixeira','Eletrocardiograma','2026-01-18','pronto'),
+('EX-64414','gustavo.costa','Glicemia de jejum','2026-03-15','em análise'),
+('EX-15607','rosa.goncalves','Hemograma completo','2026-01-07','pronto'),
+('EX-23771','gustavo.rocha','Hemograma completo','2026-06-03','pronto'),
+('EX-84158','bruno.nunes','Glicemia de jejum','2026-07-25','pronto'),
+('EX-58706','francisco.nascimento','Raio-X de tórax','2026-04-03','em análise'),
+('EX-76570','paulo.almeida','Eletrocardiograma','2026-03-04','em análise'),
+('EX-91806','antonia.gomes','Exame toxicológico','2026-04-16','pronto'),
+('EX-47864','gabriela.costa','Glicemia de jejum','2026-07-13','pronto'),
+('EX-51205','marcelo.barbosa','TSH (hormônio da tireoide)','2026-09-02','pronto'),
+('EX-43411','paulo.rocha','Urina tipo I','2026-08-18','pronto'),
+('EX-48636','gabriela.fernandes','Exame toxicológico','2026-10-02','em análise'),
+('EX-93442','jessica.ferreira','Raio-X de tórax','2026-02-06','pronto'),
+('EX-41861','julia.goncalves','Glicemia de jejum','2026-03-05','pronto'),
+('EX-67007','antonio.rocha','Ultrassom abdominal','2026-05-13','em análise'),
+('EX-96378','antonia.marques','Sorologia para hepatite B','2026-04-07','em análise'),
+('EX-71999','irene.barbosa','Hemograma completo','2026-04-04','pronto'),
+('EX-61608','antonio.souza','Hemograma completo','2026-06-27','pronto'),
+('EX-36788','luciana.teixeira','Exame toxicológico','2026-04-16','pronto'),
+('EX-33499','rafael.gomes','Colesterol total','2026-05-24','em análise'),
+('EX-26356','maria.vieira','Urina tipo I','2026-02-18','pronto'),
+('EX-90138','amanda.oliveira','Raio-X de tórax','2026-05-16','em análise'),
+('EX-63915','antonia.moreira','Colesterol total','2026-10-02','em análise'),
+('EX-99861','aline.araujo','Urina tipo I','2026-03-01','em análise'),
+('EX-69910','mateus.lopes','Colesterol total','2026-07-12','pronto'),
+('EX-27469','felipe.santos','Raio-X de tórax','2026-03-24','pronto'),
+('EX-70283','julia.araujo','TSH (hormônio da tireoide)','2026-03-07','em análise'),
+('EX-37506','felipe.marques','Hemograma completo','2026-07-05','pronto'),
+('EX-55101','bruna.pereira','Ultrassom abdominal','2026-05-08','pronto'),
+('EX-95489','fabio.souza','Hemograma completo','2026-04-06','em análise'),
+('EX-90997','paulo.barbosa','Hemograma completo','2026-01-15','em análise'),
+('EX-78470','rosa.almeida','TSH (hormônio da tireoide)','2026-02-17','pronto'),
+('EX-97592','paulo.barbosa','Hemograma completo','2026-03-18','em análise'),
+('EX-76449','vanessa.dias','Colesterol total','2026-06-10','pronto'),
+('EX-57942','vanessa.vieira','Hemograma completo','2026-06-26','pronto'),
+('EX-90993','rosa.souza','Ultrassom abdominal','2026-09-18','pronto'),
+('EX-28899','eduardo.vieira','Colesterol total','2026-10-06','pronto'),
+('EX-29887','fernanda.pinto','Exame toxicológico','2026-10-07','pronto'),
+('EX-59598','antonia.moreira','Glicemia de jejum','2026-04-23','pronto'),
+('EX-94211','camila.alves','Colesterol total','2026-09-09','pronto'),
+('EX-94076','marcelo.nunes','Colesterol total','2026-04-13','em análise'),
+('EX-20566','aline.araujo','Hemograma completo','2026-06-26','em análise'),
+('EX-79598','antonia.gomes','Raio-X de tórax','2026-01-19','em análise'),
+('EX-74072','pedro.pinto','Raio-X de tórax','2026-05-27','pronto'),
+('EX-71238','camila.alves','Glicemia de jejum','2026-06-02','pronto'),
+('EX-13607','fabio.martins','Exame toxicológico','2026-03-16','pronto'),
+('EX-99068','luiz.goncalves','Hemograma completo','2026-07-16','pronto'),
+('EX-54045','rogerio.dias','Colesterol total','2026-08-28','pronto'),
+('EX-22847','ana.pereira','Exame toxicológico','2026-06-13','pronto'),
+('EX-62426','amanda.oliveira','Colesterol total','2026-09-28','pronto'),
+('EX-41985','rogerio.vieira','Glicemia de jejum','2026-04-03','pronto'),
+('EX-12324','antonio.lima','Hemograma completo','2026-04-24','pronto'),
+('EX-79516','amanda.oliveira','Hemograma completo','2026-03-24','pronto'),
+('EX-93219','rodrigo.martins','Colesterol total','2026-04-17','em análise'),
+('EX-68714','renan.duarte','Raio-X de tórax','2026-03-20','pronto'),
+('EX-11655','vera.teixeira','Eletrocardiograma','2026-06-06','pronto'),
+('EX-50855','bruno.araujo','Hemograma completo','2026-04-23','em análise'),
+('EX-14023','rosa.almeida','Eletrocardiograma','2026-02-18','pronto'),
+('EX-28602','rafael.gomes','Exame toxicológico','2026-01-20','pronto'),
+('EX-78225','jose.gomes','Raio-X de tórax','2026-06-08','em análise'),
+('EX-93761','fabio.souza','Ultrassom abdominal','2026-02-28','pronto'),
+('EX-50504','eduardo.cardoso','Hemograma completo','2026-07-28','pronto'),
+('EX-32996','gustavo.goncalves','Hemograma completo','2026-03-19','pronto'),
+('EX-36167','daniel.ribeiro','Urina tipo I','2026-01-11','em análise'),
+('EX-33210','antonia.marques','Raio-X de tórax','2026-04-25','em análise'),
+('EX-73337','gabriela.costa','Raio-X de tórax','2026-02-11','pronto'),
+('EX-56814','marcos.martins','Exame toxicológico','2026-08-05','pronto'),
+('EX-30703','paulo.barbosa','Ultrassom abdominal','2026-04-23','em análise'),
+('EX-26825','marcelo.barbosa','Glicemia de jejum','2026-08-14','pronto'),
+('EX-30506','rosa.goncalves','Sorologia para hepatite B','2026-01-29','pronto'),
+('EX-51904','renan.duarte','Sorologia para hepatite B','2026-09-28','em análise'),
+('EX-68731','felipe.santos','Hemograma completo','2026-10-09','em análise'),
+('EX-58333','bruno.araujo','TSH (hormônio da tireoide)','2026-04-27','em análise'),
+('EX-65300','fernanda.pinto','TSH (hormônio da tireoide)','2026-08-13','pronto'),
+('EX-35118','antonio.souza','Colesterol total','2026-06-28','pronto'),
+('EX-97965','paulo.santos','Ultrassom abdominal','2026-05-18','em análise'),
+('EX-52956','pedro.mendes','Raio-X de tórax','2026-07-30','pronto'),
+('EX-65887','antonia.dias','Raio-X de tórax','2026-01-10','pronto'),
+('EX-48915','fernanda.pinto','Glicemia de jejum','2026-09-30','pronto'),
+('EX-55715','fernanda.martins','Glicemia de jejum','2026-04-15','pronto'),
+('EX-97759','rodrigo.martins','Hemograma completo','2026-04-30','pronto'),
+('EX-96435','marcos.ribeiro','Urina tipo I','2026-07-21','pronto'),
+('EX-31905','antonia.moreira','Glicemia de jejum','2026-04-27','pronto'),
+('EX-25211','adriana.ribeiro','Eletrocardiograma','2026-07-06','em análise'),
+('EX-50585','gabriel.nunes','Colesterol total','2026-04-22','pronto'),
+('EX-91830','bruno.teixeira','Exame toxicológico','2026-06-16','pronto'),
+('EX-84357','marcos.martins','Raio-X de tórax','2026-07-19','pronto'),
+('EX-81472','andre.nascimento','Urina tipo I','2026-04-23','pronto'),
+('EX-90069','vera.teixeira','Colesterol total','2026-07-13','em análise'),
+('EX-17929','paulo.goncalves','Urina tipo I','2026-04-01','pronto'),
+('EX-20677','rafael.goncalves','TSH (hormônio da tireoide)','2026-08-17','em análise'),
+('EX-66323','bruna.cardoso','Glicemia de jejum','2026-10-02','pronto'),
+('EX-37956','vera.goncalves','Colesterol total','2026-01-09','em análise'),
+('EX-37995','juliana.pereira','Exame toxicológico','2026-07-07','pronto'),
+('EX-86489','carlos.souza','Raio-X de tórax','2026-10-06','pronto'),
+('EX-33826','antonio.lima','Sorologia para hepatite B','2026-10-02','pronto'),
+('EX-78149','francisco.soares','Urina tipo I','2026-01-16','pronto'),
+('EX-35187','juliana.rocha','Hemograma completo','2026-06-12','pronto'),
+('EX-25821','mateus.marques','Hemograma completo','2026-01-07','pronto'),
+('EX-61591','bruno.araujo','Eletrocardiograma','2026-08-26','em análise'),
+('EX-33635','amanda.dias','Colesterol total','2026-01-10','pronto'),
+('EX-24898','felipe.almeida','Sorologia para hepatite B','2026-09-26','pronto'),
+('EX-26427','fabio.souza','Hemograma completo','2026-04-30','pronto'),
+('EX-47784','francisca.pereira','Hemograma completo','2026-01-27','em análise'),
+('EX-19887','antonia.dias','Ultrassom abdominal','2026-07-31','pronto');
+
+INSERT INTO exame_resultado (id,paciente_login,exame,data,resultado) VALUES
+(1,'antonio.souza','Colesterol total','2026-01-25','237 mg/dL'),
+(2,'francisco.silva','Sorologia para hepatite B','2026-07-16','Não reagente'),
+(3,'marcia.barbosa','Glicemia de jejum','2026-01-12','100 mg/dL'),
+(4,'pedro.mendes','Glicemia de jejum','2026-04-02','92 mg/dL'),
+(5,'antonio.rocha','Hemograma completo','2026-05-11','Hemoglobina 13.0 g/dL · Leucócitos 6866/mm³ · Plaquetas 170573/mm³'),
+(6,'antonia.moreira','Colesterol total','2026-02-27','148 mg/dL'),
+(7,'francisco.nascimento','Raio-X de tórax','2026-05-19','Sem alterações pleuropulmonares'),
+(8,'pedro.pinto','Sorologia para hepatite B','2026-05-18','Não reagente'),
+(9,'vera.teixeira','Glicemia de jejum','2026-03-04','106 mg/dL'),
+(10,'rogerio.vieira','Colesterol total','2026-08-01','209 mg/dL'),
+(11,'francisco.lopes','Eletrocardiograma','2026-07-29','Ritmo sinusal, sem alterações'),
+(12,'maria.costa','Glicemia de jejum','2026-04-10','89 mg/dL'),
+(13,'eduardo.pinto','Hemograma completo','2026-09-21','Hemoglobina 12.8 g/dL · Leucócitos 4269/mm³ · Plaquetas 352737/mm³'),
+(14,'paulo.goncalves','Hemograma completo','2026-05-10','Hemoglobina 14.6 g/dL · Leucócitos 8647/mm³ · Plaquetas 358160/mm³'),
+(15,'marcos.ribeiro','Colesterol total','2026-04-22','181 mg/dL'),
+(16,'larissa.souza','Urina tipo I','2026-09-10','Sem alterações'),
+(17,'bruno.nunes','Urina tipo I','2026-09-25','Sem alterações'),
+(18,'iara.pinto','Raio-X de tórax','2026-05-25','Sem alterações pleuropulmonares'),
+(19,'larissa.souza','Colesterol total','2026-08-07','152 mg/dL'),
+(20,'antonia.moreira','Urina tipo I','2026-01-12','Sem alterações'),
+(21,'gabriela.fernandes','Raio-X de tórax','2026-03-11','Sem alterações pleuropulmonares'),
+(22,'bruno.nunes','Ultrassom abdominal','2026-04-22','Esteatose hepática leve'),
+(23,'antonio.rodrigues','Eletrocardiograma','2026-06-15','Extrassístoles ventriculares isoladas'),
+(24,'irene.nascimento','Sorologia para hepatite B','2026-04-30','Não reagente'),
+(25,'vera.goncalves','Exame toxicológico','2026-05-29','Negativo para as substâncias pesquisadas'),
+(26,'eduardo.pinto','Exame toxicológico','2026-03-12','Negativo para as substâncias pesquisadas'),
+(27,'gustavo.rocha','TSH (hormônio da tireoide)','2026-06-17','3.90 µUI/mL'),
+(28,'mateus.ribeiro','Eletrocardiograma','2026-07-02','Ritmo sinusal, sem alterações'),
+(29,'eduardo.cardoso','Colesterol total','2026-07-21','234 mg/dL'),
+(30,'juliana.pereira','Exame toxicológico','2026-04-20','Negativo para as substâncias pesquisadas'),
+(31,'julia.araujo','Ultrassom abdominal','2026-08-17','Órgãos de aspecto normal'),
+(32,'gustavo.goncalves','Raio-X de tórax','2026-10-03','Sem alterações pleuropulmonares'),
+(33,'rosa.souza','Hemograma completo','2026-01-26','Hemoglobina 12.5 g/dL · Leucócitos 9063/mm³ · Plaquetas 234936/mm³'),
+(34,'julia.oliveira','Glicemia de jejum','2026-05-27','116 mg/dL'),
+(35,'beatriz.soares','TSH (hormônio da tireoide)','2026-08-28','4.09 µUI/mL'),
+(36,'rogerio.vieira','Hemograma completo','2026-09-28','Hemoglobina 12.5 g/dL · Leucócitos 6446/mm³ · Plaquetas 264223/mm³'),
+(37,'felipe.ramos','Ultrassom abdominal','2026-08-25','Órgãos de aspecto normal'),
+(38,'antonio.lima','Glicemia de jejum','2026-09-26','79 mg/dL'),
+(39,'fernanda.pinto','TSH (hormônio da tireoide)','2026-01-14','3.32 µUI/mL'),
+(40,'carlos.martins','Ultrassom abdominal','2026-04-03','Órgãos de aspecto normal'),
+(41,'lucas.oliveira','Urina tipo I','2026-01-15','Sem alterações'),
+(42,'bruno.machado','Sorologia para hepatite B','2026-01-06','Não reagente'),
+(43,'luciana.nunes','Eletrocardiograma','2026-05-15','Ritmo sinusal, sem alterações'),
+(44,'julia.carvalho','Glicemia de jejum','2026-07-09','103 mg/dL'),
+(45,'francisco.soares','Hemograma completo','2026-02-01','Hemoglobina 12.4 g/dL · Leucócitos 5845/mm³ · Plaquetas 255403/mm³'),
+(46,'luiz.goncalves','TSH (hormônio da tireoide)','2026-01-13','2.61 µUI/mL'),
+(47,'aline.lima','Glicemia de jejum','2026-08-31','97 mg/dL'),
+(48,'francisco.lopes','TSH (hormônio da tireoide)','2026-02-27','3.13 µUI/mL'),
+(49,'vanessa.vieira','Urina tipo I','2026-04-14','Sem alterações'),
+(50,'felipe.almeida','Hemograma completo','2026-06-26','Hemoglobina 13.1 g/dL · Leucócitos 6104/mm³ · Plaquetas 345299/mm³'),
+(51,'thiago.alves','Glicemia de jejum','2026-04-25','113 mg/dL'),
+(52,'carlos.martins','TSH (hormônio da tireoide)','2026-07-22','3.25 µUI/mL'),
+(53,'pedro.mendes','Glicemia de jejum','2026-04-01','78 mg/dL'),
+(54,'rosa.goncalves','Hemograma completo','2026-05-22','Hemoglobina 11.8 g/dL · Leucócitos 5645/mm³ · Plaquetas 365012/mm³'),
+(55,'luciana.nunes','Exame toxicológico','2026-02-15','Negativo para as substâncias pesquisadas'),
+(56,'conceicao.andrade','Raio-X de tórax','2026-04-14','Sem alterações pleuropulmonares'),
+(57,'juliana.goncalves','Hemograma completo','2026-01-29','Hemoglobina 12.5 g/dL · Leucócitos 4396/mm³ · Plaquetas 247270/mm³'),
+(58,'carlos.souza','Raio-X de tórax','2026-04-22','Sem alterações pleuropulmonares'),
+(59,'ana.machado','Sorologia para hepatite B','2026-09-18','Não reagente'),
+(60,'antonia.dias','Hemograma completo','2026-03-21','Hemoglobina 13.3 g/dL · Leucócitos 6258/mm³ · Plaquetas 342039/mm³'),
+(61,'francisca.pereira','Colesterol total','2026-06-25','147 mg/dL'),
+(62,'antonia.moreira','Exame toxicológico','2026-05-06','Negativo para as substâncias pesquisadas'),
+(63,'antonia.marques','Hemograma completo','2026-02-05','Hemoglobina 14.2 g/dL · Leucócitos 9241/mm³ · Plaquetas 279892/mm³'),
+(64,'francisco.soares','Hemograma completo','2026-09-20','Hemoglobina 11.1 g/dL · Leucócitos 4920/mm³ · Plaquetas 156272/mm³'),
+(65,'gustavo.costa','Exame toxicológico','2026-08-10','Negativo para as substâncias pesquisadas'),
+(66,'jessica.marques','Eletrocardiograma','2026-08-21','Extrassístoles ventriculares isoladas'),
+(67,'jose.araujo','Colesterol total','2026-02-23','203 mg/dL'),
+(68,'bruna.pereira','Ultrassom abdominal','2026-01-05','Órgãos de aspecto normal'),
+(69,'marcelo.barbosa','Urina tipo I','2026-07-26','Sem alterações'),
+(70,'beatriz.soares','Raio-X de tórax','2026-09-06','Sem alterações pleuropulmonares'),
+(71,'luciana.nunes','Urina tipo I','2026-08-11','Sem alterações'),
+(72,'fabio.martins','Ultrassom abdominal','2026-09-18','Órgãos de aspecto normal'),
+(73,'bruno.machado','Hemograma completo','2026-01-14','Hemoglobina 11.1 g/dL · Leucócitos 9323/mm³ · Plaquetas 331764/mm³'),
+(74,'jose.gomes','Urina tipo I','2026-06-27','Sem alterações'),
+(75,'aline.araujo','Hemograma completo','2026-08-25','Hemoglobina 12.4 g/dL · Leucócitos 7868/mm³ · Plaquetas 284633/mm³'),
+(76,'mateus.marques','Sorologia para hepatite B','2026-03-04','Não reagente'),
+(77,'gustavo.goncalves','Colesterol total','2026-01-10','235 mg/dL'),
+(78,'fernanda.martins','Urina tipo I','2026-08-13','Sem alterações'),
+(79,'aline.lima','Eletrocardiograma','2026-05-12','Ritmo sinusal, sem alterações'),
+(80,'mateus.ribeiro','Hemograma completo','2026-04-08','Hemoglobina 14.3 g/dL · Leucócitos 7396/mm³ · Plaquetas 326629/mm³'),
+(81,'bruna.pereira','TSH (hormônio da tireoide)','2026-06-15','3.84 µUI/mL'),
+(82,'marcos.martins','Glicemia de jejum','2026-04-09','113 mg/dL'),
+(83,'juliana.goncalves','Hemograma completo','2026-05-24','Hemoglobina 12.4 g/dL · Leucócitos 5564/mm³ · Plaquetas 349371/mm³'),
+(84,'rogerio.vieira','Urina tipo I','2026-01-29','Sem alterações'),
+(85,'vera.teixeira','Colesterol total','2026-05-16','197 mg/dL'),
+(86,'daniel.cardoso','Urina tipo I','2026-01-24','Sem alterações'),
+(87,'rafael.goncalves','Glicemia de jejum','2026-01-17','114 mg/dL'),
+(88,'julia.oliveira','Sorologia para hepatite B','2026-08-22','Não reagente'),
+(89,'antonia.moreira','Glicemia de jejum','2026-01-21','91 mg/dL'),
+(90,'rosa.ramos','Urina tipo I','2026-04-01','Sem alterações'),
+(91,'vera.goncalves','Exame toxicológico','2026-06-22','Negativo para as substâncias pesquisadas'),
+(92,'marcos.ribeiro','Sorologia para hepatite B','2026-09-01','Não reagente'),
+(93,'francisco.soares','Hemograma completo','2026-08-27','Hemoglobina 13.7 g/dL · Leucócitos 8184/mm³ · Plaquetas 274940/mm³'),
+(94,'lucas.teixeira','TSH (hormônio da tireoide)','2026-07-17','1.57 µUI/mL'),
+(95,'bruno.almeida','Raio-X de tórax','2026-02-02','Sem alterações pleuropulmonares'),
+(96,'thiago.alves','TSH (hormônio da tireoide)','2026-09-11','1.42 µUI/mL'),
+(97,'ana.pereira','Colesterol total','2026-08-10','166 mg/dL'),
+(98,'lucas.oliveira','Exame toxicológico','2026-07-01','Negativo para as substâncias pesquisadas'),
+(99,'carlos.souza','Colesterol total','2026-02-26','224 mg/dL'),
+(100,'bruno.nunes','Ultrassom abdominal','2026-05-06','Órgãos de aspecto normal'),
+(101,'carlos.souza','Colesterol total','2026-01-31','201 mg/dL'),
+(102,'daniel.cardoso','Sorologia para hepatite B','2026-02-26','Não reagente'),
+(103,'thiago.alves','Hemograma completo','2026-08-12','Hemoglobina 13.5 g/dL · Leucócitos 9044/mm³ · Plaquetas 344288/mm³'),
+(104,'julia.araujo','Ultrassom abdominal','2026-06-24','Órgãos de aspecto normal'),
+(105,'julia.oliveira','Ultrassom abdominal','2026-04-29','Órgãos de aspecto normal'),
+(106,'paulo.rocha','Glicemia de jejum','2026-07-03','106 mg/dL'),
+(107,'gabriel.almeida','Glicemia de jejum','2026-03-04','99 mg/dL'),
+(108,'fabio.souza','Ultrassom abdominal','2026-02-22','Órgãos de aspecto normal'),
+(109,'ana.machado','Hemograma completo','2026-09-26','Hemoglobina 13.4 g/dL · Leucócitos 8541/mm³ · Plaquetas 359476/mm³'),
+(110,'jose.gomes','Raio-X de tórax','2026-04-26','Sem alterações pleuropulmonares'),
+(111,'ana.machado','TSH (hormônio da tireoide)','2026-05-06','2.50 µUI/mL'),
+(112,'thiago.dias','Glicemia de jejum','2026-04-26','77 mg/dL'),
+(113,'francisco.silva','Glicemia de jejum','2026-03-11','76 mg/dL'),
+(114,'rogerio.vieira','Eletrocardiograma','2026-02-15','Extrassístoles ventriculares isoladas'),
+(115,'adriana.ribeiro','Urina tipo I','2026-04-23','Sem alterações'),
+(116,'irene.barbosa','Raio-X de tórax','2026-08-31','Sem alterações pleuropulmonares'),
+(117,'rogerio.vieira','Glicemia de jejum','2026-03-08','111 mg/dL'),
+(118,'bruno.teixeira','Hemograma completo','2026-08-24','Hemoglobina 12.4 g/dL · Leucócitos 5531/mm³ · Plaquetas 378847/mm³'),
+(119,'marcos.gomes','Exame toxicológico','2026-03-06','Positivo: cocaína'),
+(120,'vanessa.dias','TSH (hormônio da tireoide)','2026-06-15','1.10 µUI/mL'),
+(121,'aline.lima','Ultrassom abdominal','2026-04-12','Órgãos de aspecto normal'),
+(122,'rodrigo.gomes','Ultrassom abdominal','2026-09-07','Esteatose hepática leve'),
+(123,'rogerio.vieira','Exame toxicológico','2026-01-22','Negativo para as substâncias pesquisadas'),
+(124,'conceicao.andrade','Urina tipo I','2026-06-19','Sem alterações'),
+(125,'andre.nascimento','TSH (hormônio da tireoide)','2026-02-26','2.11 µUI/mL'),
+(126,'gustavo.rocha','Glicemia de jejum','2026-04-25','93 mg/dL'),
+(127,'paulo.santos','Raio-X de tórax','2026-07-06','Sem alterações pleuropulmonares'),
+(128,'vanessa.vieira','Raio-X de tórax','2026-02-07','Discreto infiltrado em base pulmonar direita'),
+(129,'gustavo.costa','Sorologia para hepatite B','2026-05-11','Não reagente'),
+(130,'antonia.marques','Eletrocardiograma','2026-02-08','Ritmo sinusal, sem alterações'),
+(131,'gabriel.almeida','Colesterol total','2026-07-28','173 mg/dL'),
+(132,'conceicao.andrade','Hemograma completo','2026-01-27','Hemoglobina 13.9 g/dL · Leucócitos 8719/mm³ · Plaquetas 291666/mm³'),
+(133,'irene.machado','Raio-X de tórax','2026-02-27','Sem alterações pleuropulmonares'),
+(134,'eduardo.cardoso','Colesterol total','2026-05-06','238 mg/dL'),
+(135,'bruno.machado','Hemograma completo','2026-03-21','Hemoglobina 13.2 g/dL · Leucócitos 8082/mm³ · Plaquetas 234329/mm³'),
+(136,'rosa.souza','Hemograma completo','2026-01-23','Hemoglobina 12.2 g/dL · Leucócitos 6731/mm³ · Plaquetas 197018/mm³'),
+(137,'carlos.lima','Hemograma completo','2026-09-26','Hemoglobina 14.6 g/dL · Leucócitos 4138/mm³ · Plaquetas 364771/mm³'),
+(138,'beatriz.soares','Colesterol total','2026-10-02','144 mg/dL'),
+(139,'lucas.teixeira','Exame toxicológico','2026-02-23','Negativo para as substâncias pesquisadas'),
+(140,'eduardo.rodrigues','Hemograma completo','2026-01-31','Hemoglobina 13.3 g/dL · Leucócitos 7897/mm³ · Plaquetas 331065/mm³'),
+(141,'lucas.oliveira','Glicemia de jejum','2026-03-15','77 mg/dL'),
+(142,'vera.teixeira','Hemograma completo','2026-05-15','Hemoglobina 12.5 g/dL · Leucócitos 4013/mm³ · Plaquetas 229485/mm³'),
+(143,'jessica.machado','Sorologia para hepatite B','2026-10-05','Não reagente'),
+(144,'eduardo.rodrigues','Urina tipo I','2026-02-08','Sem alterações'),
+(145,'mateus.lopes','Glicemia de jejum','2026-09-08','73 mg/dL'),
+(146,'daniel.ribeiro','Colesterol total','2026-07-17','177 mg/dL'),
+(147,'thiago.alves','Glicemia de jejum','2026-04-15','98 mg/dL'),
+(148,'conceicao.andrade','Eletrocardiograma','2026-08-01','Extrassístoles ventriculares isoladas'),
+(149,'antonia.gomes','Hemograma completo','2026-04-09','Hemoglobina 11.2 g/dL · Leucócitos 6831/mm³ · Plaquetas 308034/mm³'),
+(150,'lucas.teixeira','Urina tipo I','2026-04-12','Sem alterações'),
+(151,'daniel.cardoso','Urina tipo I','2026-04-15','Sem alterações'),
+(152,'carlos.lima','Eletrocardiograma','2026-06-24','Ritmo sinusal, sem alterações'),
+(153,'pedro.pinto','Colesterol total','2026-05-11','194 mg/dL'),
+(154,'antonia.marques','Hemograma completo','2026-02-17','Hemoglobina 14.1 g/dL · Leucócitos 5805/mm³ · Plaquetas 157853/mm³'),
+(155,'bruno.araujo','Colesterol total','2026-04-11','195 mg/dL'),
+(156,'gabriela.fernandes','TSH (hormônio da tireoide)','2026-03-23','3.64 µUI/mL'),
+(157,'vanessa.dias','Hemograma completo','2026-10-01','Hemoglobina 11.7 g/dL · Leucócitos 7033/mm³ · Plaquetas 296230/mm³'),
+(158,'fernanda.martins','Glicemia de jejum','2026-02-09','89 mg/dL'),
+(159,'antonia.dias','Exame toxicológico','2026-02-22','Negativo para as substâncias pesquisadas'),
+(160,'vera.goncalves','TSH (hormônio da tireoide)','2026-03-14','4.25 µUI/mL'),
+(161,'maria.costa','Exame toxicológico','2026-05-21','Negativo para as substâncias pesquisadas'),
+(162,'carlos.martins','Eletrocardiograma','2026-06-27','Ritmo sinusal, sem alterações'),
+(163,'eduardo.pinto','Glicemia de jejum','2026-08-08','84 mg/dL'),
+(164,'paulo.santos','Hemograma completo','2026-05-08','Hemoglobina 14.5 g/dL · Leucócitos 6511/mm³ · Plaquetas 192458/mm³'),
+(165,'francisco.nascimento','Glicemia de jejum','2026-04-14','79 mg/dL'),
+(166,'mateus.lopes','Glicemia de jejum','2026-07-16','86 mg/dL'),
+(167,'aline.araujo','Colesterol total','2026-04-04','207 mg/dL'),
+(168,'rogerio.vieira','Hemograma completo','2026-05-12','Hemoglobina 13.8 g/dL · Leucócitos 8349/mm³ · Plaquetas 193499/mm³'),
+(169,'gabriel.nunes','TSH (hormônio da tireoide)','2026-02-02','2.23 µUI/mL'),
+(170,'antonio.rodrigues','Hemograma completo','2026-07-05','Hemoglobina 14.6 g/dL · Leucócitos 6524/mm³ · Plaquetas 335139/mm³'),
+(171,'rosa.souza','Glicemia de jejum','2026-06-05','92 mg/dL'),
+(172,'felipe.almeida','Urina tipo I','2026-05-27','Leucocitúria leve, investigar infecção urinária'),
+(173,'marcelo.nunes','TSH (hormônio da tireoide)','2026-08-17','2.49 µUI/mL'),
+(174,'thiago.alves','Ultrassom abdominal','2026-05-04','Órgãos de aspecto normal'),
+(175,'julia.carvalho','Hemograma completo','2026-03-02','Hemoglobina 14.3 g/dL · Leucócitos 6270/mm³ · Plaquetas 309050/mm³'),
+(176,'vanessa.dias','Hemograma completo','2026-02-27','Hemoglobina 11.1 g/dL · Leucócitos 4440/mm³ · Plaquetas 310256/mm³'),
+(177,'paulo.goncalves','Urina tipo I','2026-10-08','Sem alterações'),
+(178,'gustavo.costa','Hemograma completo','2026-04-15','Hemoglobina 12.2 g/dL · Leucócitos 9437/mm³ · Plaquetas 239424/mm³'),
+(179,'larissa.souza','Ultrassom abdominal','2026-06-04','Órgãos de aspecto normal'),
+(180,'fernanda.pinto','Hemograma completo','2026-01-25','Hemoglobina 14.8 g/dL · Leucócitos 5855/mm³ · Plaquetas 172053/mm³'),
+(181,'juliana.pereira','TSH (hormônio da tireoide)','2026-04-09','1.43 µUI/mL'),
+(182,'bruno.teixeira','Colesterol total','2026-04-19','157 mg/dL'),
+(183,'rosa.almeida','Hemograma completo','2026-08-28','Hemoglobina 13.7 g/dL · Leucócitos 9120/mm³ · Plaquetas 324196/mm³'),
+(184,'carlos.rodrigues','TSH (hormônio da tireoide)','2026-08-23','3.48 µUI/mL'),
+(185,'francisco.silva','Eletrocardiograma','2026-10-03','Ritmo sinusal, sem alterações'),
+(186,'jessica.ferreira','Urina tipo I','2026-01-31','Sem alterações'),
+(187,'marcos.martins','TSH (hormônio da tireoide)','2026-08-08','2.64 µUI/mL'),
+(188,'fernanda.martins','Hemograma completo','2026-05-04','Hemoglobina 14.4 g/dL · Leucócitos 8973/mm³ · Plaquetas 207033/mm³'),
+(189,'antonio.rocha','Hemograma completo','2026-01-27','Hemoglobina 12.8 g/dL · Leucócitos 4790/mm³ · Plaquetas 183962/mm³'),
+(190,'vera.goncalves','Hemograma completo','2026-01-22','Hemoglobina 12.3 g/dL · Leucócitos 6522/mm³ · Plaquetas 299229/mm³'),
+(191,'bruno.teixeira','Hemograma completo','2026-06-03','Hemoglobina 12.4 g/dL · Leucócitos 4412/mm³ · Plaquetas 289280/mm³'),
+(192,'marcos.martins','Colesterol total','2026-05-22','157 mg/dL'),
+(193,'rosa.martins','Glicemia de jejum','2026-07-01','113 mg/dL'),
+(194,'rogerio.vieira','TSH (hormônio da tireoide)','2026-06-12','1.14 µUI/mL'),
+(195,'iara.pinto','Exame toxicológico','2026-10-01','Negativo para as substâncias pesquisadas'),
+(196,'fernanda.martins','Hemograma completo','2026-01-30','Hemoglobina 11.7 g/dL · Leucócitos 7427/mm³ · Plaquetas 337027/mm³'),
+(197,'bruna.cardoso','Colesterol total','2026-04-22','177 mg/dL'),
+(198,'beatriz.soares','Exame toxicológico','2026-07-07','Positivo: canabinoides'),
+(199,'bruna.cardoso','Urina tipo I','2026-07-22','Leucocitúria leve, investigar infecção urinária'),
+(200,'felipe.ramos','TSH (hormônio da tireoide)','2026-08-31','2.73 µUI/mL'),
+(201,'bruno.teixeira','Eletrocardiograma','2026-01-18','Ritmo sinusal, sem alterações'),
+(202,'rosa.goncalves','Hemograma completo','2026-01-07','Hemoglobina 13.1 g/dL · Leucócitos 8108/mm³ · Plaquetas 247009/mm³'),
+(203,'gustavo.rocha','Hemograma completo','2026-06-03','Hemoglobina 14.2 g/dL · Leucócitos 5772/mm³ · Plaquetas 164608/mm³'),
+(204,'bruno.nunes','Glicemia de jejum','2026-07-25','111 mg/dL'),
+(205,'antonia.gomes','Exame toxicológico','2026-04-16','Negativo para as substâncias pesquisadas'),
+(206,'gabriela.costa','Glicemia de jejum','2026-07-13','118 mg/dL'),
+(207,'marcelo.barbosa','TSH (hormônio da tireoide)','2026-09-02','0.88 µUI/mL'),
+(208,'paulo.rocha','Urina tipo I','2026-08-18','Sem alterações'),
+(209,'jessica.ferreira','Raio-X de tórax','2026-02-06','Sem alterações pleuropulmonares'),
+(210,'julia.goncalves','Glicemia de jejum','2026-03-05','107 mg/dL'),
+(211,'irene.barbosa','Hemograma completo','2026-04-04','Hemoglobina 11.7 g/dL · Leucócitos 4155/mm³ · Plaquetas 314542/mm³'),
+(212,'antonio.souza','Hemograma completo','2026-06-27','Hemoglobina 14.2 g/dL · Leucócitos 7235/mm³ · Plaquetas 169351/mm³'),
+(213,'luciana.teixeira','Exame toxicológico','2026-04-16','Negativo para as substâncias pesquisadas'),
+(214,'maria.vieira','Urina tipo I','2026-02-18','Sem alterações'),
+(215,'mateus.lopes','Colesterol total','2026-07-12','165 mg/dL'),
+(216,'felipe.santos','Raio-X de tórax','2026-03-24','Discreto infiltrado em base pulmonar direita'),
+(217,'felipe.marques','Hemograma completo','2026-07-05','Hemoglobina 12.7 g/dL · Leucócitos 5529/mm³ · Plaquetas 319430/mm³'),
+(218,'bruna.pereira','Ultrassom abdominal','2026-05-08','Órgãos de aspecto normal'),
+(219,'rosa.almeida','TSH (hormônio da tireoide)','2026-02-17','1.90 µUI/mL'),
+(220,'vanessa.dias','Colesterol total','2026-06-10','151 mg/dL'),
+(221,'vanessa.vieira','Hemograma completo','2026-06-26','Hemoglobina 13.3 g/dL · Leucócitos 8575/mm³ · Plaquetas 202803/mm³'),
+(222,'rosa.souza','Ultrassom abdominal','2026-09-18','Órgãos de aspecto normal'),
+(223,'eduardo.vieira','Colesterol total','2026-10-06','157 mg/dL'),
+(224,'fernanda.pinto','Exame toxicológico','2026-10-07','Negativo para as substâncias pesquisadas'),
+(225,'antonia.moreira','Glicemia de jejum','2026-04-23','82 mg/dL'),
+(226,'camila.alves','Colesterol total','2026-09-09','208 mg/dL'),
+(227,'pedro.pinto','Raio-X de tórax','2026-05-27','Sem alterações pleuropulmonares'),
+(228,'camila.alves','Glicemia de jejum','2026-06-02','111 mg/dL'),
+(229,'fabio.martins','Exame toxicológico','2026-03-16','Positivo: canabinoides'),
+(230,'luiz.goncalves','Hemograma completo','2026-07-16','Hemoglobina 12.9 g/dL · Leucócitos 8622/mm³ · Plaquetas 234729/mm³'),
+(231,'rogerio.dias','Colesterol total','2026-08-28','148 mg/dL'),
+(232,'ana.pereira','Exame toxicológico','2026-06-13','Negativo para as substâncias pesquisadas'),
+(233,'amanda.oliveira','Colesterol total','2026-09-28','166 mg/dL'),
+(234,'rogerio.vieira','Glicemia de jejum','2026-04-03','95 mg/dL'),
+(235,'antonio.lima','Hemograma completo','2026-04-24','Hemoglobina 11.0 g/dL · Leucócitos 7903/mm³ · Plaquetas 326018/mm³'),
+(236,'amanda.oliveira','Hemograma completo','2026-03-24','Hemoglobina 14.1 g/dL · Leucócitos 5847/mm³ · Plaquetas 323743/mm³'),
+(237,'renan.duarte','Raio-X de tórax','2026-03-20','Sem alterações pleuropulmonares'),
+(238,'vera.teixeira','Eletrocardiograma','2026-06-06','Ritmo sinusal, sem alterações'),
+(239,'rosa.almeida','Eletrocardiograma','2026-02-18','Ritmo sinusal, sem alterações'),
+(240,'rafael.gomes','Exame toxicológico','2026-01-20','Negativo para as substâncias pesquisadas'),
+(241,'fabio.souza','Ultrassom abdominal','2026-02-28','Esteatose hepática leve'),
+(242,'eduardo.cardoso','Hemograma completo','2026-07-28','Hemoglobina 14.5 g/dL · Leucócitos 7948/mm³ · Plaquetas 188695/mm³'),
+(243,'gustavo.goncalves','Hemograma completo','2026-03-19','Hemoglobina 14.1 g/dL · Leucócitos 5550/mm³ · Plaquetas 233501/mm³'),
+(244,'gabriela.costa','Raio-X de tórax','2026-02-11','Sem alterações pleuropulmonares'),
+(245,'marcos.martins','Exame toxicológico','2026-08-05','Negativo para as substâncias pesquisadas'),
+(246,'marcelo.barbosa','Glicemia de jejum','2026-08-14','89 mg/dL'),
+(247,'rosa.goncalves','Sorologia para hepatite B','2026-01-29','Não reagente'),
+(248,'fernanda.pinto','TSH (hormônio da tireoide)','2026-08-13','3.64 µUI/mL'),
+(249,'antonio.souza','Colesterol total','2026-06-28','148 mg/dL'),
+(250,'pedro.mendes','Raio-X de tórax','2026-07-30','Sem alterações pleuropulmonares'),
+(251,'antonia.dias','Raio-X de tórax','2026-01-10','Sem alterações pleuropulmonares'),
+(252,'fernanda.pinto','Glicemia de jejum','2026-09-30','97 mg/dL'),
+(253,'fernanda.martins','Glicemia de jejum','2026-04-15','106 mg/dL'),
+(254,'rodrigo.martins','Hemograma completo','2026-04-30','Hemoglobina 12.5 g/dL · Leucócitos 5932/mm³ · Plaquetas 158501/mm³'),
+(255,'marcos.ribeiro','Urina tipo I','2026-07-21','Sem alterações'),
+(256,'antonia.moreira','Glicemia de jejum','2026-04-27','112 mg/dL'),
+(257,'gabriel.nunes','Colesterol total','2026-04-22','230 mg/dL'),
+(258,'bruno.teixeira','Exame toxicológico','2026-06-16','Negativo para as substâncias pesquisadas'),
+(259,'marcos.martins','Raio-X de tórax','2026-07-19','Sem alterações pleuropulmonares'),
+(260,'andre.nascimento','Urina tipo I','2026-04-23','Sem alterações'),
+(261,'paulo.goncalves','Urina tipo I','2026-04-01','Leucocitúria leve, investigar infecção urinária'),
+(262,'bruna.cardoso','Glicemia de jejum','2026-10-02','81 mg/dL'),
+(263,'juliana.pereira','Exame toxicológico','2026-07-07','Negativo para as substâncias pesquisadas'),
+(264,'carlos.souza','Raio-X de tórax','2026-10-06','Sem alterações pleuropulmonares'),
+(265,'antonio.lima','Sorologia para hepatite B','2026-10-02','Não reagente'),
+(266,'francisco.soares','Urina tipo I','2026-01-16','Sem alterações'),
+(267,'juliana.rocha','Hemograma completo','2026-06-12','Hemoglobina 13.1 g/dL · Leucócitos 5552/mm³ · Plaquetas 374824/mm³'),
+(268,'mateus.marques','Hemograma completo','2026-01-07','Hemoglobina 14.0 g/dL · Leucócitos 5546/mm³ · Plaquetas 165653/mm³'),
+(269,'amanda.dias','Colesterol total','2026-01-10','142 mg/dL'),
+(270,'felipe.almeida','Sorologia para hepatite B','2026-09-26','Não reagente'),
+(271,'fabio.souza','Hemograma completo','2026-04-30','Hemoglobina 13.1 g/dL · Leucócitos 5158/mm³ · Plaquetas 186929/mm³'),
+(272,'antonia.dias','Ultrassom abdominal','2026-07-31','Órgãos de aspecto normal');
+
+INSERT INTO portal_requisicao (id,momento,ip,login,rota,parametro,status,linhas) VALUES
+(1,'2026-10-08 00:31:00','198.51.100.23',NULL,'buscar_exame','1'' OR ''1''=''1''--',403,0),
+(2,'2026-10-08 02:34:00','198.51.100.23',NULL,'buscar_exame','''; DROP TABLE usuarios;--',403,0),
+(3,'2026-10-08 02:41:00','198.51.100.23',NULL,'buscar_exame','admin''--',403,0),
+(4,'2026-10-08 07:02:00','192.0.2.3','francisco.silva','listar',NULL,200,7),
+(5,'2026-10-08 07:08:00','198.51.100.23',NULL,'buscar_exame','admin''--',403,0),
+(6,'2026-10-08 07:16:00','192.0.2.11','camila.alves','listar',NULL,200,4),
+(7,'2026-10-08 07:17:00','192.0.2.84','jessica.marques','listar',NULL,200,2),
+(8,'2026-10-08 07:20:00','192.0.2.152','antonio.lima','ver_resultado','Glicemia de jejum',200,1),
+(9,'2026-10-08 07:20:00','192.0.2.242','conceicao.andrade','buscar_exame','EX-28191',200,1),
+(10,'2026-10-08 07:38:00','192.0.2.135','amanda.oliveira','buscar_exame','EX-90138',200,1),
+(11,'2026-10-08 07:40:00','192.0.2.147','amanda.dias','login',NULL,200,1),
+(12,'2026-10-08 07:47:00','192.0.2.111','gustavo.rocha','ver_resultado','Glicemia de jejum',200,1),
+(13,'2026-10-08 08:07:00','192.0.2.200','andre.nascimento','login',NULL,200,1),
+(14,'2026-10-08 08:09:00','192.0.2.253','bruno.machado','ver_resultado','Hemograma completo',200,1),
+(15,'2026-10-08 08:21:00','192.0.2.209','francisco.nascimento','buscar_exame','EX-48614',200,1),
+(16,'2026-10-08 08:28:00','192.0.2.94','iara.pinto','login',NULL,200,1),
+(17,'2026-10-08 08:32:00','192.0.2.73','jose.gomes','listar',NULL,200,3),
+(18,'2026-10-08 08:36:00','192.0.2.14','paulo.almeida','buscar_exame','EX-10205',200,1),
+(19,'2026-10-08 08:38:00','192.0.2.142','larissa.souza','buscar_exame','EX-38952',200,1),
+(20,'2026-10-08 08:52:00','192.0.2.184','luciana.teixeira','login',NULL,200,1),
+(21,'2026-10-08 09:04:00','192.0.2.77','maria.vieira','ver_resultado','Urina tipo I',200,1),
+(22,'2026-10-08 09:09:00','192.0.2.167','antonia.gomes','ver_resultado','Exame toxicológico',200,1),
+(23,'2026-10-08 09:17:00','198.51.100.23',NULL,'buscar_exame','1'' OR ''1''=''1''--',403,0),
+(24,'2026-10-08 09:28:00','192.0.2.170','rogerio.dias','login',NULL,200,1),
+(25,'2026-10-08 09:33:00','192.0.2.245','fabio.souza','login',NULL,200,1),
+(26,'2026-10-08 09:39:00','192.0.2.232','antonio.rodrigues','ver_resultado','Hemograma completo',200,1),
+(27,'2026-10-08 09:49:00','192.0.2.14','paulo.almeida','listar',NULL,200,3),
+(28,'2026-10-08 10:03:00','192.0.2.149','antonia.dias','listar',NULL,200,4),
+(29,'2026-10-08 10:03:00','192.0.2.191','felipe.ramos','buscar_exame','EX-52230',200,1),
+(30,'2026-10-08 10:05:00','192.0.2.52','bruno.almeida','buscar_exame','EX-23058',200,1),
+(31,'2026-10-08 10:11:00','192.0.2.65','juliana.ramos','listar',NULL,200,0),
+(32,'2026-10-08 10:19:00','192.0.2.94','iara.pinto','ver_resultado','Raio-X de tórax',200,1),
+(33,'2026-10-08 10:39:00','192.0.2.147','amanda.dias','ver_resultado','Colesterol total',200,1),
+(34,'2026-10-08 10:50:00','198.51.100.23',NULL,'buscar_exame',''' OR 1=1--',403,0),
+(35,'2026-10-08 11:02:00','192.0.2.131','mateus.ribeiro','buscar_exame','EX-64293',200,1),
+(36,'2026-10-08 11:07:00','192.0.2.2','marcia.barbosa','listar',NULL,200,1),
+(37,'2026-10-08 11:25:00','192.0.2.176','juliana.rocha','listar',NULL,200,1),
+(38,'2026-10-08 11:27:00','192.0.2.117','marcelo.barbosa','listar',NULL,200,4),
+(39,'2026-10-08 11:27:00','192.0.2.168','camila.nascimento','listar',NULL,200,0),
+(40,'2026-10-08 11:28:00','192.0.2.67','juliana.pereira','ver_resultado','TSH (hormônio da tireoide)',200,1),
+(41,'2026-10-08 11:37:00','192.0.2.184','luciana.teixeira','buscar_exame','EX-36788',200,1),
+(42,'2026-10-08 11:37:00','198.51.100.23',NULL,'buscar_exame','1'' OR ''1''=''1''--',403,0),
+(43,'2026-10-08 11:39:00','192.0.2.63','bruna.pereira','listar',NULL,200,5),
+(44,'2026-10-08 11:43:00','192.0.2.77','maria.vieira','login',NULL,200,1),
+(45,'2026-10-08 11:53:00','192.0.2.108','marcelo.nunes','listar',NULL,200,2),
+(46,'2026-10-08 11:53:00','198.51.100.23',NULL,'buscar_exame','''; DROP TABLE usuarios;--',403,0),
+(47,'2026-10-08 12:09:00','192.0.2.239','julia.carvalho','listar',NULL,200,3),
+(48,'2026-10-08 12:25:00','192.0.2.49','rosa.almeida','buscar_exame','EX-93901',200,1),
+(49,'2026-10-08 12:32:00','192.0.2.108','marcelo.nunes','ver_resultado','TSH (hormônio da tireoide)',200,1),
+(50,'2026-10-08 12:33:00','192.0.2.92','rosa.goncalves','login',NULL,200,1),
+(51,'2026-10-08 12:34:00','192.0.2.209','francisco.nascimento','ver_resultado','Raio-X de tórax',200,1),
+(52,'2026-10-08 12:39:00','192.0.2.249','gabriela.fernandes','login',NULL,200,1),
+(53,'2026-10-08 12:47:00','192.0.2.93','carlos.lima','buscar_exame','EX-84439',200,1),
+(54,'2026-10-08 13:01:00','192.0.2.226','fernanda.martins','ver_resultado','Hemograma completo',200,1),
+(55,'2026-10-08 13:03:00','192.0.2.135','amanda.oliveira','login',NULL,200,1),
+(56,'2026-10-08 13:07:00','192.0.2.126','juliana.goncalves','listar',NULL,200,3),
+(57,'2026-10-08 13:11:00','192.0.2.4','julia.goncalves','ver_resultado','Glicemia de jejum',200,1),
+(58,'2026-10-08 13:12:00','192.0.2.49','rosa.almeida','ver_resultado','TSH (hormônio da tireoide)',200,1),
+(59,'2026-10-08 13:22:00','192.0.2.196','rosa.ramos','ver_resultado','Urina tipo I',200,1),
+(60,'2026-10-08 13:30:00','192.0.2.123','eduardo.rodrigues','listar',NULL,200,2),
+(61,'2026-10-08 13:36:00','192.0.2.101','francisco.soares','login',NULL,200,1),
+(62,'2026-10-08 13:41:00','192.0.2.108','marcelo.nunes','ver_resultado','TSH (hormônio da tireoide)',200,1),
+(63,'2026-10-08 13:51:00','192.0.2.92','rosa.goncalves','ver_resultado','Hemograma completo',200,1),
+(64,'2026-10-08 13:57:00','192.0.2.253','bruno.machado','buscar_exame','EX-47132',200,1),
+(65,'2026-10-08 13:58:00','192.0.2.242','conceicao.andrade','ver_resultado','Raio-X de tórax',200,1),
+(66,'2026-10-08 14:08:00','192.0.2.168','camila.nascimento','listar',NULL,200,0),
+(67,'2026-10-08 14:17:00','192.0.2.198','rodrigo.gomes','ver_resultado','Ultrassom abdominal',200,1),
+(68,'2026-10-08 14:20:00','192.0.2.184','lucas.teixeira','login',NULL,200,1),
+(69,'2026-10-08 14:22:00','192.0.2.119','ana.machado','ver_resultado','Sorologia para hepatite B',200,1),
+(70,'2026-10-08 14:35:00','192.0.2.226','fernanda.martins','login',NULL,200,1),
+(71,'2026-10-08 14:39:00','192.0.2.147','amanda.dias','buscar_exame','EX-33635',200,1),
+(72,'2026-10-08 15:13:00','192.0.2.119','julia.araujo','buscar_exame','EX-57182',200,1),
+(73,'2026-10-08 15:14:00','192.0.2.232','antonio.rodrigues','login',NULL,200,1),
+(74,'2026-10-08 15:17:00','192.0.2.14','paulo.almeida','buscar_exame','EX-10205',200,1),
+(75,'2026-10-08 15:18:00','192.0.2.2','marcia.barbosa','login',NULL,200,1),
+(76,'2026-10-08 15:28:00','192.0.2.167','antonia.gomes','listar',NULL,200,3),
+(77,'2026-10-08 15:45:00','192.0.2.47','jose.araujo','ver_resultado','Colesterol total',200,1),
+(78,'2026-10-08 15:48:00','192.0.2.163','thiago.dias','listar',NULL,200,1),
+(79,'2026-10-08 16:08:00','192.0.2.47','aline.araujo','listar',NULL,200,4),
+(80,'2026-10-08 16:32:00','192.0.2.119','julia.araujo','buscar_exame','EX-57182',200,1),
+(81,'2026-10-08 16:39:00','192.0.2.11','camila.alves','ver_resultado','Colesterol total',200,1),
+(82,'2026-10-08 16:46:00','192.0.2.108','jessica.ferreira','login',NULL,200,1),
+(83,'2026-10-08 16:49:00','198.51.100.23',NULL,'buscar_exame',''' UNION SELECT NULL,NULL--',403,0),
+(84,'2026-10-08 16:58:00','192.0.2.249','gabriela.fernandes','listar',NULL,200,4),
+(85,'2026-10-08 17:11:00','192.0.2.47','aline.araujo','ver_resultado','Hemograma completo',200,1),
+(86,'2026-10-08 17:11:00','192.0.2.137','rodrigo.martins','listar',NULL,200,3),
+(87,'2026-10-08 17:15:00','192.0.2.142','larissa.souza','listar',NULL,200,5),
+(88,'2026-10-08 17:28:00','192.0.2.112','bruno.araujo','ver_resultado','Colesterol total',200,1),
+(89,'2026-10-08 17:34:00','192.0.2.110','julia.oliveira','login',NULL,200,1),
+(90,'2026-10-08 17:47:00','192.0.2.200','andre.nascimento','buscar_exame','EX-55122',200,1),
+(91,'2026-10-08 17:56:00','192.0.2.84','jessica.marques','buscar_exame','EX-67841',200,1),
+(92,'2026-10-08 17:59:00','192.0.2.22','maria.costa','listar',NULL,200,3),
+(93,'2026-10-08 18:02:00','192.0.2.14','mateus.lopes','ver_resultado','Colesterol total',200,1),
+(94,'2026-10-08 18:03:00','192.0.2.184','lucas.teixeira','login',NULL,200,1),
+(95,'2026-10-08 18:07:00','192.0.2.4','julia.goncalves','ver_resultado','Glicemia de jejum',200,1),
+(96,'2026-10-08 18:09:00','192.0.2.47','jose.araujo','buscar_exame','EX-92734',200,1),
+(97,'2026-10-08 18:18:00','192.0.2.43','francisco.lopes','buscar_exame','EX-32926',200,1),
+(98,'2026-10-08 18:21:00','192.0.2.167','antonia.gomes','listar',NULL,200,3),
+(99,'2026-10-08 18:23:00','192.0.2.121','ana.pereira','login',NULL,200,1),
+(100,'2026-10-08 18:29:00','198.51.100.23',NULL,'buscar_exame','admin''--',403,0),
+(101,'2026-10-08 18:38:00','192.0.2.84','jessica.marques','ver_resultado','Eletrocardiograma',200,1),
+(102,'2026-10-08 18:38:00','192.0.2.165','vera.goncalves','buscar_exame','EX-19440',200,1),
+(103,'2026-10-08 18:39:00','192.0.2.254','lucas.oliveira','buscar_exame','EX-12300',200,1),
+(104,'2026-10-08 18:49:00','192.0.2.73','rafael.gomes','buscar_exame','EX-33499',200,1),
+(105,'2026-10-08 18:49:00','192.0.2.14','mateus.lopes','listar',NULL,200,3),
+(106,'2026-10-08 18:58:00','192.0.2.123','eduardo.rodrigues','listar',NULL,200,2),
+(107,'2026-10-08 19:02:00','198.51.100.23',NULL,'buscar_exame',''' UNION SELECT NULL,NULL--',403,0),
+(108,'2026-10-08 19:11:00','192.0.2.67','juliana.pereira','listar',NULL,200,4),
+(109,'2026-10-08 19:13:00','192.0.2.177','carlos.martins','buscar_exame','EX-90767',200,1),
+(110,'2026-10-08 19:31:00','192.0.2.155','francisco.machado','listar',NULL,200,0),
+(111,'2026-10-08 19:35:00','192.0.2.170','rogerio.dias','listar',NULL,200,2),
+(112,'2026-10-08 20:09:00','192.0.2.196','rosa.ramos','ver_resultado','Urina tipo I',200,1),
+(113,'2026-10-08 20:11:00','192.0.2.91','irene.nascimento','buscar_exame','EX-39285',200,1),
+(114,'2026-10-08 20:15:00','192.0.2.226','fernanda.martins','ver_resultado','Hemograma completo',200,1),
+(115,'2026-10-08 20:15:00','192.0.2.58','eduardo.pinto','ver_resultado','Glicemia de jejum',200,1),
+(116,'2026-10-08 20:17:00','192.0.2.93','carlos.lima','listar',NULL,200,2),
+(117,'2026-10-08 20:42:00','192.0.2.245','fabio.souza','login',NULL,200,1),
+(118,'2026-10-08 20:58:00','192.0.2.116','marcos.ribeiro','buscar_exame','EX-88764',200,1),
+(119,'2026-10-08 21:05:00','198.51.100.23',NULL,'buscar_exame',''') OR (''1''=''1''--',403,0),
+(120,'2026-10-08 21:06:00','192.0.2.65','juliana.ramos','listar',NULL,200,0),
+(121,'2026-10-08 21:07:00','192.0.2.198','rodrigo.gomes','ver_resultado','Ultrassom abdominal',200,1),
+(122,'2026-10-08 21:08:00','192.0.2.8','gustavo.goncalves','buscar_exame','EX-77118',200,1),
+(123,'2026-10-08 21:09:00','192.0.2.228','antonio.souza','listar',NULL,200,4),
+(124,'2026-10-08 21:10:00','192.0.2.119','julia.araujo','login',NULL,200,1),
+(125,'2026-10-08 21:16:00','192.0.2.249','gabriela.fernandes','ver_resultado','Raio-X de tórax',200,1),
+(126,'2026-10-08 21:18:00','192.0.2.175','carlos.rodrigues','buscar_exame','EX-14686',200,1),
+(127,'2026-10-08 21:24:00','192.0.2.52','bruno.almeida','listar',NULL,200,3),
+(128,'2026-10-08 21:28:00','192.0.2.4','julia.goncalves','listar',NULL,200,2),
+(129,'2026-10-08 21:56:00','192.0.2.170','vera.teixeira','ver_resultado','Colesterol total',200,1),
+(130,'2026-10-08 21:57:00','192.0.2.126','juliana.goncalves','login',NULL,200,1),
+(131,'2026-10-08 21:59:00','192.0.2.253','bruno.machado','login',NULL,200,1),
+(132,'2026-10-08 22:08:00','192.0.2.167','antonia.gomes','login',NULL,200,1),
+(133,'2026-10-08 22:17:00','192.0.2.119','ana.machado','login',NULL,200,1),
+(134,'2026-10-08 22:24:00','192.0.2.245','fabio.souza','buscar_exame','EX-80387',200,1),
+(135,'2026-10-08 22:26:00','192.0.2.147','amanda.dias','ver_resultado','Colesterol total',200,1),
+(136,'2026-10-08 22:29:00','192.0.2.101','francisco.soares','listar',NULL,200,5),
+(137,'2026-10-08 22:32:00','192.0.2.117','marcelo.barbosa','login',NULL,200,1),
+(138,'2026-10-08 22:33:00','192.0.2.47','jose.araujo','listar',NULL,200,1),
+(139,'2026-10-08 22:46:00','192.0.2.254','lucas.oliveira','listar',NULL,200,6),
+(140,'2026-10-08 22:59:00','192.0.2.65','juliana.ramos','listar',NULL,200,0),
+(141,'2026-10-09 00:31:00','198.51.100.23',NULL,'buscar_exame',''' UNION SELECT NULL--',403,0),
+(142,'2026-10-09 01:18:00','198.51.100.23',NULL,'buscar_exame','1'' OR ''1''=''1''--',403,0),
+(143,'2026-10-09 01:51:00','198.51.100.23',NULL,'buscar_exame',''' OR ''1''=''1''--',403,0),
+(144,'2026-10-09 03:44:00','198.51.100.23',NULL,'buscar_exame',''' UNION SELECT NULL,NULL--',403,0),
+(145,'2026-10-09 04:00:00','198.51.100.23',NULL,'buscar_exame',''' UNION SELECT NULL,NULL--',403,0),
+(146,'2026-10-09 07:03:00','198.51.100.23',NULL,'buscar_exame','''; DROP TABLE usuarios;--',403,0),
+(147,'2026-10-09 07:06:00','192.0.2.177','carlos.martins','listar',NULL,200,3),
+(148,'2026-10-09 07:15:00','198.51.100.23',NULL,'buscar_exame','1'' OR ''1''=''1''--',403,0),
+(149,'2026-10-09 07:19:00','192.0.2.14','mateus.lopes','login',NULL,200,1),
+(150,'2026-10-09 07:20:00','192.0.2.135','amanda.oliveira','login',NULL,200,1),
+(151,'2026-10-09 07:24:00','192.0.2.103','adriana.ribeiro','buscar_exame','EX-79066',200,1),
+(152,'2026-10-09 07:45:00','192.0.2.168','camila.nascimento','listar',NULL,200,0),
+(153,'2026-10-09 07:57:00','192.0.2.109','vanessa.dias','listar',NULL,200,4),
+(154,'2026-10-09 08:03:00','192.0.2.121','ana.pereira','ver_resultado','Colesterol total',200,1),
+(155,'2026-10-09 08:17:00','192.0.2.184','luciana.teixeira','listar',NULL,200,1),
+(156,'2026-10-09 08:20:00','192.0.2.117','marcelo.barbosa','buscar_exame','EX-70889',200,1),
+(157,'2026-10-09 08:27:00','192.0.2.131','mateus.ribeiro','listar',NULL,200,2),
+(158,'2026-10-09 08:30:00','192.0.2.228','antonio.souza','listar',NULL,200,4),
+(159,'2026-10-09 08:37:00','192.0.2.22','maria.costa','ver_resultado','Exame toxicológico',200,1),
+(160,'2026-10-09 08:38:00','192.0.2.170','rogerio.dias','buscar_exame','EX-54045',200,1),
+(161,'2026-10-09 08:39:00','192.0.2.111','gustavo.rocha','ver_resultado','Glicemia de jejum',200,1),
+(162,'2026-10-09 08:55:00','192.0.2.71','fabio.martins','listar',NULL,200,2),
+(163,'2026-10-09 08:57:00','192.0.2.2','marcia.barbosa','listar',NULL,200,1),
+(164,'2026-10-09 09:06:00','192.0.2.63','bruna.pereira','login',NULL,200,1),
+(165,'2026-10-09 09:13:00','192.0.2.149','antonia.dias','listar',NULL,200,4),
+(166,'2026-10-09 09:16:00','192.0.2.117','marcelo.barbosa','ver_resultado','TSH (hormônio da tireoide)',200,1),
+(167,'2026-10-09 09:21:00','192.0.2.58','eduardo.pinto','ver_resultado','Exame toxicológico',200,1),
+(168,'2026-10-09 09:26:00','192.0.2.49','rosa.almeida','listar',NULL,200,3),
+(169,'2026-10-09 09:30:00','192.0.2.122','carlos.souza','login',NULL,200,1),
+(170,'2026-10-09 09:40:00','192.0.2.3','francisco.silva','buscar_exame','EX-44511',200,1),
+(171,'2026-10-09 09:41:00','192.0.2.163','thiago.dias','login',NULL,200,1),
+(172,'2026-10-09 09:42:00','192.0.2.167','antonia.gomes','ver_resultado','Exame toxicológico',200,1),
+(173,'2026-10-09 09:45:00','192.0.2.245','fabio.souza','listar',NULL,200,4),
+(174,'2026-10-09 09:52:00','198.51.100.23',NULL,'buscar_exame','''; DROP TABLE usuarios;--',403,0),
+(175,'2026-10-09 09:53:00','192.0.2.84','jessica.marques','listar',NULL,200,2),
+(176,'2026-10-09 09:54:00','198.51.100.23',NULL,'buscar_exame',''' OR 1=1--',403,0),
+(177,'2026-10-09 10:20:00','192.0.2.47','aline.araujo','listar',NULL,200,4),
+(178,'2026-10-09 10:23:00','192.0.2.184','lucas.teixeira','login',NULL,200,1),
+(179,'2026-10-09 11:02:00','192.0.2.94','iara.pinto','login',NULL,200,1),
+(180,'2026-10-09 11:11:00','192.0.2.4','julia.goncalves','ver_resultado','Glicemia de jejum',200,1),
+(181,'2026-10-09 11:15:00','192.0.2.135','amanda.oliveira','listar',NULL,200,5),
+(182,'2026-10-09 11:21:00','192.0.2.170','vera.teixeira','ver_resultado','Glicemia de jejum',200,1),
+(183,'2026-10-09 11:22:00','192.0.2.126','juliana.goncalves','ver_resultado','Hemograma completo',200,1),
+(184,'2026-10-09 11:22:00','192.0.2.8','gustavo.goncalves','login',NULL,200,1),
+(185,'2026-10-09 11:33:00','192.0.2.135','amanda.oliveira','login',NULL,200,1),
+(186,'2026-10-09 12:01:00','192.0.2.200','andre.nascimento','ver_resultado','TSH (hormônio da tireoide)',200,1),
+(187,'2026-10-09 12:04:00','198.51.100.23',NULL,'buscar_exame',''' OR ''1''=''1''--',403,0),
+(188,'2026-10-09 12:05:00','192.0.2.8','gustavo.goncalves','buscar_exame','EX-83466',200,1),
+(189,'2026-10-09 12:24:00','192.0.2.52','bruno.almeida','ver_resultado','Raio-X de tórax',200,1),
+(190,'2026-10-09 12:26:00','192.0.2.93','carlos.lima','ver_resultado','Eletrocardiograma',200,1),
+(191,'2026-10-09 12:27:00','192.0.2.91','irene.nascimento','ver_resultado','Sorologia para hepatite B',200,1),
+(192,'2026-10-09 12:28:00','192.0.2.91','irene.nascimento','listar',NULL,200,1),
+(193,'2026-10-09 12:30:00','192.0.2.152','antonio.lima','login',NULL,200,1),
+(194,'2026-10-09 12:44:00','192.0.2.58','eduardo.pinto','listar',NULL,200,3),
+(195,'2026-10-09 12:47:00','192.0.2.242','conceicao.andrade','listar',NULL,200,6),
+(196,'2026-10-09 12:51:00','192.0.2.185','rosa.souza','login',NULL,200,1),
+(197,'2026-10-09 12:52:00','192.0.2.170','vera.teixeira','ver_resultado','Hemograma completo',200,1),
+(198,'2026-10-09 13:07:00','192.0.2.126','juliana.goncalves','listar',NULL,200,3),
+(199,'2026-10-09 13:09:00','198.51.100.23',NULL,'buscar_exame',''' OR 1=1--',403,0),
+(200,'2026-10-09 13:18:00','192.0.2.200','marcos.martins','buscar_exame','EX-18542',200,1),
+(201,'2026-10-09 13:33:00','198.51.100.23',NULL,'buscar_exame',''' UNION SELECT NULL--',403,0),
+(202,'2026-10-09 13:36:00','192.0.2.165','vera.goncalves','ver_resultado','Hemograma completo',200,1),
+(203,'2026-10-09 13:44:00','198.51.100.23',NULL,'buscar_exame',''' OR ''1''=''1''--',403,0),
+(204,'2026-10-09 13:45:00','192.0.2.161','francisca.pereira','ver_resultado','Colesterol total',200,1),
+(205,'2026-10-09 13:49:00','192.0.2.168','camila.nascimento','listar',NULL,200,0),
+(206,'2026-10-09 13:52:00','198.51.100.23',NULL,'buscar_exame',''' OR ''1''=''1''--',403,0),
+(207,'2026-10-09 14:02:00','192.0.2.245','fabio.souza','buscar_exame','EX-26427',200,1),
+(208,'2026-10-09 14:06:00','192.0.2.108','marcelo.nunes','login',NULL,200,1),
+(209,'2026-10-09 14:08:00','192.0.2.170','rogerio.dias','login',NULL,200,1),
+(210,'2026-10-09 14:18:00','192.0.2.93','carlos.lima','login',NULL,200,1),
+(211,'2026-10-09 14:39:00','192.0.2.108','jessica.ferreira','buscar_exame','EX-62208',200,1),
+(212,'2026-10-09 14:47:00','192.0.2.14','paulo.almeida','login',NULL,200,1),
+(213,'2026-10-09 14:49:00','192.0.2.167','antonia.gomes','login',NULL,200,1),
+(214,'2026-10-09 14:54:00','192.0.2.49','rosa.almeida','listar',NULL,200,3),
+(215,'2026-10-09 14:58:00','192.0.2.226','fernanda.martins','buscar_exame','EX-58836',200,1),
+(216,'2026-10-09 15:21:00','198.51.100.23',NULL,'buscar_exame',''') OR (''1''=''1''--',403,0),
+(217,'2026-10-09 15:26:00','192.0.2.191','felipe.ramos','buscar_exame','EX-52230',200,1),
+(218,'2026-10-09 15:41:00','192.0.2.196','rosa.ramos','buscar_exame','EX-48776',200,1),
+(219,'2026-10-09 15:47:00','192.0.2.242','conceicao.andrade','ver_resultado','Hemograma completo',200,1),
+(220,'2026-10-09 15:52:00','192.0.2.92','rosa.goncalves','listar',NULL,200,3),
+(221,'2026-10-09 16:02:00','192.0.2.8','gustavo.goncalves','ver_resultado','Hemograma completo',200,1),
+(222,'2026-10-09 16:04:00','192.0.2.170','vera.teixeira','buscar_exame','EX-68637',200,1),
+(223,'2026-10-09 16:13:00','198.51.100.23',NULL,'buscar_exame',''' UNION SELECT NULL--',403,0),
+(224,'2026-10-09 16:54:00','192.0.2.117','marcelo.barbosa','listar',NULL,200,4),
+(225,'2026-10-09 16:54:00','198.51.100.23',NULL,'buscar_exame',''' UNION SELECT NULL,NULL--',403,0),
+(226,'2026-10-09 17:01:00','192.0.2.254','lucas.oliveira','ver_resultado','Exame toxicológico',200,1),
+(227,'2026-10-09 17:01:00','192.0.2.142','larissa.souza','buscar_exame','EX-62965',200,1),
+(228,'2026-10-09 17:02:00','192.0.2.52','bruno.almeida','listar',NULL,200,3),
+(229,'2026-10-09 17:06:00','192.0.2.109','vanessa.dias','buscar_exame','EX-48234',200,1),
+(230,'2026-10-09 17:15:00','192.0.2.184','luciana.teixeira','listar',NULL,200,1),
+(231,'2026-10-09 17:36:00','192.0.2.119','ana.machado','listar',NULL,200,3),
+(232,'2026-10-09 18:01:00','192.0.2.198','rodrigo.gomes','buscar_exame','EX-17129',200,1),
+(233,'2026-10-09 18:07:00','192.0.2.119','julia.araujo','buscar_exame','EX-70283',200,1),
+(234,'2026-10-09 18:15:00','192.0.2.47','jose.araujo','buscar_exame','EX-92734',200,1),
+(235,'2026-10-09 18:16:00','198.51.100.23',NULL,'buscar_exame',''' OR ''1''=''1''--',403,0),
+(236,'2026-10-09 18:23:00','192.0.2.112','bruno.araujo','login',NULL,200,1),
+(237,'2026-10-09 18:27:00','192.0.2.103','adriana.ribeiro','ver_resultado','Urina tipo I',200,1),
+(238,'2026-10-09 18:29:00','192.0.2.119','ana.machado','ver_resultado','Sorologia para hepatite B',200,1),
+(239,'2026-10-09 18:50:00','192.0.2.149','antonia.dias','login',NULL,200,1),
+(240,'2026-10-09 18:55:00','192.0.2.101','francisco.soares','login',NULL,200,1),
+(241,'2026-10-09 19:07:00','192.0.2.71','fabio.martins','buscar_exame','EX-13607',200,1),
+(242,'2026-10-09 19:10:00','192.0.2.170','vera.teixeira','login',NULL,200,1),
+(243,'2026-10-09 19:29:00','192.0.2.73','rafael.gomes','login',NULL,200,1),
+(244,'2026-10-09 19:30:00','192.0.2.116','marcos.ribeiro','listar',NULL,200,3),
+(245,'2026-10-09 19:39:00','192.0.2.149','antonia.dias','buscar_exame','EX-65887',200,1),
+(246,'2026-10-09 19:41:00','192.0.2.11','camila.alves','buscar_exame','EX-13400',200,1),
+(247,'2026-10-09 19:42:00','192.0.2.249','gabriela.fernandes','buscar_exame','EX-70333',200,1),
+(248,'2026-10-09 19:42:00','192.0.2.152','antonio.lima','listar',NULL,200,3),
+(249,'2026-10-09 19:44:00','192.0.2.116','marcos.ribeiro','buscar_exame','EX-88764',200,1),
+(250,'2026-10-09 19:56:00','192.0.2.142','larissa.souza','buscar_exame','EX-94812',200,1),
+(251,'2026-10-09 20:08:00','192.0.2.43','francisco.lopes','buscar_exame','EX-59060',200,1),
+(252,'2026-10-09 20:09:00','192.0.2.147','amanda.dias','listar',NULL,200,1),
+(253,'2026-10-09 20:20:00','192.0.2.71','fabio.martins','ver_resultado','Ultrassom abdominal',200,1),
+(254,'2026-10-09 20:21:00','192.0.2.239','julia.carvalho','login',NULL,200,1),
+(255,'2026-10-09 20:23:00','192.0.2.58','eduardo.pinto','login',NULL,200,1),
+(256,'2026-10-09 20:35:00','192.0.2.119','marcos.gomes','login',NULL,200,1),
+(257,'2026-10-09 21:04:00','192.0.2.168','camila.nascimento','listar',NULL,200,0),
+(258,'2026-10-09 21:11:00','192.0.2.77','maria.vieira','listar',NULL,200,3),
+(259,'2026-10-09 21:11:00','192.0.2.109','vanessa.dias','ver_resultado','TSH (hormônio da tireoide)',200,1),
+(260,'2026-10-09 21:13:00','192.0.2.174','thiago.alves','ver_resultado','Hemograma completo',200,1),
+(261,'2026-10-09 21:16:00','192.0.2.91','irene.nascimento','login',NULL,200,1),
+(262,'2026-10-09 21:31:00','192.0.2.137','rodrigo.martins','ver_resultado','Hemograma completo',200,1),
+(263,'2026-10-09 21:41:00','192.0.2.112','bruno.araujo','ver_resultado','Colesterol total',200,1),
+(264,'2026-10-09 21:44:00','192.0.2.110','julia.oliveira','ver_resultado','Glicemia de jejum',200,1),
+(265,'2026-10-09 21:50:00','192.0.2.175','carlos.rodrigues','listar',NULL,200,3),
+(266,'2026-10-09 21:58:00','192.0.2.198','rodrigo.gomes','login',NULL,200,1),
+(267,'2026-10-09 22:00:00','192.0.2.92','rosa.goncalves','listar',NULL,200,3),
+(268,'2026-10-09 22:03:00','192.0.2.122','carlos.souza','buscar_exame','EX-75623',200,1),
+(269,'2026-10-09 22:03:00','192.0.2.63','bruna.pereira','ver_resultado','Ultrassom abdominal',200,1),
+(270,'2026-10-09 22:13:00','192.0.2.108','marcelo.nunes','buscar_exame','EX-94076',200,1),
+(271,'2026-10-09 22:27:00','192.0.2.184','luciana.teixeira','listar',NULL,200,1),
+(272,'2026-10-09 22:27:00','198.51.100.23',NULL,'buscar_exame',''' OR ''1''=''1''--',403,0),
+(273,'2026-10-09 22:31:00','192.0.2.116','marcos.ribeiro','buscar_exame','EX-96435',200,1),
+(274,'2026-10-09 22:49:00','192.0.2.122','carlos.souza','ver_resultado','Colesterol total',200,1),
+(275,'2026-10-09 22:50:00','192.0.2.121','ana.pereira','ver_resultado','Colesterol total',200,1),
+(276,'2026-10-09 22:59:00','192.0.2.94','iara.pinto','login',NULL,200,1),
+(277,'2026-10-10 01:24:00','198.51.100.23',NULL,'buscar_exame',''' OR 1=1--',403,0),
+(278,'2026-10-10 04:51:00','198.51.100.23',NULL,'buscar_exame','admin''--',403,0),
+(279,'2026-10-10 05:50:00','198.51.100.23',NULL,'buscar_exame',''' OR 1=1--',403,0),
+(280,'2026-10-10 07:07:00','192.0.2.11','camila.alves','buscar_exame','EX-94211',200,1),
+(281,'2026-10-10 07:11:00','192.0.2.58','eduardo.pinto','login',NULL,200,1),
+(282,'2026-10-10 07:15:00','192.0.2.73','rafael.gomes','listar',NULL,200,2),
+(283,'2026-10-10 07:22:00','192.0.2.185','rosa.souza','login',NULL,200,1),
+(284,'2026-10-10 07:28:00','198.51.100.23',NULL,'buscar_exame',''') OR (''1''=''1''--',403,0),
+(285,'2026-10-10 07:38:00','192.0.2.2','marcia.barbosa','ver_resultado','Glicemia de jejum',200,1),
+(286,'2026-10-10 07:42:00','198.51.100.23',NULL,'buscar_exame','''; DROP TABLE usuarios;--',403,0),
+(287,'2026-10-10 08:06:00','192.0.2.131','mateus.ribeiro','buscar_exame','EX-17861',200,1),
+(288,'2026-10-10 08:12:00','192.0.2.92','rosa.goncalves','ver_resultado','Sorologia para hepatite B',200,1),
+(289,'2026-10-10 08:20:00','192.0.2.239','julia.carvalho','listar',NULL,200,3),
+(290,'2026-10-10 08:23:00','192.0.2.170','rogerio.dias','ver_resultado','Colesterol total',200,1),
+(291,'2026-10-10 08:32:00','198.51.100.23',NULL,'buscar_exame',''' OR 1=1--',403,0),
+(292,'2026-10-10 08:33:00','192.0.2.103','adriana.ribeiro','login',NULL,200,1),
+(293,'2026-10-10 08:35:00','192.0.2.119','ana.machado','login',NULL,200,1),
+(294,'2026-10-10 09:01:00','192.0.2.84','jessica.marques','ver_resultado','Eletrocardiograma',200,1),
+(295,'2026-10-10 09:03:00','192.0.2.196','rosa.ramos','listar',NULL,200,1),
+(296,'2026-10-10 09:04:00','192.0.2.161','francisca.pereira','login',NULL,200,1),
+(297,'2026-10-10 09:10:00','198.51.100.23',NULL,'buscar_exame','''; DROP TABLE usuarios;--',403,0),
+(298,'2026-10-10 09:11:00','192.0.2.43','francisco.lopes','listar',NULL,200,2),
+(299,'2026-10-10 09:11:00','192.0.2.109','vanessa.dias','login',NULL,200,1),
+(300,'2026-10-10 09:15:00','192.0.2.200','marcos.martins','login',NULL,200,1),
+(301,'2026-10-10 09:22:00','192.0.2.242','conceicao.andrade','ver_resultado','Urina tipo I',200,1),
+(302,'2026-10-10 09:23:00','192.0.2.71','fabio.martins','buscar_exame','EX-13607',200,1),
+(303,'2026-10-10 09:25:00','192.0.2.119','marcos.gomes','ver_resultado','Exame toxicológico',200,1),
+(304,'2026-10-10 09:35:00','192.0.2.110','julia.oliveira','listar',NULL,200,4),
+(305,'2026-10-10 09:48:00','192.0.2.165','vera.goncalves','buscar_exame','EX-42681',200,1),
+(306,'2026-10-10 09:59:00','192.0.2.232','antonio.rodrigues','listar',NULL,200,2),
+(307,'2026-10-10 10:02:00','192.0.2.239','julia.carvalho','login',NULL,200,1),
+(308,'2026-10-10 10:04:00','192.0.2.49','rosa.almeida','ver_resultado','Hemograma completo',200,1),
+(309,'2026-10-10 10:29:00','192.0.2.110','julia.oliveira','ver_resultado','Glicemia de jejum',200,1),
+(310,'2026-10-10 10:37:00','192.0.2.47','aline.araujo','buscar_exame','EX-11195',200,1),
+(311,'2026-10-10 10:45:00','192.0.2.91','irene.nascimento','ver_resultado','Sorologia para hepatite B',200,1),
+(312,'2026-10-10 10:53:00','192.0.2.209','francisco.nascimento','buscar_exame','EX-34964',200,1),
+(313,'2026-10-10 10:56:00','192.0.2.165','vera.goncalves','buscar_exame','EX-37956',200,1),
+(314,'2026-10-10 10:57:00','192.0.2.176','juliana.rocha','ver_resultado','Hemograma completo',200,1),
+(315,'2026-10-10 11:12:00','192.0.2.155','francisco.machado','listar',NULL,200,0),
+(316,'2026-10-10 11:15:00','192.0.2.122','carlos.souza','ver_resultado','Raio-X de tórax',200,1),
+(317,'2026-10-10 11:17:00','192.0.2.135','amanda.oliveira','listar',NULL,200,5),
+(318,'2026-10-10 11:18:00','198.51.100.23',NULL,'buscar_exame',''') OR (''1''=''1''--',403,0),
+(319,'2026-10-10 11:33:00','192.0.2.111','gustavo.rocha','ver_resultado','Hemograma completo',200,1),
+(320,'2026-10-10 11:35:00','192.0.2.161','francisca.pereira','login',NULL,200,1),
+(321,'2026-10-10 11:37:00','198.51.100.23',NULL,'buscar_exame',''' UNION SELECT NULL,NULL--',403,0),
+(322,'2026-10-10 11:44:00','192.0.2.108','jessica.ferreira','ver_resultado','Raio-X de tórax',200,1),
+(323,'2026-10-10 11:55:00','192.0.2.119','marcos.gomes','buscar_exame','EX-52917',200,1),
+(324,'2026-10-10 11:56:00','192.0.2.58','eduardo.pinto','listar',NULL,200,3),
+(325,'2026-10-10 12:07:00','192.0.2.73','rafael.gomes','listar',NULL,200,2),
+(326,'2026-10-10 12:14:00','192.0.2.93','carlos.lima','listar',NULL,200,2),
+(327,'2026-10-10 12:28:00','192.0.2.209','francisco.nascimento','ver_resultado','Glicemia de jejum',200,1),
+(328,'2026-10-10 12:31:00','192.0.2.101','francisco.soares','login',NULL,200,1),
+(329,'2026-10-10 12:38:00','192.0.2.3','francisco.silva','ver_resultado','Eletrocardiograma',200,1),
+(330,'2026-10-10 12:55:00','192.0.2.165','vera.goncalves','login',NULL,200,1),
+(331,'2026-10-10 12:56:00','192.0.2.170','vera.teixeira','buscar_exame','EX-18528',200,1),
+(332,'2026-10-10 13:04:00','192.0.2.198','rodrigo.gomes','listar',NULL,200,2),
+(333,'2026-10-10 13:08:00','192.0.2.8','gustavo.goncalves','listar',NULL,200,5),
+(334,'2026-10-10 13:08:00','192.0.2.165','vera.goncalves','ver_resultado','Hemograma completo',200,1),
+(335,'2026-10-10 13:16:00','192.0.2.65','juliana.ramos','listar',NULL,200,0),
+(336,'2026-10-10 13:18:00','192.0.2.147','amanda.dias','ver_resultado','Colesterol total',200,1),
+(337,'2026-10-10 13:28:00','192.0.2.73','jose.gomes','buscar_exame','EX-43744',200,1),
+(338,'2026-10-10 13:30:00','192.0.2.170','rogerio.dias','login',NULL,200,1),
+(339,'2026-10-10 13:36:00','192.0.2.155','francisco.machado','login',NULL,200,1),
+(340,'2026-10-10 13:41:00','198.51.100.23',NULL,'buscar_exame',''' UNION SELECT NULL--',403,0),
+(341,'2026-10-10 13:46:00','192.0.2.47','aline.araujo','buscar_exame','EX-20566',200,1),
+(342,'2026-10-10 13:46:00','192.0.2.119','julia.araujo','listar',NULL,200,3),
+(343,'2026-10-10 13:49:00','192.0.2.11','camila.alves','ver_resultado','Glicemia de jejum',200,1),
+(344,'2026-10-10 13:55:00','192.0.2.14','mateus.lopes','ver_resultado','Glicemia de jejum',200,1),
+(345,'2026-10-10 14:19:00','192.0.2.226','fernanda.martins','login',NULL,200,1),
+(346,'2026-10-10 14:20:00','198.51.100.23',NULL,'buscar_exame','admin''--',403,0),
+(347,'2026-10-10 14:24:00','192.0.2.142','larissa.souza','login',NULL,200,1),
+(348,'2026-10-10 14:25:00','192.0.2.108','jessica.ferreira','login',NULL,200,1),
+(349,'2026-10-10 14:29:00','192.0.2.110','julia.oliveira','ver_resultado','Sorologia para hepatite B',200,1),
+(350,'2026-10-10 14:32:00','192.0.2.73','rafael.gomes','ver_resultado','Exame toxicológico',200,1),
+(351,'2026-10-10 14:33:00','192.0.2.200','marcos.martins','ver_resultado','Colesterol total',200,1),
+(352,'2026-10-10 14:33:00','192.0.2.175','carlos.rodrigues','buscar_exame','EX-14686',200,1),
+(353,'2026-10-10 14:39:00','192.0.2.47','jose.araujo','listar',NULL,200,1),
+(354,'2026-10-10 14:39:00','192.0.2.123','eduardo.rodrigues','buscar_exame','EX-98233',200,1),
+(355,'2026-10-10 14:46:00','192.0.2.2','marcia.barbosa','login',NULL,200,1),
+(356,'2026-10-10 14:56:00','192.0.2.174','thiago.alves','ver_resultado','Hemograma completo',200,1),
+(357,'2026-10-10 15:09:00','192.0.2.111','gustavo.rocha','ver_resultado','TSH (hormônio da tireoide)',200,1),
+(358,'2026-10-10 15:13:00','192.0.2.163','thiago.dias','listar',NULL,200,1),
+(359,'2026-10-10 15:14:00','192.0.2.155','francisco.machado','listar',NULL,200,0),
+(360,'2026-10-10 15:17:00','192.0.2.3','francisco.silva','ver_resultado','Sorologia para hepatite B',200,1),
+(361,'2026-10-10 15:18:00','192.0.2.163','thiago.dias','ver_resultado','Glicemia de jejum',200,1),
+(362,'2026-10-10 15:36:00','192.0.2.239','julia.carvalho','login',NULL,200,1),
+(363,'2026-10-10 15:40:00','192.0.2.8','gustavo.goncalves','login',NULL,200,1),
+(364,'2026-10-10 15:51:00','192.0.2.177','carlos.martins','buscar_exame','EX-61022',200,1),
+(365,'2026-10-10 16:01:00','192.0.2.249','gabriela.fernandes','listar',NULL,200,4),
+(366,'2026-10-10 16:07:00','192.0.2.101','francisco.soares','buscar_exame','EX-84389',200,1),
+(367,'2026-10-10 16:12:00','192.0.2.174','thiago.alves','login',NULL,200,1),
+(368,'2026-10-10 16:14:00','192.0.2.184','lucas.teixeira','buscar_exame','EX-90225',200,1),
+(369,'2026-10-10 16:16:00','192.0.2.108','jessica.ferreira','buscar_exame','EX-93442',200,1),
+(370,'2026-10-10 16:23:00','192.0.2.191','felipe.ramos','listar',NULL,200,2),
+(371,'2026-10-10 16:36:00','192.0.2.52','bruno.almeida','listar',NULL,200,3),
+(372,'2026-10-10 16:38:00','192.0.2.176','juliana.rocha','buscar_exame','EX-35187',200,1),
+(373,'2026-10-10 16:47:00','198.51.100.23',NULL,'buscar_exame',''' UNION SELECT NULL--',403,0),
+(374,'2026-10-10 16:48:00','192.0.2.185','rosa.souza','buscar_exame','EX-17701',200,1),
+(375,'2026-10-10 16:58:00','192.0.2.152','antonio.lima','listar',NULL,200,3),
+(376,'2026-10-10 17:13:00','192.0.2.63','bruna.pereira','buscar_exame','EX-49375',200,1),
+(377,'2026-10-10 17:17:00','192.0.2.116','marcos.ribeiro','listar',NULL,200,3),
+(378,'2026-10-10 17:20:00','192.0.2.174','thiago.alves','ver_resultado','Glicemia de jejum',200,1),
+(379,'2026-10-10 17:31:00','192.0.2.22','maria.costa','login',NULL,200,1),
+(380,'2026-10-10 17:43:00','192.0.2.65','juliana.ramos','listar',NULL,200,0),
+(381,'2026-10-10 17:45:00','192.0.2.63','bruna.pereira','buscar_exame','EX-98990',200,1),
+(382,'2026-10-10 17:52:00','198.51.100.23',NULL,'buscar_exame',''' OR ''1''=''1''--',403,0),
+(383,'2026-10-10 17:53:00','192.0.2.137','rodrigo.martins','listar',NULL,200,3),
+(384,'2026-10-10 17:58:00','192.0.2.94','iara.pinto','buscar_exame','EX-91019',200,1),
+(385,'2026-10-10 18:00:00','198.51.100.23',NULL,'buscar_exame','admin''--',403,0),
+(386,'2026-10-10 18:08:00','192.0.2.198','rodrigo.gomes','buscar_exame','EX-17129',200,1),
+(387,'2026-10-10 18:16:00','198.51.100.23',NULL,'buscar_exame',''' UNION SELECT NULL--',403,0),
+(388,'2026-10-10 18:32:00','192.0.2.77','maria.vieira','listar',NULL,200,3),
+(389,'2026-10-10 18:55:00','198.51.100.23',NULL,'buscar_exame','1'' OR ''1''=''1''--',403,0),
+(390,'2026-10-10 19:11:00','192.0.2.47','jose.araujo','login',NULL,200,1),
+(391,'2026-10-10 19:24:00','192.0.2.73','jose.gomes','buscar_exame','EX-43744',200,1),
+(392,'2026-10-10 19:33:00','192.0.2.249','gabriela.fernandes','login',NULL,200,1),
+(393,'2026-10-10 19:47:00','192.0.2.93','carlos.lima','login',NULL,200,1),
+(394,'2026-10-10 19:50:00','198.51.100.23',NULL,'buscar_exame',''') OR (''1''=''1''--',403,0),
+(395,'2026-10-10 20:09:00','192.0.2.101','francisco.soares','buscar_exame','EX-54737',200,1),
+(396,'2026-10-10 20:10:00','192.0.2.2','marcia.barbosa','listar',NULL,200,1),
+(397,'2026-10-10 20:14:00','203.0.113.59','renan.duarte','login',NULL,200,1),
+(398,'2026-10-10 20:15:00','203.0.113.59','renan.duarte','buscar_exame','EX-68714',200,1),
+(399,'2026-10-10 20:16:00','203.0.113.59','renan.duarte','listar',NULL,200,2),
+(400,'2026-10-10 20:31:00','192.0.2.3','francisco.silva','buscar_exame','EX-87836',200,1),
+(401,'2026-10-10 20:32:00','192.0.2.63','bruna.pereira','login',NULL,200,1),
+(402,'2026-10-10 20:35:00','192.0.2.71','fabio.martins','ver_resultado','Ultrassom abdominal',200,1),
+(403,'2026-10-10 20:41:00','192.0.2.11','camila.alves','ver_resultado','Colesterol total',200,1),
+(404,'2026-10-10 20:41:00','192.0.2.228','antonio.souza','buscar_exame','EX-61608',200,1),
+(405,'2026-10-10 20:43:00','192.0.2.191','felipe.ramos','listar',NULL,200,2),
+(406,'2026-10-10 21:17:00','192.0.2.52','bruno.almeida','buscar_exame','EX-23058',200,1),
+(407,'2026-10-10 21:28:00','192.0.2.116','marcos.ribeiro','buscar_exame','EX-88764',200,1),
+(408,'2026-10-10 21:31:00','192.0.2.149','antonia.dias','buscar_exame','EX-65887',200,1),
+(409,'2026-10-10 21:40:00','192.0.2.226','fernanda.martins','buscar_exame','EX-84463',200,1),
+(410,'2026-10-10 21:47:00','192.0.2.71','fabio.martins','ver_resultado','Ultrassom abdominal',200,1),
+(411,'2026-10-10 21:49:00','192.0.2.77','maria.vieira','buscar_exame','EX-70241',200,1),
+(412,'2026-10-10 21:57:00','192.0.2.253','bruno.machado','listar',NULL,200,4),
+(413,'2026-10-10 22:03:00','192.0.2.196','rosa.ramos','ver_resultado','Urina tipo I',200,1),
+(414,'2026-10-10 22:16:00','192.0.2.67','juliana.pereira','listar',NULL,200,4),
+(415,'2026-10-10 22:17:00','192.0.2.155','francisco.machado','login',NULL,200,1),
+(416,'2026-10-10 22:25:00','192.0.2.91','irene.nascimento','login',NULL,200,1),
+(417,'2026-10-10 22:26:00','192.0.2.152','antonio.lima','listar',NULL,200,3),
+(418,'2026-10-10 22:33:00','198.51.100.23',NULL,'buscar_exame',''') OR (''1''=''1''--',403,0),
+(419,'2026-10-10 22:36:00','192.0.2.92','rosa.goncalves','buscar_exame','EX-30506',200,1),
+(420,'2026-10-10 22:37:00','192.0.2.175','carlos.rodrigues','buscar_exame','EX-60984',200,1),
+(421,'2026-10-10 22:50:00','192.0.2.254','lucas.oliveira','buscar_exame','EX-99449',200,1),
+(422,'2026-10-10 22:55:00','192.0.2.49','rosa.almeida','listar',NULL,200,3),
+(423,'2026-10-10 22:57:00','198.51.100.23',NULL,'buscar_exame',''' OR 1=1--',403,0),
+(424,'2026-10-10 23:02:00','203.0.113.59',NULL,'buscar_exame','EX-99999''',500,0),
+(425,'2026-10-10 23:03:00','203.0.113.59',NULL,'buscar_exame','EX-99999''''',500,0),
+(426,'2026-10-10 23:04:00','203.0.113.59',NULL,'buscar_exame',''' OR ''1''=''1',200,380),
+(427,'2026-10-10 23:05:00','203.0.113.59',NULL,'buscar_exame',''' UNION SELECT NULL--',500,0),
+(428,'2026-10-10 23:06:00','203.0.113.59',NULL,'buscar_exame',''' UNION SELECT NULL,NULL--',500,0),
+(429,'2026-10-10 23:07:00','203.0.113.59',NULL,'buscar_exame',''' UNION SELECT NULL,NULL,NULL--',500,0),
+(430,'2026-10-10 23:08:00','203.0.113.59',NULL,'buscar_exame',''' UNION SELECT NULL,NULL,NULL,NULL--',200,1),
+(431,'2026-10-10 23:09:00','203.0.113.59',NULL,'buscar_exame',''' UNION SELECT table_name,NULL,NULL,NULL FROM information_schema.tables WHERE table_schema=''public''--',200,4),
+(432,'2026-10-10 23:10:00','203.0.113.59',NULL,'buscar_exame',''' UNION SELECT column_name,NULL,NULL,NULL FROM information_schema.columns WHERE table_name=''exame_resultado''--',200,5),
+(433,'2026-10-10 23:11:00','203.0.113.59',NULL,'buscar_exame',''' UNION SELECT paciente_login,exame,data::text,resultado FROM exame_resultado--',200,272),
+(434,'2026-10-10 23:12:00','203.0.113.59',NULL,'buscar_exame',''' UNION SELECT paciente_login,exame,data::text,resultado FROM exame_resultado WHERE exame=''Exame toxicológico''--',200,24);
+
+-- Segurança: bloqueia acesso pela API pública (o SQL Editor continua funcionando)
+ALTER TABLE portal_usuario ENABLE ROW LEVEL SECURITY;
+ALTER TABLE exame_pedido ENABLE ROW LEVEL SECURITY;
+ALTER TABLE exame_resultado ENABLE ROW LEVEL SECURITY;
+ALTER TABLE portal_requisicao ENABLE ROW LEVEL SECURITY;
+
+-- O papel que o site do Portal do Paciente usa para falar com o banco.
+-- Ele só devia LER o que o paciente logado tem direito de ver — mas o ambiente
+-- foi configurado às pressas: ganhou privilégios demais e uma política de RLS
+-- que não restringe nada (USING (true) = "sempre verdadeiro" = libera tudo).
+GRANT SELECT, INSERT, UPDATE, DELETE ON portal_usuario, exame_pedido, exame_resultado TO portal_web;
+
+CREATE POLICY portal_usuario_tudo ON portal_usuario FOR ALL TO portal_web USING (true);
+CREATE POLICY exame_pedido_tudo ON exame_pedido FOR ALL TO portal_web USING (true);
+CREATE POLICY exame_resultado_tudo ON exame_resultado FOR ALL TO portal_web USING (true);
+
+-- Conferir a resposta:  SELECT verificar_caso10('resposta');
+CREATE FUNCTION verificar_caso10(resposta text) RETURNS text
+LANGUAGE sql AS $$
+  SELECT CASE md5(lower(trim(resposta)))
+    WHEN '420392db48f0723c97fc2bc074147dcb' THEN
+      '🏆 CASO ENCERRADO! O Portal do Paciente passou a usar parâmetros de verdade na busca (sem colar texto na consulta) e uma política de RLS que realmente filtra pelo paciente logado, em vez de USING (true). Parabéns, detetive!'
+    ELSE
+      '❌ Não é essa. Confira se escreveu exatamente como aparece nos dados e revise as pistas.'
+  END
+$$;
+
+SELECT '✅ Caso 10 instalado! Volte para o guia e comece a Etapa 1.' AS status;
+</script>
+
+<div class="tela-login" id="telaLogin" role="dialog" aria-modal="true" aria-labelledby="lgTitulo" hidden>
+  <div class="tela-card">
+    <aside class="tela-marca">
+      <svg class="tela-logo" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="27" cy="27" r="18" fill="none" stroke="#fff" stroke-width="5"/>
+        <path d="M40 40l16 16" stroke="#f3d64e" stroke-width="7" stroke-linecap="round"/>
+        <path d="M27 18v18M18 27h18" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+      </svg>
+      <h1 id="lgTitulo">Mistério no Hospital SQL</h1>
+      <p class="tela-lema">Aprenda SQL investigando casos de um hospital.</p>
+      <ul class="tela-itens">
+        <li>10 casos, do iniciante ao avançado</li>
+        <li>Seu progresso salvo em qualquer computador</li>
+        <li>Caderno do detetive com as suas anotações</li>
+      </ul>
+    </aside>
+    <section class="tela-form">
+      <p class="tela-sub" id="lgSubtitulo">Entre para continuar de onde parou</p>
+      <div class="tela-abas" id="lgAbas" role="tablist">
+        <button type="button" role="tab" id="lgTabEntrar" aria-selected="true">Entrar</button>
+        <button type="button" role="tab" id="lgTabCriar" aria-selected="false">Criar conta</button>
+      </div>
+      <div id="lgCampoEmail">
+        <label for="sbEmail">E-mail</label>
+        <div class="campo">
+          <span class="campo-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>
+          <input id="sbEmail" type="email" placeholder="voce@exemplo.com" autocomplete="email" inputmode="email">
+        </div>
+      </div>
+      <div>
+        <label for="sbPass" id="lgRotSenha">Senha <span class="tela-min">(mínimo 8 caracteres)</span></label>
+        <div class="campo">
+          <span class="campo-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+          <input id="sbPass" type="password" autocomplete="current-password" maxlength="72">
+          <button type="button" class="campo-ver" id="lgVer" aria-label="Mostrar senha" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
+      <button type="button" class="tela-principal" id="sbLogin">Entrar</button>
+      <button type="button" class="tela-principal" id="sbSignup" hidden>Criar conta</button>
+      <button type="button" class="tela-principal" id="lgNova" hidden>Salvar nova senha</button>
+      <button type="button" class="tela-link" id="lgEsqueci">Esqueci minha senha</button>
+      <div class="msg" id="lgMsg" role="status" aria-live="polite"></div>
+      <div class="tela-ou"><span>ou</span></div>
+      <button type="button" class="tela-pular" id="lgPular">Continuar sem entrar</button>
+      <p class="tela-nota">Sem entrar, o progresso fica salvo só neste navegador.</p>
+      <p class="tela-autoria">Aplicativo criado por Noemi Sales</p>
+    </section>
+  </div>
+</div>
+
+<dialog class="sync" id="syncDlg">
+  <h3>☁ Salvar progresso na nuvem</h3>
+  <div id="sbConnGrp">
+    <small>No Supabase: Project Settings → API. Use a <b>Project URL</b> e a chave <b>anon / public</b>. Nunca use a service_role. Rode antes o <code>banco_do_jogo.sql</code> atualizado.</small>
+    <label for="sbUrl">Project URL</label>
+    <input id="sbUrl" type="url" placeholder="https://xxxx.supabase.co" autocomplete="off">
+    <label for="sbKey">Chave anon (public)</label>
+    <input id="sbKey" type="text" placeholder="eyJ..." autocomplete="off">
+    <div class="row"><button type="button" class="btn" id="sbSave">Conectar</button></div>
+  </div>
+  <div id="sbUserGrp">
+    <p id="sbWho"></p>
+    <div class="row"><button type="button" class="btn" id="sbLogout">Sair</button></div>
+  </div>
+  <div class="msg" id="sbMsg" role="status"></div>
+  <div class="row">
+    <button type="button" class="btn" id="sbClear">Trocar projeto</button>
+    <button type="button" class="btn" id="sbClose">Fechar</button>
+  </div>
+</dialog>
+
+<script src="js/config.js?v=58dc78bb"></script>
+<script src="js/app.js?v=5417c6c0"></script>
+<script src="js/pwa.js?v=e304ae22"></script>
+<script src="js/catalogo.js?v=cd3ff46d"></script>
+<script src="js/caderno.js?v=716bce0b"></script>
+<script src="js/quadro.js?v=27dfa579"></script>
+<script src="js/computador.js?v=dc86bf00"></script>
+
+<script src="vendor/mermaid/mermaid.min.js"></script>
+<script src="js/mermaid-init.js?v=9cf16683"></script>
+
+</body>
+</html>

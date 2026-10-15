@@ -1,14 +1,18 @@
 // Gerado por scripts/gerar-sw.js. Não edite à mão.
 // Guarda o jogo no aparelho para funcionar sem internet.
-var VERSAO = "33ca72c704";
+var VERSAO = "499d1d22cd";
 var CACHE = "misterio-sql-" + VERSAO;
 var ARQUIVOS = [
   "./",
+  "caso10.html",
   "caso2.html",
   "caso3.html",
   "caso4.html",
   "caso5.html",
   "caso6.html",
+  "caso7.html",
+  "caso8.html",
+  "caso9.html",
   "css/estilo.css?v=3df7b43f",
   "fonts/atkinson-hyperlegible-400-italic-latin-ext.woff2",
   "fonts/atkinson-hyperlegible-400-italic-latin.woff2",
@@ -31,7 +35,7 @@ var ARQUIVOS = [
   "index.html",
   "js/app.js?v=5417c6c0",
   "js/caderno.js?v=716bce0b",
-  "js/catalogo.js?v=bae7f7d1",
+  "js/catalogo.js?v=cd3ff46d",
   "js/computador.js?v=dc86bf00",
   "js/config.js?v=58dc78bb",
   "js/mermaid-init.js?v=9cf16683",

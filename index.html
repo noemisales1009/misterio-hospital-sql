@@ -21,7 +21,7 @@
 <header class="hero">
   <div class="tag">Jogo de detetive · aprenda SQL no Supabase</div>
   <h1>Mistério no Hospital <span>SQL</span></h1>
-  <p class="lead">Seis casos, do mais simples ao mais exigente. Em cada um você investiga com consultas SQL num banco de dados de verdade, no Supabase. Comece pelo Caso 1 se nunca usou SQL.</p>
+  <p class="lead">Dez casos, do mais simples ao mais exigente, incluindo dois de segurança. Em cada um você investiga com consultas SQL num banco de dados de verdade, no Supabase. Comece pelo Caso 1 se nunca usou SQL.</p>
 </header>
 
 <section class="casos" aria-label="Casos disponíveis">
@@ -67,10 +67,38 @@
     <span class="caso-meta">5 etapas · LAG, LEAD, ROW_NUMBER</span>
     <span class="caso-go">Abrir o Caso 6 →</span>
   </a>
+  <a class="caso-card" href="caso7.html" data-arq="caso7.html">
+    <span class="caso-n">Caso 7 · intermediário</span>
+    <h2>O paciente em dobro</h2>
+    <p>O convênio devolveu a conta de outubro: cadastros em dobro cobrando a mesma consulta duas vezes. Arrume nomes, CPF, vazios e valores em texto.</p>
+    <span class="caso-meta">5 etapas · TRIM, REPLACE, COALESCE, CAST</span>
+    <span class="caso-go">Abrir o Caso 7 →</span>
+  </a>
+  <a class="caso-card" href="caso8.html" data-arq="caso8.html">
+    <span class="caso-n">Caso 8 · avançado</span>
+    <h2>As horas extras</h2>
+    <p>A folha de hora extra explodiu em setembro. Cruze o ponto eletrônico com a catraca e ache quem lançou plantões que nunca aconteceram.</p>
+    <span class="caso-meta">5 etapas · EXTRACT, RANK, NOT EXISTS</span>
+    <span class="caso-go">Abrir o Caso 8 →</span>
+  </a>
+  <a class="caso-card" href="caso9.html" data-arq="caso9.html">
+    <span class="caso-n">Caso 9 · segurança</span>
+    <h2>O prontuário espiado</h2>
+    <p>O prontuário de uma paciente vazou nas redes. Audite quem acessou sem motivo e descubra quem exportou o PDF com a senha de outra pessoa.</p>
+    <span class="caso-meta">5 etapas · auditoria de acessos, LGPD</span>
+    <span class="caso-go">Abrir o Caso 9 →</span>
+  </a>
+  <a class="caso-card" href="caso10.html" data-arq="caso10.html">
+    <span class="caso-n">Caso 10 · segurança</span>
+    <h2>A invasão</h2>
+    <p>O Portal do Paciente foi atacado pela busca de exames. Reconstrua o ataque, meça o vazamento e feche as portas que ficaram abertas no banco.</p>
+    <span class="caso-meta">5 etapas · SQL injection, GRANT, RLS</span>
+    <span class="caso-go">Abrir o Caso 10 →</span>
+  </a>
 </section>
 
 <section class="fase" style="gap:10px">
-  <div class="box"><b class="l">Como funciona</b><p>Cada caso tem as <strong>próprias tabelas</strong>, então os seis cabem no mesmo projeto do Supabase. Entrando com uma conta (em <strong>Entrar na conta</strong>, no topo), o seu progresso, o seu nome e as suas anotações ficam guardados no Supabase e acompanham você em qualquer computador. Sem conta, tudo fica salvo só neste navegador.</p></div>
+  <div class="box"><b class="l">Como funciona</b><p>Cada caso tem as <strong>próprias tabelas</strong>, então os dez cabem no mesmo projeto do Supabase. Entrando com uma conta (em <strong>Entrar na conta</strong>, no topo), o seu progresso, o seu nome e as suas anotações ficam guardados no Supabase e acompanham você em qualquer computador. Sem conta, tudo fica salvo só neste navegador.</p></div>
   <p class="foot">Inspirado no <a href="https://mystery.knightlab.com/walkthrough.html" target="_blank" rel="noopener">SQL Murder Mystery</a> do Knight Lab. Personagens e dados são fictícios.</p>
 </section>
 </div>
@@ -85,7 +113,7 @@
       <h1 id="lgTitulo">Mistério no Hospital SQL</h1>
       <p class="tela-lema">Aprenda SQL investigando casos de um hospital.</p>
       <ul class="tela-itens">
-        <li>6 casos, do iniciante ao avançado</li>
+        <li>10 casos, do iniciante ao avançado</li>
         <li>Seu progresso salvo em qualquer computador</li>
         <li>Caderno do detetive com as suas anotações</li>
       </ul>
@@ -148,7 +176,7 @@
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=5417c6c0"></script>
 <script src="js/pwa.js?v=e304ae22"></script>
-<script src="js/catalogo.js?v=bae7f7d1"></script>
+<script src="js/catalogo.js?v=cd3ff46d"></script>
 <script src="js/caderno.js?v=716bce0b"></script>
 <script src="js/quadro.js?v=27dfa579"></script>
 </body>

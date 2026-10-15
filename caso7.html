@@ -1,0 +1,1076 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6b5b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mistério SQL">
+<title>Caso 7 · O paciente em dobro</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="js/tema.js?v=45d4af28"></script>
+<link rel="stylesheet" href="css/estilo.css?v=3df7b43f">
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+  <div class="tag"><a href="index.html">← Todos os casos</a> · Caso 7 · intermediário</div>
+  <h1>Caso 7: o paciente em <span>dobro</span></h1>
+  <div class="case">
+    <div class="stamp">GLOSA</div>
+    <h2>Outubro de 2026 · Recepção e Faturamento</h2>
+    <p>O convênio <mark>Saúde Vida</mark> devolveu a conta de <mark>outubro de 2026</mark>, a temida <strong>glosa</strong>: algumas consultas foram cobradas duas vezes da mesma pessoa, no mesmo dia, cada vez com um <mark>cadastro diferente</mark>.</p>
+    <p>O cadastro de pacientes foi importado de um sistema antigo e chegou bagunçado: nomes com espaços sobrando, letras maiúsculas e minúsculas misturadas, CPF com e sem pontuação, convênio em branco e valores gravados como texto. Alguém aproveitou a bagunça. Você vai <strong>arrumar os dados</strong> e descobrir quem criou os cadastros em dobro. A resposta é o nome da pessoa.</p>
+  </div>
+  <p class="lead">A novidade deste caso é <strong>limpar dados</strong>: texto (<code>TRIM</code>, <code>UPPER</code>, <code>REPLACE</code>), vazios (<code>NULLIF</code>, <code>COALESCE</code>) e conversão de tipos (<code>CAST</code>). É o que mais se faz no dia a dia, antes de qualquer conta. Dá para fazer logo depois do Caso 3. Travou? Abra a dica, depois a solução.</p>
+</header>
+<nav class="trail" aria-label="Etapas do caso">
+  <div class="trail-inner" id="trail"></div>
+  <div class="bar"><i id="bar"></i></div>
+</nav>
+<section class="fase" id="c7-f0" data-fase="0" data-nome="Montar">
+  <div class="fase-head"><div class="num">0</div><div class="t"><h2>Montar o caso</h2><div class="sub">Supabase · SQL Editor</div></div></div>
+  <div class="box"><b class="l">Para que serve</b><p>Cada caso tem as <strong>próprias tabelas</strong>, com nomes diferentes. Você pode instalar no mesmo projeto do Supabase dos outros casos: nada se mistura e nada é apagado.</p></div>
+  <ol class="steps">
+    <li>No Supabase, abra o <strong>SQL Editor</strong> e clique em <strong>New query</strong>.</li>
+    <li>Clique no botão abaixo para copiar o banco do caso, cole no editor e clique em <strong>Run</strong>.</li>
+    <li>Deve aparecer: <code>✅ Caso 7 instalado!</code>. Para recomeçar, rode de novo.</li>
+  </ol>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <button class="btn big" id="copyAll" type="button">Copiar banco do Caso 7 (SQL)</button>
+    <span class="foot">São 3 tabelas e umas 650 linhas. O arquivo <code>caso7.sql</code> também está na pasta do projeto.</span>
+  </div>
+  <div class="mapa">
+    <div class="lbl" style="margin-bottom:8px">Mapa do banco · quem se liga com quem</div>
+<pre class="mermaid">
+erDiagram
+  atendente { int id PK
+    text nome
+    text turno }
+  cadastro { int id PK
+    text nome
+    text cpf
+    date nascimento
+    text convenio
+    int cadastrado_por FK
+    date cadastrado_em }
+  consulta { int id PK
+    int cadastro_id FK
+    date data
+    text especialidade
+    text valor }
+  atendente ||--o{ cadastro : "cadastrado_por"
+  cadastro ||--o{ consulta : "cadastro_id"
+</pre>
+  </div>
+  <ul class="list"><li>Os dados vieram de uma importação apressada: <strong>não confie no formato</strong>. Olhe algumas linhas antes de contar.</li><li><code>consulta</code> tem as consultas de <strong>outubro de 2026</strong>. O <code>valor</code> é <strong>texto</strong>, no formato <code>'R$ 1.250,00'</code>.</li><li>Os <code>id</code> de <code>cadastro</code> seguem a ordem em que os cadastros foram feitos: o menor é o mais antigo.</li></ul>
+  <div class="done-row"><input type="checkbox" id="c7-ok0"><label for="c7-ok0">Instalei o caso no Supabase</label></div>
+</section>
+<section class="fase" id="c7-f1" data-fase="1" data-nome="Nomes">
+  <div class="fase-head"><div class="num">1</div><div class="t"><h2>Nomes bagunçados</h2><div class="sub">TRIM · UPPER · LENGTH</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>O sistema antigo da recepção foi importado às pressas e os nomes vieram de todo jeito: com espaço sobrando no começo ou no fim, tudo em maiúsculas, tudo em minúsculas. Para o computador, <code>'Ana Souza'</code>, <code>' Ana Souza'</code> e <code>'ANA SOUZA'</code> são três textos <strong>diferentes</strong>.</p></div>
+  <div class="box novo"><b class="l">Ferramenta nova · Arrumar texto</b><p><code>TRIM(nome)</code> tira os espaços do começo e do fim. <code>UPPER(nome)</code> põe tudo em maiúsculas e <code>LOWER(nome)</code>, em minúsculas. <code>LENGTH(nome)</code> conta os caracteres, espaços incluídos. Dá para combinar: <code>UPPER(TRIM(nome))</code> primeiro tira os espaços e depois põe em maiúsculas. Assim, nomes escritos de jeitos diferentes viram o mesmo texto e podem ser comparados.</p></div>
+  <div class="tw"><table><tr><th>nome gravado</th><th>LENGTH</th><th>TRIM(nome)</th><th>UPPER(TRIM(nome))</th></tr><tr><td><code>' ana souza'</code></td><td>10</td><td><code>'ana souza'</code></td><td><code>'ANA SOUZA'</code></td></tr><tr><td><code>'Ana Souza '</code></td><td>10</td><td><code>'Ana Souza'</code></td><td><code>'ANA SOUZA'</code></td></tr><tr><td><code>'ANA SOUZA'</code></td><td>9</td><td><code>'ANA SOUZA'</code></td><td><code>'ANA SOUZA'</code></td></tr></table></div>
+  <div class="code"><pre data-sql>SELECT nome, LENGTH(nome) AS tamanho,
+       UPPER(TRIM(nome)) AS nome_limpo
+FROM cadastro
+LIMIT 10;</pre></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantos cadastros têm <strong>espaço sobrando</strong> no começo ou no fim do nome?</li><li>Quantos nomes diferentes existem do jeito que estão gravados, e quantos depois de arrumar com <code>UPPER(TRIM(nome))</code>? Mostre os dois números numa linha só.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Um nome tem espaço sobrando quando ele é diferente dele mesmo sem os espaços: <code>WHERE nome &lt;&gt; TRIM(nome)</code>. Para contar sem repetir, use <code>COUNT(DISTINCT …)</code>: <code>COUNT(DISTINCT nome)</code> e <code>COUNT(DISTINCT UPPER(TRIM(nome)))</code>, separados por vírgula no mesmo <code>SELECT</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT COUNT(*) AS com_espaco
+FROM cadastro
+WHERE nome &lt;&gt; TRIM(nome);</pre></div>
+    <div class="code"><pre data-sql>SELECT COUNT(DISTINCT nome) AS como_esta,
+       COUNT(DISTINCT UPPER(TRIM(nome))) AS arrumado
+FROM cadastro;</pre></div>
+    <p>Para conferir: <strong>36</strong> cadastros têm espaço sobrando. Os nomes diferentes caem de <strong>225</strong> para <strong>216</strong> depois da limpeza. Parece que 9 pessoas estão em dobro, mas cuidado: nome igual não quer dizer mesma pessoa, e a mesma pessoa pode ter o nome escrito igualzinho em dois cadastros. Quem identifica alguém é o CPF.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c7-ok1"><label for="c7-ok1">Etapa 1 concluída</label></div>
+</section>
+<section class="fase" id="c7-f2" data-fase="2" data-nome="CPF">
+  <div class="fase-head"><div class="num">2</div><div class="t"><h2>Quem manda é o CPF</h2><div class="sub">REPLACE · GROUP BY · HAVING</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Duas pessoas diferentes podem ter o mesmo nome: são <strong>homônimos</strong>. Quem identifica alguém de verdade é o <strong>CPF</strong>. Só que ele também veio de dois jeitos: <code>'123.456.789-09'</code> e <code>'12345678909'</code>. Antes de comparar, tire a pontuação.</p></div>
+  <div class="box novo"><b class="l">Ferramenta nova · REPLACE</b><p><code>REPLACE(texto, 'procura', 'troca')</code> troca todos os pedaços iguais a <em>procura</em>. Trocar por <code>''</code> (texto vazio) é o mesmo que apagar. Para tirar dois sinais diferentes, ponha um <code>REPLACE</code> dentro do outro: o de dentro roda primeiro.</p></div>
+  <div class="tw"><table><tr><th>cpf gravado</th><th>REPLACE(cpf, '.', '')</th><th>REPLACE(REPLACE(cpf, '.', ''), '-', '')</th></tr><tr><td><code>'123.456.789-09'</code></td><td><code>'123456789-09'</code></td><td><code>'12345678909'</code></td></tr><tr><td><code>'12345678909'</code></td><td><code>'12345678909'</code></td><td><code>'12345678909'</code></td></tr></table></div>
+  <div class="code"><pre data-sql>SELECT cpf, REPLACE(REPLACE(cpf, '.', ''), '-', '') AS cpf_limpo
+FROM cadastro
+LIMIT 10;</pre></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Agrupe pelo CPF <strong>sem pontuação</strong> e mostre os CPFs que aparecem em <strong>mais de um cadastro</strong>, com quantos cadastros cada um tem.</li><li>Agora o contrário: quais nomes (arrumados com <code>UPPER(TRIM(nome))</code>) pertencem a <strong>mais de um CPF</strong>? Esses são homônimos, pessoas diferentes.</li></ul></div>
+  <details><summary>Dica</summary><div><p>No <code>GROUP BY</code> você pode usar o apelido da coluna: <code>GROUP BY cpf_limpo</code>. Para ficar só com os grupos repetidos, <code>HAVING COUNT(*) &gt; 1</code>. Na segunda, conte CPFs diferentes dentro de cada nome: <code>COUNT(DISTINCT REPLACE(REPLACE(cpf, '.', ''), '-', ''))</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT REPLACE(REPLACE(cpf, '.', ''), '-', '') AS cpf_limpo,
+       COUNT(*) AS cadastros
+FROM cadastro
+GROUP BY cpf_limpo
+HAVING COUNT(*) &gt; 1
+ORDER BY cpf_limpo;</pre></div>
+    <div class="code"><pre data-sql>SELECT UPPER(TRIM(nome)) AS nome_limpo,
+       COUNT(DISTINCT REPLACE(REPLACE(cpf, '.', ''), '-', '')) AS pessoas
+FROM cadastro
+GROUP BY nome_limpo
+HAVING COUNT(DISTINCT REPLACE(REPLACE(cpf, '.', ''), '-', '')) &gt; 1
+ORDER BY nome_limpo;</pre></div>
+    <p>Para conferir: <strong>10 CPFs</strong> aparecem em 2 cadastros cada, ou seja, 10 pessoas cadastradas em dobro. E <strong>3 nomes</strong> são homônimos: Luciana Martins Andrade, Rafael Carvalho Santana e Vanessa Fernandes Souza. O nome sozinho errava para os dois lados: juntava pessoas diferentes e deixava passar cadastros repetidos com o nome escrito igual.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c7-ok2"><label for="c7-ok2">Etapa 2 concluída</label></div>
+</section>
+<section class="fase" id="c7-f3" data-fase="3" data-nome="Vazios">
+  <div class="fase-head"><div class="num">3</div><div class="t"><h2>Vazio não é zero</h2><div class="sub">NULLIF · COALESCE · COUNT(coluna)</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>O campo <code>convenio</code> veio pior ainda. Em alguns cadastros ele é <strong>nulo</strong> (<code>NULL</code>: ninguém preencheu). Em outros é <strong>vazio</strong> (<code>''</code>, um texto sem nada) ou só tem espaços. Para o SQL são coisas diferentes: <code>''</code> é um texto como outro qualquer, e <code>NULL</code> não é igual a nada, nem a outro <code>NULL</code>. Pela regra do hospital, cadastro sem convênio é <strong>Particular</strong>.</p></div>
+  <div class="box novo"><b class="l">Ferramenta nova · NULLIF e COALESCE</b><p><code>COALESCE(a, b)</code> devolve o primeiro valor que <strong>não</strong> é nulo: <code>COALESCE(convenio, 'Particular')</code> troca o nulo por <code>'Particular'</code>. <code>NULLIF(a, b)</code> faz o contrário: devolve <code>NULL</code> quando <code>a = b</code>. Juntos, com um <code>TRIM</code>, tratam os três casos de uma vez.</p></div>
+  <div class="tw"><table><tr><th>convenio gravado</th><th>NULLIF(TRIM(convenio), '')</th><th>COALESCE(…, 'Particular')</th></tr><tr><td><code>'Saúde Vida'</code></td><td><code>'Saúde Vida'</code></td><td><code>'Saúde Vida'</code></td></tr><tr><td><code>''</code></td><td>NULL</td><td><code>'Particular'</code></td></tr><tr><td><code>'  '</code></td><td>NULL</td><td><code>'Particular'</code></td></tr><tr><td>NULL</td><td>NULL</td><td><code>'Particular'</code></td></tr></table></div>
+  <div class="box"><b class="l">Atenção · COUNT(*) e COUNT(coluna)</b><p><code>COUNT(*)</code> conta linhas. <code>COUNT(coluna)</code> conta só as linhas em que a coluna <strong>não</strong> é nula. Isso importa no <code>LEFT JOIN</code>: quem não tem par vem com <code>NULL</code> do outro lado e precisa contar <strong>zero</strong>, não um. E o filtro da tabela da direita vai no <code>ON</code>: no <code>WHERE</code>, ele apagaria justamente as linhas sem par.</p></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Conte os cadastros por convênio, tratando nulo, vazio e só espaços como <strong>Particular</strong>. Do maior para o menor.</li><li>Quantos cadastros cada atendente fez em <strong>outubro de 2026</strong>? Inclua quem não fez nenhum, com zero.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Primeira: dê um apelido novo para a coluna tratada, como <code>convenio_tratado</code>, e agrupe por ele. Se o apelido for igual ao nome da coluna, o <code>GROUP BY</code> usa a coluna original, sem tratamento. Segunda: <code>FROM atendente a LEFT JOIN cadastro cd ON cd.cadastrado_por = a.id AND cd.cadastrado_em &gt;= DATE '2026-10-01' AND cd.cadastrado_em &lt; DATE '2026-11-01'</code> e <code>COUNT(cd.id)</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT COALESCE(NULLIF(TRIM(convenio), ''), 'Particular') AS convenio_tratado,
+       COUNT(*) AS cadastros
+FROM cadastro
+GROUP BY convenio_tratado
+ORDER BY cadastros DESC;</pre></div>
+    <div class="code"><pre data-sql>SELECT a.nome, COUNT(cd.id) AS cadastros
+FROM atendente a
+LEFT JOIN cadastro cd
+  ON cd.cadastrado_por = a.id
+ AND cd.cadastrado_em &gt;= DATE '2026-10-01'
+ AND cd.cadastrado_em &lt;  DATE '2026-11-01'
+GROUP BY a.nome
+ORDER BY cadastros DESC;</pre></div>
+    <p>Para conferir: Saúde Vida com <strong>91</strong>, Particular com <strong>89</strong> e MedPlus com <strong>49</strong>. Sem o tratamento, o Particular apareceria espalhado em quatro linhas: <code>'Particular'</code>, vazio, só espaços e <code>NULL</code>. Na segunda: <strong>Cláudio Menezes</strong> lidera outubro com <strong>13</strong> cadastros, e <strong>Lívia Torres</strong> aparece com <strong>0</strong>. Com <code>COUNT(*)</code> ela apareceria com 1, o que está errado.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c7-ok3"><label for="c7-ok3">Etapa 3 concluída</label></div>
+</section>
+<section class="fase" id="c7-f4" data-fase="4" data-nome="Valores">
+  <div class="fase-head"><div class="num">4</div><div class="t"><h2>Dinheiro guardado como texto</h2><div class="sub">CAST · :: · REPLACE</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Para saber quanto foi cobrado de cada convênio é preciso somar os valores das consultas. Mas o valor veio como <strong>texto</strong>, do jeito que aparecia na tela: <code>'R$ 1.250,00'</code>. Tente <code>SELECT SUM(valor) FROM consulta;</code> no computador e veja o erro: não dá para somar texto.</p></div>
+  <div class="box novo"><b class="l">Ferramenta nova · Converter tipos com CAST</b><p><code>CAST(x AS numeric)</code> transforma texto em número, e <code>x::numeric</code> é o atalho do Postgres para a mesma coisa. Só funciona se o texto já parecer um número do jeito americano: sem <code>R$</code>, sem ponto de milhar e com <strong>ponto</strong> no lugar da vírgula. Então arrume antes com <code>REPLACE</code>, nesta ordem:</p></div>
+  <div class="tw"><table><tr><th>passo</th><th>resultado</th></tr><tr><td>valor gravado</td><td><code>'R$ 1.250,00'</code></td></tr><tr><td><code>REPLACE(valor, 'R$ ', '')</code></td><td><code>'1.250,00'</code></td></tr><tr><td><code>REPLACE(…, '.', '')</code></td><td><code>'1250,00'</code></td></tr><tr><td><code>REPLACE(…, ',', '.')</code></td><td><code>'1250.00'</code></td></tr><tr><td><code>…::numeric</code></td><td><strong>1250.00</strong> (agora é número)</td></tr></table></div>
+  <div class="code"><pre data-sql>SELECT valor,
+       REPLACE(REPLACE(REPLACE(valor, 'R$ ', ''), '.', ''), ',', '.')::numeric AS valor_num
+FROM consulta
+LIMIT 10;</pre></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Mostre o <strong>total cobrado</strong> em consultas por convênio (tratado como na etapa 3), do maior para o menor.</li><li>Qual especialidade rendeu mais? Mostre a especialidade, quantas consultas teve e o total, do maior para o menor.</li></ul></div>
+  <details><summary>Dica</summary><div><p>A conversão inteira vai dentro do <code>SUM( )</code>: <code>SUM(REPLACE(REPLACE(REPLACE(c.valor, 'R$ ', ''), '.', ''), ',', '.')::numeric)</code>. O convênio está no cadastro, então junte: <code>JOIN cadastro cd ON cd.id = c.cadastro_id</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT COALESCE(NULLIF(TRIM(cd.convenio), ''), 'Particular') AS convenio_tratado,
+       SUM(REPLACE(REPLACE(REPLACE(c.valor, 'R$ ', ''), '.', ''), ',', '.')::numeric) AS total
+FROM consulta c
+JOIN cadastro cd ON cd.id = c.cadastro_id
+GROUP BY convenio_tratado
+ORDER BY total DESC;</pre></div>
+    <div class="code"><pre data-sql>SELECT c.especialidade, COUNT(*) AS consultas,
+       SUM(REPLACE(REPLACE(REPLACE(c.valor, 'R$ ', ''), '.', ''), ',', '.')::numeric) AS total
+FROM consulta c
+GROUP BY c.especialidade
+ORDER BY total DESC;</pre></div>
+    <p>Para conferir: Saúde Vida com <strong>73630.00</strong>, Particular com 61450.00 e MedPlus com 27610.00 (o SQL mostra o número com ponto e sem separador de milhar). Por especialidade, a <strong>Ressonância</strong> rende mais: 33 consultas e 41250.00, mesmo tendo bem menos consultas que a Clínica Geral, com 134.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c7-ok4"><label for="c7-ok4">Etapa 4 concluída</label></div>
+</section>
+<section class="fase" id="c7-f5" data-fase="5" data-nome="O dobro">
+  <div class="fase-head"><div class="num">5</div><div class="t"><h2>Quem criou o dobro?</h2><div class="sub">WITH · MIN · tudo junto</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Hora de juntar tudo. Para cada CPF repetido, o cadastro <strong>mais antigo</strong> é o verdadeiro: o de menor <code>id</code>. Os outros são <strong>cópias</strong>. Quem criou as cópias? E alguma consulta foi lançada nelas?</p></div>
+  <div class="box"><b class="l">Passo a passo com WITH</b><p>Monte a consulta em três blocos, um apoiado no outro. <strong>1)</strong> <code>limpo</code>: cada cadastro com o CPF sem pontuação. <strong>2)</strong> <code>original</code>: o menor <code>id</code> de cada CPF que aparece mais de uma vez. <strong>3)</strong> <code>copia</code>: os cadastros com CPF repetido que <strong>não</strong> são o original. Depois é só juntar <code>copia</code> com quem cadastrou e com as consultas.</p></div>
+  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Quantas cópias cada atendente criou?</li><li>Quantas consultas foram lançadas nas cópias, e de quanto, por atendente? Quem é o responsável? Confira com <code>SELECT verificar_caso7('Nome Completo');</code>.</li></ul></div>
+  <details><summary>Dica</summary><div><p><code>original AS (SELECT cpf_limpo, MIN(id) AS id_original FROM limpo GROUP BY cpf_limpo HAVING COUNT(*) &gt; 1)</code> e <code>copia AS (SELECT l.* FROM limpo l JOIN original o ON o.cpf_limpo = l.cpf_limpo WHERE l.id &lt;&gt; o.id_original)</code>. Na segunda missão, junte <code>copia</code> com <code>consulta</code> e some o valor convertido como na etapa 4.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>WITH limpo AS (
+  SELECT id, cadastrado_por,
+         REPLACE(REPLACE(cpf, '.', ''), '-', '') AS cpf_limpo
+  FROM cadastro
+),
+original AS (
+  SELECT cpf_limpo, MIN(id) AS id_original
+  FROM limpo
+  GROUP BY cpf_limpo
+  HAVING COUNT(*) &gt; 1
+),
+copia AS (
+  SELECT l.*
+  FROM limpo l
+  JOIN original o ON o.cpf_limpo = l.cpf_limpo
+  WHERE l.id &lt;&gt; o.id_original
+)
+SELECT a.nome, COUNT(*) AS copias
+FROM copia c
+JOIN atendente a ON a.id = c.cadastrado_por
+GROUP BY a.nome
+ORDER BY copias DESC;</pre></div>
+    <div class="code"><pre data-sql>WITH limpo AS (
+  SELECT id, cadastrado_por,
+         REPLACE(REPLACE(cpf, '.', ''), '-', '') AS cpf_limpo
+  FROM cadastro
+),
+original AS (
+  SELECT cpf_limpo, MIN(id) AS id_original
+  FROM limpo
+  GROUP BY cpf_limpo
+  HAVING COUNT(*) &gt; 1
+),
+copia AS (
+  SELECT l.*
+  FROM limpo l
+  JOIN original o ON o.cpf_limpo = l.cpf_limpo
+  WHERE l.id &lt;&gt; o.id_original
+)
+SELECT a.nome, COUNT(*) AS consultas,
+       SUM(REPLACE(REPLACE(REPLACE(con.valor, 'R$ ', ''), '.', ''), ',', '.')::numeric) AS valor
+FROM copia c
+JOIN consulta con ON con.cadastro_id = c.id
+JOIN atendente a ON a.id = c.cadastrado_por
+GROUP BY a.nome
+ORDER BY valor DESC;</pre></div>
+    <p>Para conferir: <strong>Rosângela Freitas</strong> (2) e <strong>Hugo Amaral</strong> (1) recadastraram pacientes antigos por engano, em 2025, e nenhuma consulta foi lançada nessas cópias. <strong>Cláudio Menezes</strong> criou <strong>7 cópias</strong> em outubro, todas de pacientes do Saúde Vida, e cada uma recebeu uma consulta no mesmo dia e na mesma especialidade de uma consulta verdadeira: <strong>5370.00</strong> cobrados em dobro.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c7-ok5"><label for="c7-ok5">Etapa 5 concluída</label></div>
+</section>
+<section class="fase" id="c7-cola" style="gap:12px">
+  <h2 style="font-size:32px">Cola rápida</h2>
+  <div class="tw"><table>
+    <tr><th>Comando</th><th>Lembrete rápido</th></tr>
+    <tr><td><code>TRIM(x)</code></td><td>tira os espaços do começo e do fim</td></tr>
+    <tr><td><code>UPPER(x) / LOWER(x)</code></td><td>tudo em maiúsculas / minúsculas</td></tr>
+    <tr><td><code>LENGTH(x)</code></td><td>quantos caracteres o texto tem</td></tr>
+    <tr><td><code>REPLACE(x, 'de', 'para')</code></td><td>troca todos os pedaços iguais</td></tr>
+    <tr><td><code>COALESCE(x, 'padrão')</code></td><td>troca NULL por um valor</td></tr>
+    <tr><td><code>NULLIF(x, '')</code></td><td>transforma texto vazio em NULL</td></tr>
+    <tr><td><code>COUNT(coluna)</code></td><td>conta só o que não é NULL (COUNT(*) conta linhas)</td></tr>
+    <tr><td><code>x::numeric  ou  CAST(x AS numeric)</code></td><td>texto vira número</td></tr>
+    <tr><td><code>LEFT JOIN … ON … AND filtro</code></td><td>filtro no ON mantém as linhas sem par</td></tr>
+  </table></div>
+  <p class="foot"><a href="index.html">← Todos os casos</a> · Personagens e dados são fictícios.</p>
+</section>
+</div>
+<script type="text/plain" id="sqlsrc">-- =====================================================================
+--  MISTÉRIO NO HOSPITAL SQL  ·  CASO 7: O paciente em dobro
+--  Cole tudo isto no SQL Editor do Supabase e clique em RUN.
+--  Pode rodar de novo quando quiser: recria só as tabelas deste caso.
+--  Não mexe nas tabelas dos outros casos.
+-- =====================================================================
+
+DROP FUNCTION IF EXISTS verificar_caso7(text);
+DROP TABLE IF EXISTS consulta, cadastro, atendente CASCADE;
+
+-- Equipe da recepção
+CREATE TABLE atendente (
+  id     integer PRIMARY KEY,
+  nome   text,
+  turno  text
+);
+
+-- Cadastro de pacientes, importado do sistema antigo (veio bagunçado)
+CREATE TABLE cadastro (
+  id              integer PRIMARY KEY,
+  nome            text,
+  cpf             text,      -- às vezes com pontuação, às vezes sem
+  nascimento      date,
+  convenio        text,      -- pode estar nulo, vazio ou só com espaços
+  cadastrado_por  integer REFERENCES atendente(id),
+  cadastrado_em   date
+);
+
+-- Consultas de outubro de 2026
+CREATE TABLE consulta (
+  id             integer PRIMARY KEY,
+  cadastro_id    integer REFERENCES cadastro(id),
+  data           date,
+  especialidade  text,
+  valor          text       -- como veio do sistema antigo: 'R$ 1.250,00'
+);
+
+
+INSERT INTO atendente (id,nome,turno) VALUES
+(1,'Rosângela Freitas','manhã'),
+(2,'Cláudio Menezes','tarde'),
+(3,'Patrícia Lemos','noite'),
+(4,'Hugo Amaral','manhã'),
+(5,'Simone Rocha','tarde'),
+(6,'Wagner Pires','fim de semana'),
+(7,'Lívia Torres','tarde');
+
+INSERT INTO cadastro (id,nome,cpf,nascimento,convenio,cadastrado_por,cadastrado_em) VALUES
+(1,'Rodrigo Gomes Araújo','59812311162','1958-02-28','MedPlus',5,'2023-01-02'),
+(2,'Antônio Santana Costa','91289875967','1978-09-24','Particular',1,'2023-01-09'),
+(3,'Marcelo de Lima','92983417022','1949-04-25','Saúde Vida',1,'2023-01-12'),
+(4,'Mariana Machado Andrade','65121229458','2011-09-22','Saúde Vida',3,'2023-01-16'),
+(5,'Sebastião Araújo Soares','39328548355','1953-04-15','MedPlus',3,'2023-01-23'),
+(6,'Edna da Costa','87796431832','1981-03-16','Saúde Vida',5,'2023-01-30'),
+(7,'Benedito de Carvalho','604.893.588-65','1946-01-20','',2,'2023-01-31'),
+(8,'Conceição Pinto Alves','16797703782','2003-01-29','Saúde Vida',1,'2023-02-17'),
+(9,'  Fernanda Pinto Marques ','23624721774','1953-02-25','Particular',2,'2023-03-06'),
+(10,'luiz da conceição ','315.010.258-74','1968-10-13','MedPlus',2,'2023-03-09'),
+(11,'Fernanda Almeida Santana','480.900.482-04','1948-04-27','MedPlus',1,'2023-04-03'),
+(12,'Iara Brandão Marques','940.159.967-30','2000-01-19','Saúde Vida',2,'2023-04-06'),
+(13,'Amanda Souza Costa','24082370064','1995-04-21','  ',5,'2023-04-12'),
+(14,'Joaquim Andrade Teixeira','288.399.730-09','1949-04-09','Saúde Vida',2,'2023-04-17'),
+(15,'Beatriz Marques Souza','52122424154','1944-11-20','  ',5,'2023-04-18'),
+(16,'Francisca Lopes Souza','93220163611','1975-01-12','',1,'2023-05-01'),
+(17,'Heloísa Costa Brandão','130.631.196-23','2005-08-29','Saúde Vida',1,'2023-05-02'),
+(18,'Júlia Soares Rocha','56300105202','1966-02-14','Saúde Vida',2,'2023-05-02'),
+(19,'Mateus Cardoso Rocha','31617198524','2013-06-04',NULL,3,'2023-05-09'),
+(20,'Ana Brandão Silva','91683802373','1948-10-26','Saúde Vida',4,'2023-05-10'),
+(21,'Sandra Costa Santana','68125584664','2011-09-02','Saúde Vida',2,'2023-05-15'),
+(22,'Fernanda de Almeida','94007810018','1953-08-23','Saúde Vida',6,'2023-06-03'),
+(23,'Rogério Pereira Teixeira','42689092103','1979-04-11','MedPlus',1,'2023-06-07'),
+(24,' Mariana Teixeira Santana','840.761.067-48','1967-01-09','Saúde Vida',5,'2023-06-16'),
+(25,'Antônio Teixeira Lopes','87624004785','1983-01-22','MedPlus',1,'2023-06-20'),
+(26,'Severino Batista Fernandes','60889050283','1967-08-04','MedPlus',4,'2023-06-21'),
+(27,'Irene Cardoso Lima','70286277997','1984-06-05','Saúde Vida',5,'2023-06-23'),
+(28,'Marcos Machado Cavalcanti','558.656.901-81','1973-11-30','',6,'2023-07-02'),
+(29,'LUCIANA MARTINS ANDRADE','481.597.588-70','1962-08-18','MedPlus',1,'2023-07-05'),
+(30,'Marcos da Silva','85080043041','1983-08-28','MedPlus',1,'2023-07-10'),
+(31,'Juliana Silva Nascimento','17635946637','1989-10-19',NULL,4,'2023-08-02'),
+(32,'Fernanda Santana Brandão','94667712192','1986-02-23','Saúde Vida',3,'2023-08-24'),
+(33,'Márcia Carvalho Santana','880.731.347-62','1963-04-19',NULL,5,'2023-09-12'),
+(34,'Eduardo Andrade Fernandes','54876546936','1996-03-05','',4,'2023-09-13'),
+(35,'Irene Pereira Barbosa','88734875780','1961-04-08',NULL,1,'2023-09-15'),
+(36,'Gabriel Costa Moreira','75366501476','2001-07-08','MedPlus',1,'2023-09-21'),
+(37,'Luiz Barbosa Pinto','741.831.807-08','1994-07-14',NULL,6,'2023-10-01'),
+(38,'Felipe Ribeiro Oliveira','579.611.250-56','1961-01-14','Saúde Vida',3,'2023-10-02'),
+(39,'Fábio Gomes Machado','677.429.734-11','1962-03-18',NULL,2,'2023-10-05'),
+(40,'  Paulo de Oliveira ','13094983822','1998-10-05','Saúde Vida',4,'2023-10-11'),
+(41,'FRANCISCO PINTO NUNES','80934716021','1958-04-13','MedPlus',3,'2023-10-12'),
+(42,'Amanda de Lima','128.562.047-32','1978-01-04','Particular',2,'2023-10-20'),
+(43,'Lucas Pinto Martins','37072654275','1996-07-21',NULL,4,'2023-10-25'),
+(44,'gabriel nascimento moreira','46065443891','2016-06-18','MedPlus',4,'2023-11-06'),
+(45,'Manoel Gonçalves Lima','647.929.918-09','1987-09-27','',5,'2023-11-09'),
+(46,'Raimundo de Lima','567.199.820-23','1944-01-05','Saúde Vida',4,'2023-11-30'),
+(47,'Luciana dos Reis','81376395021','1946-11-29','MedPlus',3,'2023-12-06'),
+(48,'Adriana Moreira Soares','486.793.428-41','1946-02-27','',3,'2023-12-14'),
+(49,'João Mendes Andrade','797.502.315-16','1984-04-26','MedPlus',1,'2023-12-14'),
+(50,'Jéssica da Luz','650.624.425-59','1969-09-06','MedPlus',3,'2023-12-19'),
+(51,'Aline Batista Santana','93553072300','1979-12-02','Saúde Vida',1,'2023-12-25'),
+(52,'Sandra Fernandes Marques ','23034981780','2012-01-10','MedPlus',4,'2023-12-29'),
+(53,'Raimunda Souza Costa','92176003299','1980-08-30','Saúde Vida',6,'2023-12-30'),
+(54,'José Teixeira Correia','50208794093','1948-12-24','Saúde Vida',1,'2024-01-01'),
+(55,'Amanda Lima Gomes','71103696029','1949-04-17','Particular',3,'2024-01-03'),
+(56,' Raimunda Batista Soares','41230628384','1959-04-30','Saúde Vida',6,'2024-02-11'),
+(57,'Irene Mendes Machado','58540410638','1957-08-23','Saúde Vida',4,'2024-02-15'),
+(58,'Amanda Soares Brandão','44289325535','1984-11-06','',4,'2024-03-08'),
+(59,'raimundo de souza','62933912876','1943-10-08','Saúde Vida',1,'2024-03-15'),
+(60,' Irene Lopes Vieira','93510157198','1948-05-09','',3,'2024-03-18'),
+(61,'Fábio Santana Gonçalves ','18260273449','2011-08-14','Particular',1,'2024-03-19'),
+(62,'Fábio de Lima','760.341.783-62','2010-08-02',NULL,3,'2024-03-19'),
+(63,'LUCAS LOPES VIEIRA','88428252753','1959-09-25','  ',6,'2024-03-30'),
+(64,'Marcelo Carvalho Correia','21811522987','1979-04-28','Saúde Vida',2,'2024-04-16'),
+(65,'Bruno Fernandes Ribeiro','153.952.966-67','1985-10-10','',2,'2024-04-18'),
+(66,'Felipe Alves Vieira','596.013.599-86','1975-09-08','Saúde Vida',2,'2024-04-24'),
+(67,'Aline Lopes Batista','90813287916','1984-05-16','Saúde Vida',1,'2024-04-30'),
+(68,' Vanessa Fernandes Souza','38466417503','1976-02-15','Saúde Vida',5,'2024-05-27'),
+(69,'Fernanda Ramos Ribeiro','177.686.253-45','1989-08-29','',3,'2024-05-28'),
+(70,'Marcelo de Souza','85204713630','1981-11-08','Saúde Vida',1,'2024-05-30'),
+(71,'Antônio Santana Gomes','20036987426','1994-03-19','MedPlus',6,'2024-06-01'),
+(72,'Carlos Alves Oliveira','92395441040','1960-10-31','Saúde Vida',6,'2024-06-22'),
+(73,'Rogério Batista Rodrigues','52121243077','2015-05-09','Saúde Vida',2,'2024-06-27'),
+(74,'Letícia Barbosa Cavalcanti','556.950.243-23','2015-06-17',NULL,4,'2024-07-05'),
+(75,'Francisca Gonçalves Araújo','75438347430','2005-11-20','MedPlus',1,'2024-07-05'),
+(76,'MÁRCIA ALVES SOARES','11584162655','1945-10-24','',2,'2024-07-09'),
+(77,'EDUARDO DA SILVA','23327962887','1953-02-07','Saúde Vida',5,'2024-07-17'),
+(78,'Eduardo de Lima','128.004.837-33','2008-02-23','Saúde Vida',6,'2024-07-28'),
+(79,'josé mendes santana','99190323865','1951-07-07','Saúde Vida',1,'2024-07-30'),
+(80,'Adriana Ramos Mendes','68854311322','1984-11-07','Saúde Vida',5,'2024-08-02'),
+(81,'Amanda Pinto Ribeiro ','56628307430','2005-12-11','MedPlus',1,'2024-08-02'),
+(82,' Fernanda Gonçalves Marques','744.738.494-32','2008-08-15','MedPlus',3,'2024-08-06'),
+(83,'Vanessa Teixeira Martins','16037859399','1972-09-09','  ',2,'2024-08-14'),
+(84,'  Amanda Santana Fernandes ','50063992122','1958-11-23','Particular',4,'2024-08-22'),
+(85,'Luciana Martins Andrade','77903845794','1968-09-21','MedPlus',2,'2024-08-27'),
+(86,'Júlia Gomes Barbosa','81005982167','1960-06-09','Saúde Vida',3,'2024-09-10'),
+(87,'Benedito Brandão Martins','163.937.533-35','2011-12-30','Particular',6,'2024-09-15'),
+(88,'Mariana da Silva','90720617768','2000-12-18','Saúde Vida',5,'2024-09-25'),
+(89,'Fábio dos Santos','54340858149','1944-06-23','Particular',5,'2024-11-06'),
+(90,'SEVERINO DE ALMEIDA','98735765417','1975-06-19','Saúde Vida',6,'2024-11-09'),
+(91,'Márcia Martins Machado','15500113656','1996-02-25','MedPlus',4,'2024-11-22'),
+(92,'GABRIELA TEIXEIRA SILVA','290.117.850-55','1971-05-29','',1,'2024-11-29'),
+(93,'Rogério Correia Araújo','913.074.715-64','2015-01-11','MedPlus',1,'2024-12-11'),
+(94,'Thiago Martins Soares','60567268290','1965-07-13',NULL,1,'2024-12-12'),
+(95,'Paulo de Jesus','19447039212','1949-05-27','Particular',2,'2024-12-12'),
+(96,'Camila Rocha Nunes','68896162591','1953-04-29','Particular',2,'2024-12-16'),
+(97,'José da Luz','273.791.166-83','1978-06-27','MedPlus',5,'2024-12-27'),
+(98,'Francisca Andrade Nunes','92953809685','1953-08-21','Saúde Vida',1,'2025-01-01'),
+(99,'Severino Moreira Gomes','80868283479','1994-10-24','Particular',6,'2025-01-05'),
+(100,' Benedito Andrade Teixeira','32588136590','1949-01-30',NULL,5,'2025-01-08'),
+(101,'Rafael Carvalho Santana','813.169.932-24','1982-06-10','Particular',1,'2025-01-08'),
+(102,'Gabriela Martins Correia','93107608860','1962-06-07',NULL,3,'2025-01-13'),
+(103,'Jéssica Brandão Araújo','29009028174','1950-01-24','Saúde Vida',1,'2025-01-23'),
+(104,'Gustavo da Silva','875.764.153-64','1976-09-05','MedPlus',2,'2025-01-28'),
+(105,'Luiz Lopes Ferreira','90242539578','1988-03-22','Particular',4,'2025-02-10'),
+(106,'Irene Alves Dias','855.297.092-03','1998-07-30','Saúde Vida',1,'2025-02-19'),
+(107,'Fernanda Almeida Santana','48090048204','1948-04-27','MedPlus',4,'2025-02-19'),
+(108,'Rodrigo da Silva','42642311415','1995-05-15','',3,'2025-02-28'),
+(109,'VERA DE CARVALHO','137.489.443-20','2011-06-12','Saúde Vida',1,'2025-03-03'),
+(110,'Carlos Cardoso Batista','69101253201','2007-08-09','',2,'2025-03-10'),
+(111,'João Correia Carvalho ','26951474523','2016-10-18','MedPlus',5,'2025-03-11'),
+(112,'Eduardo Alves Almeida','84813412046','1997-02-22','Saúde Vida',2,'2025-03-11'),
+(113,' Sebastião de Souza','813.234.310-04','1960-09-21','Particular',2,'2025-03-13'),
+(114,'Letícia Machado Pereira','57139525237','1943-05-25','Saúde Vida',1,'2025-04-03'),
+(115,' VANESSA FERNANDES SOUZA','64564015138','1964-11-14','Particular',3,'2025-04-09'),
+(116,'Camila da Rocha','28616915843','1949-04-09','Saúde Vida',1,'2025-04-11'),
+(117,'Bruno Santana Santos','40307055808','1975-05-17','MedPlus',4,'2025-04-18'),
+(118,'Vera Lima Correia','73815841943','1973-04-20','Saúde Vida',2,'2025-04-28'),
+(119,'Vanessa Teixeira Martins','160.378.593-99','1972-09-09','  ',1,'2025-05-12'),
+(120,'Aline Lima Batista','27575438089','2003-08-17','MedPlus',1,'2025-05-19'),
+(121,'Maria de Andrade','88766926800','1965-09-08',NULL,5,'2025-05-29'),
+(122,'Adriana Lopes Soares','40274839116','1971-09-15','',6,'2025-06-01'),
+(123,'Maria de Almeida','10704617950','1974-10-28',NULL,2,'2025-06-03'),
+(124,'MARCELO NUNES ALMEIDA','961.854.032-58','1975-08-17',NULL,4,'2025-06-10'),
+(125,'Fábio Santos Costa','597.180.856-12','1957-03-12','Particular',5,'2025-06-20'),
+(126,'Larissa Almeida Carvalho','36662838927','1985-09-26','MedPlus',4,'2025-07-08'),
+(127,'Fábio da Cruz','186.688.059-04','2011-03-20','Particular',1,'2025-07-17'),
+(128,'mateus da costa','164.211.484-45','1965-05-24','Saúde Vida',1,'2025-07-22'),
+(129,'felipe de souza','487.336.191-90','1966-02-23','',4,'2025-07-22'),
+(130,'Raimundo Cardoso Almeida','610.076.768-82','2013-07-24','MedPlus',5,'2025-07-22'),
+(131,'João da Rocha','119.473.414-08','2013-01-02','Saúde Vida',5,'2025-07-23'),
+(132,'João Ribeiro Machado','64222192295','1981-03-26',NULL,5,'2025-07-24'),
+(133,'Camila Almeida Carvalho','11174781426','2009-01-22','Saúde Vida',4,'2025-08-07'),
+(134,'Ana Rodrigues Brandão','12247700062','2013-11-06','Saúde Vida',1,'2025-08-15'),
+(135,'Raimunda Vieira Nascimento','68573222379','1995-06-13','Saúde Vida',3,'2025-08-25'),
+(136,'Francisco Pereira Cavalcanti','69363841246','2015-03-17','  ',3,'2025-08-26'),
+(137,'Aline Ferreira Gonçalves','914.694.910-85','1955-06-10','',1,'2025-10-02'),
+(138,' João de Almeida','42419778952','1945-08-24','Particular',3,'2025-10-06'),
+(139,'gustavo correia moreira','84727038945','1997-09-11','Saúde Vida',3,'2025-10-17'),
+(140,'Luciana Lopes Gonçalves','73353258202','1976-09-28','MedPlus',4,'2025-10-22'),
+(141,'Conceição de Freitas','84932090962','1969-12-25','Saúde Vida',2,'2025-10-31'),
+(142,'Aline Batista Santana','935.530.723-00','1979-12-02',NULL,1,'2025-11-03'),
+(143,'Rafael Carvalho Santana','17456991744','2011-07-05','Saúde Vida',5,'2025-11-10'),
+(144,'Felipe Barbosa Lima','669.581.341-75','1999-12-16','Saúde Vida',3,'2025-11-11'),
+(145,'ANTÔNIO PEREIRA PINTO','894.885.459-47','1991-05-13','Saúde Vida',6,'2025-12-06'),
+(146,'Mariana dos Santos','732.776.135-28','1948-12-25','Saúde Vida',1,'2025-12-10'),
+(147,'Francisca Barbosa Soares','15080116620','1993-08-08','Saúde Vida',5,'2025-12-11'),
+(148,'Marcos Costa Santana','127.561.698-79','1993-06-02','Saúde Vida',2,'2025-12-11'),
+(149,'Marcos Ramos Araújo','607.297.421-90','2005-05-02','Saúde Vida',2,'2025-12-12'),
+(150,'manoel teixeira nascimento','957.797.649-95','1997-11-20','MedPlus',3,'2026-01-06'),
+(151,'EDUARDO PINTO DIAS','432.447.624-98','1945-01-07','MedPlus',2,'2026-01-15'),
+(152,'Ana Carvalho Pereira','236.236.896-25','1947-07-14',NULL,1,'2026-01-21'),
+(153,'Heloísa da Costa','75490240279','1994-10-03','Saúde Vida',1,'2026-01-23'),
+(154,' Irene Teixeira Nascimento','87518437643','1999-08-22','MedPlus',2,'2026-02-12'),
+(155,'Aline Fernandes Alves','37933070868','1997-11-10','  ',4,'2026-03-09'),
+(156,'Raimundo Pereira Pinto','717.399.640-89','1962-04-15','MedPlus',4,'2026-03-09'),
+(157,'Gustavo de Almeida ','70899753399','1969-10-19','MedPlus',3,'2026-03-09'),
+(158,'Raimundo Vieira Gomes','38591810160','1951-07-04','',4,'2026-03-17'),
+(159,'Vanessa Nunes Gonçalves','11091107862','1950-04-24','',1,'2026-03-17'),
+(160,'Manoel Vieira Lima','63463622633','1982-10-15','Saúde Vida',4,'2026-03-25'),
+(161,'GABRIEL SOARES MOREIRA','231.231.958-64','1973-11-04','',1,'2026-03-27'),
+(162,'Rodrigo Rocha Oliveira','52767999426','1964-08-12','Particular',6,'2026-03-29'),
+(163,'Bruna Araújo Pinto','312.096.742-57','1945-01-03','Saúde Vida',2,'2026-04-08'),
+(164,'Paulo da Cruz','626.343.611-29','1974-09-22','Saúde Vida',1,'2026-04-13'),
+(165,'Gabriela Pereira Rocha','22955343829','1998-09-24',NULL,5,'2026-04-14'),
+(166,'José Machado Andrade ','69189034235','1959-03-03','Saúde Vida',2,'2026-04-14'),
+(167,'José Brandão Araújo','138.418.586-04','1993-05-11','Saúde Vida',2,'2026-04-22'),
+(168,'Vera da Costa','36496787768','2012-09-25','Saúde Vida',4,'2026-05-01'),
+(169,'Mateus da Cruz','49494616918','1990-01-09','MedPlus',2,'2026-05-06'),
+(170,'Raimundo Lopes Correia','646.334.604-27','1995-04-21','Particular',4,'2026-05-06'),
+(171,'felipe vieira lopes','67279993457','2002-09-08','Particular',1,'2026-05-11'),
+(172,'Júlia Santana Ribeiro','553.727.228-57','1972-10-31','MedPlus',5,'2026-05-12'),
+(173,'Ana da Rocha','28646216539','1988-08-13','',1,'2026-05-22'),
+(174,'SANDRA MARQUES RAMOS','126.788.485-84','1967-09-07','Saúde Vida',6,'2026-05-23'),
+(175,'Rosa Alves Souza','89057438853','1979-02-08','MedPlus',5,'2026-05-26'),
+(176,'Antônia Souza Correia','421.774.885-48','1991-10-05','Saúde Vida',4,'2026-06-12'),
+(177,'Amanda Almeida Batista ','328.639.307-68','1948-11-17','Saúde Vida',1,'2026-06-12'),
+(178,'  Rosa Correia Soares ','594.446.165-16','1988-05-01',NULL,4,'2026-06-19'),
+(179,'Marcos dos Santos','27329836004','2013-01-26','Saúde Vida',4,'2026-06-29'),
+(180,'  Camila Almeida Santana ','50144909382','1948-05-08','MedPlus',2,'2026-07-06'),
+(181,'Rodrigo dos Santos','20387926107','1950-07-10','',1,'2026-07-07'),
+(182,'Fernanda Lima Ramos','188.540.787-90','1979-02-15','Particular',2,'2026-07-09'),
+(183,'BEATRIZ RIBEIRO MENDES ','950.691.723-02','2008-01-07','Particular',1,'2026-07-10'),
+(184,'Edna Fernandes Alves','148.997.822-66','1948-06-16','MedPlus',5,'2026-07-10'),
+(185,'Manoel Ferreira Soares','58753259956','1962-01-08','Particular',2,'2026-07-14'),
+(186,'Rosa de Andrade','97144503852','1998-11-10','Saúde Vida',4,'2026-07-15'),
+(187,'Luiz Teixeira Santana ','60800941263','2001-09-05','Saúde Vida',4,'2026-07-17'),
+(188,'Adriana Rocha Oliveira','693.674.477-90','1954-09-08','Particular',5,'2026-07-24'),
+(189,' Luiz Mendes Machado','966.312.922-97','1965-03-23','Saúde Vida',3,'2026-07-27'),
+(190,'Francisco Nascimento Nunes','96784400972','2015-01-28','Saúde Vida',3,'2026-08-18'),
+(191,'CARLOS FERREIRA SILVA','757.629.133-59','1992-01-05','Saúde Vida',4,'2026-08-19'),
+(192,'Adriana Teixeira Marques ','83079238466','1948-04-12',NULL,1,'2026-08-27'),
+(193,'Conceição Carvalho Lima','73798452359','1986-02-08',NULL,4,'2026-09-04'),
+(194,'Gustavo de Souza','873.334.808-18','1991-10-14','Saúde Vida',5,'2026-09-29'),
+(195,'Larissa Moreira Mendes','835.623.504-51','1972-07-19','Saúde Vida',4,'2026-10-01'),
+(196,'André Gomes Dias','77087533641','2006-02-12','Particular',1,'2026-10-02'),
+(197,'Márcia Gonçalves Almeida','82125538683','2001-08-27','MedPlus',2,'2026-10-02'),
+(198,'Irene Rodrigues Pinto','67129969264','1969-11-13','MedPlus',4,'2026-10-02'),
+(199,'Mariana Lopes Brandão','53880551195','2012-01-18',NULL,6,'2026-10-03'),
+(200,' João Silva Alves','90841137437','1988-11-20','MedPlus',1,'2026-10-05'),
+(201,'Jéssica Rodrigues Souza','48643687289','1972-02-14','Particular',1,'2026-10-05'),
+(202,'Benedito Ramos Marques','502.307.026-79','1977-02-08',NULL,2,'2026-10-05'),
+(203,'Gabriel Machado Ferreira','82433340425','1973-12-28','MedPlus',3,'2026-10-05'),
+(204,'Júlia Santos Ferreira','79498526357','1979-11-09',NULL,5,'2026-10-05'),
+(205,' VERA DE CARVALHO','13748944320','2011-06-12','Saúde Vida',2,'2026-10-06'),
+(206,'Mateus Souza Machado','23941566299','1963-05-19','Saúde Vida',3,'2026-10-07'),
+(207,'Vanessa Marques Pereira','139.425.677-65','1943-04-29','',2,'2026-10-08'),
+(208,'letícia alves mendes','71378511127','1944-05-29','',5,'2026-10-08'),
+(209,'Marcos Lima Lopes','22908790603','1986-12-13','Saúde Vida',5,'2026-10-08'),
+(210,'JULIANA DE FREITAS','885.454.780-05','2008-06-29','',4,'2026-10-09'),
+(211,'Maria Silva Souza','39055523575','2015-12-25','',2,'2026-10-13'),
+(212,' José Ribeiro Souza','240.054.572-40','1949-01-19','Particular',2,'2026-10-13'),
+(213,'Benedito de Souza','71887737783','2004-01-05','MedPlus',5,'2026-10-13'),
+(214,'Luciana Brandão Silva','311.546.005-84','1990-08-25','MedPlus',4,'2026-10-14'),
+(215,'Bruno Soares Barbosa','45323061912','1959-09-11',NULL,4,'2026-10-14'),
+(216,' júlia soares rocha','563.001.052-02','1966-02-14','Saúde Vida',2,'2026-10-14'),
+(217,'ALINE LOPES BATISTA ','908.132.879-16','1984-05-16','Saúde Vida',2,'2026-10-15'),
+(218,'Marcelo Souza Correia','31345597285','2016-11-05','Saúde Vida',6,'2026-10-18'),
+(219,'Marcos Almeida Fernandes','89283449479','2008-07-05','MedPlus',1,'2026-10-19'),
+(220,'Vera da Luz','76886201780','1982-04-06','Saúde Vida',3,'2026-10-19'),
+(221,'JOSÉ MACHADO ANDRADE ','691.890.342-35','1959-03-03','Saúde Vida',2,'2026-10-19'),
+(222,'ANA COSTA GOMES','253.189.759-55','2009-07-28','Saúde Vida',2,'2026-10-20'),
+(223,'LARISSA CAVALCANTI MOREIRA','189.671.836-64','1942-08-11',NULL,1,'2026-10-21'),
+(224,'thiago de andrade','362.432.544-58','1999-04-02',NULL,1,'2026-10-22'),
+(225,'  Jéssica Souza Vieira ','350.485.702-56','1982-06-28','Saúde Vida',5,'2026-10-26'),
+(226,'marcos dos santos','273.298.360-04','2013-01-26','Saúde Vida',2,'2026-10-26'),
+(227,' FELIPE RIBEIRO OLIVEIRA','57961125056','1961-01-14','Saúde Vida',2,'2026-10-26'),
+(228,'Francisca Fernandes Cardoso','77880653530','2000-10-25','Saúde Vida',3,'2026-10-30'),
+(229,'Marcelo de Lima  ','929.834.170-22','1949-04-25','Saúde Vida',2,'2026-10-30');
+
+INSERT INTO consulta (id,cadastro_id,data,especialidade,valor) VALUES
+(1,12,'2026-10-01','Clínica Geral','R$ 180,00'),
+(2,65,'2026-10-01','Dermatologia','R$ 250,00'),
+(3,71,'2026-10-01','Ultrassom','R$ 310,00'),
+(4,90,'2026-10-01','Ultrassom','R$ 310,00'),
+(5,94,'2026-10-01','Cardiologia','R$ 320,00'),
+(6,100,'2026-10-01','Pediatria','R$ 220,00'),
+(7,101,'2026-10-01','Ultrassom','R$ 310,00'),
+(8,120,'2026-10-01','Clínica Geral','R$ 180,00'),
+(9,124,'2026-10-01','Ortopedia','R$ 280,00'),
+(10,145,'2026-10-01','Clínica Geral','R$ 180,00'),
+(11,153,'2026-10-01','Pediatria','R$ 220,00'),
+(12,186,'2026-10-01','Tomografia','R$ 980,00'),
+(13,187,'2026-10-01','Cardiologia','R$ 320,00'),
+(14,14,'2026-10-02','Pediatria','R$ 220,00'),
+(15,16,'2026-10-02','Ortopedia','R$ 280,00'),
+(16,50,'2026-10-02','Clínica Geral','R$ 180,00'),
+(17,60,'2026-10-02','Ortopedia','R$ 280,00'),
+(18,63,'2026-10-02','Pediatria','R$ 220,00'),
+(19,97,'2026-10-02','Pediatria','R$ 220,00'),
+(20,98,'2026-10-02','Clínica Geral','R$ 180,00'),
+(21,111,'2026-10-02','Cardiologia','R$ 320,00'),
+(22,124,'2026-10-02','Cardiologia','R$ 320,00'),
+(23,140,'2026-10-02','Cardiologia','R$ 320,00'),
+(24,187,'2026-10-02','Clínica Geral','R$ 180,00'),
+(25,26,'2026-10-03','Dermatologia','R$ 250,00'),
+(26,36,'2026-10-03','Ortopedia','R$ 280,00'),
+(27,58,'2026-10-03','Ortopedia','R$ 280,00'),
+(28,69,'2026-10-03','Pediatria','R$ 220,00'),
+(29,84,'2026-10-03','Tomografia','R$ 980,00'),
+(30,103,'2026-10-03','Clínica Geral','R$ 180,00'),
+(31,134,'2026-10-03','Cardiologia','R$ 320,00'),
+(32,153,'2026-10-03','Clínica Geral','R$ 180,00'),
+(33,196,'2026-10-03','Clínica Geral','R$ 180,00'),
+(34,43,'2026-10-05','Pediatria','R$ 220,00'),
+(35,54,'2026-10-05','Clínica Geral','R$ 180,00'),
+(36,57,'2026-10-05','Dermatologia','R$ 250,00'),
+(37,62,'2026-10-05','Clínica Geral','R$ 180,00'),
+(38,83,'2026-10-05','Clínica Geral','R$ 180,00'),
+(39,96,'2026-10-05','Pediatria','R$ 220,00'),
+(40,110,'2026-10-05','Pediatria','R$ 220,00'),
+(41,127,'2026-10-05','Pediatria','R$ 220,00'),
+(42,144,'2026-10-05','Clínica Geral','R$ 180,00'),
+(43,146,'2026-10-05','Ortopedia','R$ 280,00'),
+(44,148,'2026-10-05','Ultrassom','R$ 310,00'),
+(45,168,'2026-10-05','Ortopedia','R$ 280,00'),
+(46,180,'2026-10-05','Cardiologia','R$ 320,00'),
+(47,183,'2026-10-05','Pediatria','R$ 220,00'),
+(48,191,'2026-10-05','Ressonância','R$ 1.250,00'),
+(49,5,'2026-10-06','Clínica Geral','R$ 180,00'),
+(50,5,'2026-10-06','Pediatria','R$ 220,00'),
+(51,18,'2026-10-06','Dermatologia','R$ 250,00'),
+(52,25,'2026-10-06','Pediatria','R$ 220,00'),
+(53,35,'2026-10-06','Pediatria','R$ 220,00'),
+(54,66,'2026-10-06','Pediatria','R$ 220,00'),
+(55,71,'2026-10-06','Pediatria','R$ 220,00'),
+(56,74,'2026-10-06','Pediatria','R$ 220,00'),
+(57,109,'2026-10-06','Ortopedia','R$ 280,00'),
+(58,129,'2026-10-06','Clínica Geral','R$ 180,00'),
+(59,149,'2026-10-06','Clínica Geral','R$ 180,00'),
+(60,165,'2026-10-06','Clínica Geral','R$ 180,00'),
+(61,189,'2026-10-06','Tomografia','R$ 980,00'),
+(62,199,'2026-10-06','Cardiologia','R$ 320,00'),
+(63,205,'2026-10-06','Ortopedia','R$ 280,00'),
+(64,24,'2026-10-07','Pediatria','R$ 220,00'),
+(65,47,'2026-10-07','Dermatologia','R$ 250,00'),
+(66,60,'2026-10-07','Clínica Geral','R$ 180,00'),
+(67,69,'2026-10-07','Clínica Geral','R$ 180,00'),
+(68,83,'2026-10-07','Dermatologia','R$ 250,00'),
+(69,101,'2026-10-07','Ortopedia','R$ 280,00'),
+(70,116,'2026-10-07','Cardiologia','R$ 320,00'),
+(71,134,'2026-10-07','Ultrassom','R$ 310,00'),
+(72,151,'2026-10-07','Ortopedia','R$ 280,00'),
+(73,161,'2026-10-07','Clínica Geral','R$ 180,00'),
+(74,192,'2026-10-07','Clínica Geral','R$ 180,00'),
+(75,3,'2026-10-08','Clínica Geral','R$ 180,00'),
+(76,52,'2026-10-08','Clínica Geral','R$ 180,00'),
+(77,57,'2026-10-08','Ressonância','R$ 1.250,00'),
+(78,57,'2026-10-08','Clínica Geral','R$ 180,00'),
+(79,80,'2026-10-08','Cardiologia','R$ 320,00'),
+(80,82,'2026-10-08','Cardiologia','R$ 320,00'),
+(81,86,'2026-10-08','Ultrassom','R$ 310,00'),
+(82,94,'2026-10-08','Ortopedia','R$ 280,00'),
+(83,105,'2026-10-08','Pediatria','R$ 220,00'),
+(84,115,'2026-10-08','Clínica Geral','R$ 180,00'),
+(85,124,'2026-10-08','Ultrassom','R$ 310,00'),
+(86,145,'2026-10-08','Dermatologia','R$ 250,00'),
+(87,146,'2026-10-08','Clínica Geral','R$ 180,00'),
+(88,163,'2026-10-08','Dermatologia','R$ 250,00'),
+(89,164,'2026-10-08','Tomografia','R$ 980,00'),
+(90,179,'2026-10-08','Ortopedia','R$ 280,00'),
+(91,21,'2026-10-09','Clínica Geral','R$ 180,00'),
+(92,29,'2026-10-09','Pediatria','R$ 220,00'),
+(93,34,'2026-10-09','Clínica Geral','R$ 180,00'),
+(94,52,'2026-10-09','Ortopedia','R$ 280,00'),
+(95,96,'2026-10-09','Cardiologia','R$ 320,00'),
+(96,113,'2026-10-09','Dermatologia','R$ 250,00'),
+(97,131,'2026-10-09','Ortopedia','R$ 280,00'),
+(98,135,'2026-10-09','Clínica Geral','R$ 180,00'),
+(99,144,'2026-10-09','Pediatria','R$ 220,00'),
+(100,153,'2026-10-09','Ultrassom','R$ 310,00'),
+(101,176,'2026-10-09','Pediatria','R$ 220,00'),
+(102,178,'2026-10-09','Cardiologia','R$ 320,00'),
+(103,201,'2026-10-09','Ressonância','R$ 1.250,00'),
+(104,16,'2026-10-10','Tomografia','R$ 980,00'),
+(105,20,'2026-10-10','Cardiologia','R$ 320,00'),
+(106,21,'2026-10-10','Ressonância','R$ 1.250,00'),
+(107,25,'2026-10-10','Ortopedia','R$ 280,00'),
+(108,29,'2026-10-10','Clínica Geral','R$ 180,00'),
+(109,30,'2026-10-10','Ortopedia','R$ 280,00'),
+(110,42,'2026-10-10','Clínica Geral','R$ 180,00'),
+(111,89,'2026-10-10','Clínica Geral','R$ 180,00'),
+(112,97,'2026-10-10','Ressonância','R$ 1.250,00'),
+(113,117,'2026-10-10','Cardiologia','R$ 320,00'),
+(114,124,'2026-10-10','Cardiologia','R$ 320,00'),
+(115,8,'2026-10-12','Ressonância','R$ 1.250,00'),
+(116,28,'2026-10-12','Tomografia','R$ 980,00'),
+(117,52,'2026-10-12','Cardiologia','R$ 320,00'),
+(118,54,'2026-10-12','Cardiologia','R$ 320,00'),
+(119,62,'2026-10-12','Ortopedia','R$ 280,00'),
+(120,63,'2026-10-12','Cardiologia','R$ 320,00'),
+(121,77,'2026-10-12','Ortopedia','R$ 280,00'),
+(122,91,'2026-10-12','Cardiologia','R$ 320,00'),
+(123,94,'2026-10-12','Clínica Geral','R$ 180,00'),
+(124,103,'2026-10-12','Ortopedia','R$ 280,00'),
+(125,112,'2026-10-12','Clínica Geral','R$ 180,00'),
+(126,112,'2026-10-12','Clínica Geral','R$ 180,00'),
+(127,140,'2026-10-12','Dermatologia','R$ 250,00'),
+(128,141,'2026-10-12','Ressonância','R$ 1.250,00'),
+(129,160,'2026-10-12','Ortopedia','R$ 280,00'),
+(130,160,'2026-10-12','Clínica Geral','R$ 180,00'),
+(131,170,'2026-10-12','Ultrassom','R$ 310,00'),
+(132,174,'2026-10-12','Pediatria','R$ 220,00'),
+(133,182,'2026-10-12','Pediatria','R$ 220,00'),
+(134,196,'2026-10-12','Pediatria','R$ 220,00'),
+(135,1,'2026-10-13','Clínica Geral','R$ 180,00'),
+(136,1,'2026-10-13','Tomografia','R$ 980,00'),
+(137,17,'2026-10-13','Clínica Geral','R$ 180,00'),
+(138,39,'2026-10-13','Cardiologia','R$ 320,00'),
+(139,62,'2026-10-13','Cardiologia','R$ 320,00'),
+(140,63,'2026-10-13','Dermatologia','R$ 250,00'),
+(141,64,'2026-10-13','Dermatologia','R$ 250,00'),
+(142,93,'2026-10-13','Pediatria','R$ 220,00'),
+(143,95,'2026-10-13','Clínica Geral','R$ 180,00'),
+(144,100,'2026-10-13','Tomografia','R$ 980,00'),
+(145,121,'2026-10-13','Pediatria','R$ 220,00'),
+(146,149,'2026-10-13','Cardiologia','R$ 320,00'),
+(147,150,'2026-10-13','Clínica Geral','R$ 180,00'),
+(148,174,'2026-10-13','Clínica Geral','R$ 180,00'),
+(149,174,'2026-10-13','Clínica Geral','R$ 180,00'),
+(150,180,'2026-10-13','Pediatria','R$ 220,00'),
+(151,197,'2026-10-13','Clínica Geral','R$ 180,00'),
+(152,206,'2026-10-13','Clínica Geral','R$ 180,00'),
+(153,6,'2026-10-14','Cardiologia','R$ 320,00'),
+(154,9,'2026-10-14','Clínica Geral','R$ 180,00'),
+(155,18,'2026-10-14','Ressonância','R$ 1.250,00'),
+(156,26,'2026-10-14','Clínica Geral','R$ 180,00'),
+(157,51,'2026-10-14','Clínica Geral','R$ 180,00'),
+(158,54,'2026-10-14','Tomografia','R$ 980,00'),
+(159,87,'2026-10-14','Cardiologia','R$ 320,00'),
+(160,87,'2026-10-14','Ortopedia','R$ 280,00'),
+(161,88,'2026-10-14','Ortopedia','R$ 280,00'),
+(162,89,'2026-10-14','Ressonância','R$ 1.250,00'),
+(163,98,'2026-10-14','Ultrassom','R$ 310,00'),
+(164,115,'2026-10-14','Tomografia','R$ 980,00'),
+(165,118,'2026-10-14','Clínica Geral','R$ 180,00'),
+(166,126,'2026-10-14','Clínica Geral','R$ 180,00'),
+(167,131,'2026-10-14','Clínica Geral','R$ 180,00'),
+(168,136,'2026-10-14','Clínica Geral','R$ 180,00'),
+(169,162,'2026-10-14','Ortopedia','R$ 280,00'),
+(170,169,'2026-10-14','Clínica Geral','R$ 180,00'),
+(171,169,'2026-10-14','Clínica Geral','R$ 180,00'),
+(172,186,'2026-10-14','Clínica Geral','R$ 180,00'),
+(173,194,'2026-10-14','Clínica Geral','R$ 180,00'),
+(174,206,'2026-10-14','Ultrassom','R$ 310,00'),
+(175,207,'2026-10-14','Ultrassom','R$ 310,00'),
+(176,216,'2026-10-14','Ressonância','R$ 1.250,00'),
+(177,8,'2026-10-15','Pediatria','R$ 220,00'),
+(178,33,'2026-10-15','Ortopedia','R$ 280,00'),
+(179,42,'2026-10-15','Clínica Geral','R$ 180,00'),
+(180,42,'2026-10-15','Ressonância','R$ 1.250,00'),
+(181,46,'2026-10-15','Ressonância','R$ 1.250,00'),
+(182,52,'2026-10-15','Pediatria','R$ 220,00'),
+(183,57,'2026-10-15','Ressonância','R$ 1.250,00'),
+(184,67,'2026-10-15','Tomografia','R$ 980,00'),
+(185,76,'2026-10-15','Clínica Geral','R$ 180,00'),
+(186,130,'2026-10-15','Clínica Geral','R$ 180,00'),
+(187,161,'2026-10-15','Clínica Geral','R$ 180,00'),
+(188,164,'2026-10-15','Cardiologia','R$ 320,00'),
+(189,173,'2026-10-15','Ortopedia','R$ 280,00'),
+(190,175,'2026-10-15','Pediatria','R$ 220,00'),
+(191,178,'2026-10-15','Clínica Geral','R$ 180,00'),
+(192,200,'2026-10-15','Ortopedia','R$ 280,00'),
+(193,200,'2026-10-15','Dermatologia','R$ 250,00'),
+(194,210,'2026-10-15','Clínica Geral','R$ 180,00'),
+(195,213,'2026-10-15','Clínica Geral','R$ 180,00'),
+(196,217,'2026-10-15','Tomografia','R$ 980,00'),
+(197,8,'2026-10-16','Tomografia','R$ 980,00'),
+(198,34,'2026-10-16','Cardiologia','R$ 320,00'),
+(199,39,'2026-10-16','Pediatria','R$ 220,00'),
+(200,49,'2026-10-16','Pediatria','R$ 220,00'),
+(201,53,'2026-10-16','Ultrassom','R$ 310,00'),
+(202,85,'2026-10-16','Clínica Geral','R$ 180,00'),
+(203,92,'2026-10-16','Clínica Geral','R$ 180,00'),
+(204,118,'2026-10-16','Clínica Geral','R$ 180,00'),
+(205,126,'2026-10-16','Ortopedia','R$ 280,00'),
+(206,140,'2026-10-16','Ortopedia','R$ 280,00'),
+(207,175,'2026-10-16','Dermatologia','R$ 250,00'),
+(208,200,'2026-10-16','Clínica Geral','R$ 180,00'),
+(209,207,'2026-10-16','Pediatria','R$ 220,00'),
+(210,213,'2026-10-16','Clínica Geral','R$ 180,00'),
+(211,28,'2026-10-17','Pediatria','R$ 220,00'),
+(212,29,'2026-10-17','Ortopedia','R$ 280,00'),
+(213,32,'2026-10-17','Ortopedia','R$ 280,00'),
+(214,34,'2026-10-17','Ressonância','R$ 1.250,00'),
+(215,36,'2026-10-17','Clínica Geral','R$ 180,00'),
+(216,42,'2026-10-17','Ressonância','R$ 1.250,00'),
+(217,86,'2026-10-17','Clínica Geral','R$ 180,00'),
+(218,86,'2026-10-17','Clínica Geral','R$ 180,00'),
+(219,135,'2026-10-17','Cardiologia','R$ 320,00'),
+(220,139,'2026-10-17','Clínica Geral','R$ 180,00'),
+(221,148,'2026-10-17','Pediatria','R$ 220,00'),
+(222,170,'2026-10-17','Ressonância','R$ 1.250,00'),
+(223,188,'2026-10-17','Ultrassom','R$ 310,00'),
+(224,1,'2026-10-19','Clínica Geral','R$ 180,00'),
+(225,2,'2026-10-19','Dermatologia','R$ 250,00'),
+(226,9,'2026-10-19','Cardiologia','R$ 320,00'),
+(227,15,'2026-10-19','Clínica Geral','R$ 180,00'),
+(228,62,'2026-10-19','Pediatria','R$ 220,00'),
+(229,100,'2026-10-19','Ortopedia','R$ 280,00'),
+(230,100,'2026-10-19','Clínica Geral','R$ 180,00'),
+(231,104,'2026-10-19','Pediatria','R$ 220,00'),
+(232,118,'2026-10-19','Pediatria','R$ 220,00'),
+(233,126,'2026-10-19','Dermatologia','R$ 250,00'),
+(234,128,'2026-10-19','Clínica Geral','R$ 180,00'),
+(235,155,'2026-10-19','Clínica Geral','R$ 180,00'),
+(236,158,'2026-10-19','Clínica Geral','R$ 180,00'),
+(237,158,'2026-10-19','Ortopedia','R$ 280,00'),
+(238,166,'2026-10-19','Ressonância','R$ 1.250,00'),
+(239,175,'2026-10-19','Ultrassom','R$ 310,00'),
+(240,179,'2026-10-19','Ortopedia','R$ 280,00'),
+(241,194,'2026-10-19','Ultrassom','R$ 310,00'),
+(242,202,'2026-10-19','Pediatria','R$ 220,00'),
+(243,212,'2026-10-19','Cardiologia','R$ 320,00'),
+(244,218,'2026-10-19','Clínica Geral','R$ 180,00'),
+(245,221,'2026-10-19','Ressonância','R$ 1.250,00'),
+(246,4,'2026-10-20','Pediatria','R$ 220,00'),
+(247,46,'2026-10-20','Pediatria','R$ 220,00'),
+(248,64,'2026-10-20','Ortopedia','R$ 280,00'),
+(249,105,'2026-10-20','Tomografia','R$ 980,00'),
+(250,124,'2026-10-20','Ressonância','R$ 1.250,00'),
+(251,136,'2026-10-20','Dermatologia','R$ 250,00'),
+(252,152,'2026-10-20','Tomografia','R$ 980,00'),
+(253,181,'2026-10-20','Ultrassom','R$ 310,00'),
+(254,196,'2026-10-20','Ultrassom','R$ 310,00'),
+(255,207,'2026-10-20','Dermatologia','R$ 250,00'),
+(256,222,'2026-10-20','Clínica Geral','R$ 180,00'),
+(257,31,'2026-10-21','Ultrassom','R$ 310,00'),
+(258,53,'2026-10-21','Cardiologia','R$ 320,00'),
+(259,54,'2026-10-21','Dermatologia','R$ 250,00'),
+(260,70,'2026-10-21','Clínica Geral','R$ 180,00'),
+(261,83,'2026-10-21','Cardiologia','R$ 320,00'),
+(262,87,'2026-10-21','Clínica Geral','R$ 180,00'),
+(263,91,'2026-10-21','Tomografia','R$ 980,00'),
+(264,98,'2026-10-21','Ressonância','R$ 1.250,00'),
+(265,101,'2026-10-21','Cardiologia','R$ 320,00'),
+(266,141,'2026-10-21','Pediatria','R$ 220,00'),
+(267,143,'2026-10-21','Ortopedia','R$ 280,00'),
+(268,155,'2026-10-21','Cardiologia','R$ 320,00'),
+(269,2,'2026-10-22','Pediatria','R$ 220,00'),
+(270,3,'2026-10-22','Tomografia','R$ 980,00'),
+(271,7,'2026-10-22','Tomografia','R$ 980,00'),
+(272,8,'2026-10-22','Clínica Geral','R$ 180,00'),
+(273,10,'2026-10-22','Ultrassom','R$ 310,00'),
+(274,11,'2026-10-22','Clínica Geral','R$ 180,00'),
+(275,36,'2026-10-22','Clínica Geral','R$ 180,00'),
+(276,43,'2026-10-22','Ultrassom','R$ 310,00'),
+(277,54,'2026-10-22','Dermatologia','R$ 250,00'),
+(278,56,'2026-10-22','Clínica Geral','R$ 180,00'),
+(279,61,'2026-10-22','Ortopedia','R$ 280,00'),
+(280,84,'2026-10-22','Clínica Geral','R$ 180,00'),
+(281,93,'2026-10-22','Cardiologia','R$ 320,00'),
+(282,130,'2026-10-22','Clínica Geral','R$ 180,00'),
+(283,150,'2026-10-22','Dermatologia','R$ 250,00'),
+(284,151,'2026-10-22','Ressonância','R$ 1.250,00'),
+(285,166,'2026-10-22','Clínica Geral','R$ 180,00'),
+(286,197,'2026-10-22','Cardiologia','R$ 320,00'),
+(287,8,'2026-10-23','Cardiologia','R$ 320,00'),
+(288,24,'2026-10-23','Pediatria','R$ 220,00'),
+(289,58,'2026-10-23','Clínica Geral','R$ 180,00'),
+(290,75,'2026-10-23','Pediatria','R$ 220,00'),
+(291,77,'2026-10-23','Cardiologia','R$ 320,00'),
+(292,105,'2026-10-23','Pediatria','R$ 220,00'),
+(293,122,'2026-10-23','Dermatologia','R$ 250,00'),
+(294,150,'2026-10-23','Clínica Geral','R$ 180,00'),
+(295,156,'2026-10-23','Cardiologia','R$ 320,00'),
+(296,196,'2026-10-23','Ultrassom','R$ 310,00'),
+(297,197,'2026-10-23','Clínica Geral','R$ 180,00'),
+(298,197,'2026-10-23','Ortopedia','R$ 280,00'),
+(299,219,'2026-10-23','Ultrassom','R$ 310,00'),
+(300,4,'2026-10-24','Dermatologia','R$ 250,00'),
+(301,4,'2026-10-24','Ressonância','R$ 1.250,00'),
+(302,37,'2026-10-24','Tomografia','R$ 980,00'),
+(303,70,'2026-10-24','Tomografia','R$ 980,00'),
+(304,77,'2026-10-24','Dermatologia','R$ 250,00'),
+(305,82,'2026-10-24','Cardiologia','R$ 320,00'),
+(306,106,'2026-10-24','Dermatologia','R$ 250,00'),
+(307,118,'2026-10-24','Pediatria','R$ 220,00'),
+(308,138,'2026-10-24','Clínica Geral','R$ 180,00'),
+(309,150,'2026-10-24','Dermatologia','R$ 250,00'),
+(310,160,'2026-10-24','Clínica Geral','R$ 180,00'),
+(311,165,'2026-10-24','Clínica Geral','R$ 180,00'),
+(312,171,'2026-10-24','Dermatologia','R$ 250,00'),
+(313,180,'2026-10-24','Clínica Geral','R$ 180,00'),
+(314,189,'2026-10-24','Ressonância','R$ 1.250,00'),
+(315,192,'2026-10-24','Clínica Geral','R$ 180,00'),
+(316,201,'2026-10-24','Clínica Geral','R$ 180,00'),
+(317,203,'2026-10-24','Ressonância','R$ 1.250,00'),
+(318,219,'2026-10-24','Clínica Geral','R$ 180,00'),
+(319,222,'2026-10-24','Dermatologia','R$ 250,00'),
+(320,5,'2026-10-26','Clínica Geral','R$ 180,00'),
+(321,24,'2026-10-26','Cardiologia','R$ 320,00'),
+(322,38,'2026-10-26','Tomografia','R$ 980,00'),
+(323,49,'2026-10-26','Clínica Geral','R$ 180,00'),
+(324,59,'2026-10-26','Ressonância','R$ 1.250,00'),
+(325,64,'2026-10-26','Pediatria','R$ 220,00'),
+(326,78,'2026-10-26','Ortopedia','R$ 280,00'),
+(327,83,'2026-10-26','Clínica Geral','R$ 180,00'),
+(328,96,'2026-10-26','Ortopedia','R$ 280,00'),
+(329,100,'2026-10-26','Pediatria','R$ 220,00'),
+(330,120,'2026-10-26','Clínica Geral','R$ 180,00'),
+(331,122,'2026-10-26','Clínica Geral','R$ 180,00'),
+(332,132,'2026-10-26','Tomografia','R$ 980,00'),
+(333,134,'2026-10-26','Cardiologia','R$ 320,00'),
+(334,139,'2026-10-26','Dermatologia','R$ 250,00'),
+(335,146,'2026-10-26','Clínica Geral','R$ 180,00'),
+(336,154,'2026-10-26','Ortopedia','R$ 280,00'),
+(337,174,'2026-10-26','Clínica Geral','R$ 180,00'),
+(338,179,'2026-10-26','Ultrassom','R$ 310,00'),
+(339,181,'2026-10-26','Clínica Geral','R$ 180,00'),
+(340,183,'2026-10-26','Cardiologia','R$ 320,00'),
+(341,183,'2026-10-26','Pediatria','R$ 220,00'),
+(342,187,'2026-10-26','Ultrassom','R$ 310,00'),
+(343,197,'2026-10-26','Clínica Geral','R$ 180,00'),
+(344,204,'2026-10-26','Clínica Geral','R$ 180,00'),
+(345,214,'2026-10-26','Clínica Geral','R$ 180,00'),
+(346,226,'2026-10-26','Ultrassom','R$ 310,00'),
+(347,227,'2026-10-26','Tomografia','R$ 980,00'),
+(348,2,'2026-10-27','Cardiologia','R$ 320,00'),
+(349,15,'2026-10-27','Clínica Geral','R$ 180,00'),
+(350,32,'2026-10-27','Pediatria','R$ 220,00'),
+(351,52,'2026-10-27','Pediatria','R$ 220,00'),
+(352,53,'2026-10-27','Cardiologia','R$ 320,00'),
+(353,58,'2026-10-27','Clínica Geral','R$ 180,00'),
+(354,81,'2026-10-27','Clínica Geral','R$ 180,00'),
+(355,101,'2026-10-27','Clínica Geral','R$ 180,00'),
+(356,103,'2026-10-27','Cardiologia','R$ 320,00'),
+(357,123,'2026-10-27','Tomografia','R$ 980,00'),
+(358,133,'2026-10-27','Pediatria','R$ 220,00'),
+(359,179,'2026-10-27','Cardiologia','R$ 320,00'),
+(360,196,'2026-10-27','Tomografia','R$ 980,00'),
+(361,197,'2026-10-27','Clínica Geral','R$ 180,00'),
+(362,201,'2026-10-27','Ressonância','R$ 1.250,00'),
+(363,202,'2026-10-27','Ortopedia','R$ 280,00'),
+(364,206,'2026-10-27','Clínica Geral','R$ 180,00'),
+(365,4,'2026-10-28','Tomografia','R$ 980,00'),
+(366,49,'2026-10-28','Pediatria','R$ 220,00'),
+(367,55,'2026-10-28','Dermatologia','R$ 250,00'),
+(368,57,'2026-10-28','Ressonância','R$ 1.250,00'),
+(369,60,'2026-10-28','Pediatria','R$ 220,00'),
+(370,67,'2026-10-28','Ressonância','R$ 1.250,00'),
+(371,72,'2026-10-28','Pediatria','R$ 220,00'),
+(372,84,'2026-10-28','Clínica Geral','R$ 180,00'),
+(373,110,'2026-10-28','Cardiologia','R$ 320,00'),
+(374,175,'2026-10-28','Pediatria','R$ 220,00'),
+(375,211,'2026-10-28','Cardiologia','R$ 320,00'),
+(376,212,'2026-10-28','Tomografia','R$ 980,00'),
+(377,214,'2026-10-28','Cardiologia','R$ 320,00'),
+(378,223,'2026-10-28','Clínica Geral','R$ 180,00'),
+(379,225,'2026-10-28','Clínica Geral','R$ 180,00'),
+(380,4,'2026-10-29','Tomografia','R$ 980,00'),
+(381,7,'2026-10-29','Ressonância','R$ 1.250,00'),
+(382,18,'2026-10-29','Clínica Geral','R$ 180,00'),
+(383,23,'2026-10-29','Pediatria','R$ 220,00'),
+(384,58,'2026-10-29','Cardiologia','R$ 320,00'),
+(385,70,'2026-10-29','Pediatria','R$ 220,00'),
+(386,92,'2026-10-29','Dermatologia','R$ 250,00'),
+(387,113,'2026-10-29','Clínica Geral','R$ 180,00'),
+(388,114,'2026-10-29','Cardiologia','R$ 320,00'),
+(389,143,'2026-10-29','Pediatria','R$ 220,00'),
+(390,150,'2026-10-29','Tomografia','R$ 980,00'),
+(391,168,'2026-10-29','Clínica Geral','R$ 180,00'),
+(392,168,'2026-10-29','Tomografia','R$ 980,00'),
+(393,176,'2026-10-29','Cardiologia','R$ 320,00'),
+(394,178,'2026-10-29','Dermatologia','R$ 250,00'),
+(395,194,'2026-10-29','Pediatria','R$ 220,00'),
+(396,201,'2026-10-29','Ortopedia','R$ 280,00'),
+(397,223,'2026-10-29','Pediatria','R$ 220,00'),
+(398,3,'2026-10-30','Cardiologia','R$ 320,00'),
+(399,6,'2026-10-30','Ressonância','R$ 1.250,00'),
+(400,19,'2026-10-30','Pediatria','R$ 220,00'),
+(401,19,'2026-10-30','Dermatologia','R$ 250,00'),
+(402,29,'2026-10-30','Cardiologia','R$ 320,00'),
+(403,31,'2026-10-30','Clínica Geral','R$ 180,00'),
+(404,51,'2026-10-30','Pediatria','R$ 220,00'),
+(405,61,'2026-10-30','Clínica Geral','R$ 180,00'),
+(406,64,'2026-10-30','Clínica Geral','R$ 180,00'),
+(407,73,'2026-10-30','Ortopedia','R$ 280,00'),
+(408,74,'2026-10-30','Pediatria','R$ 220,00'),
+(409,79,'2026-10-30','Pediatria','R$ 220,00'),
+(410,86,'2026-10-30','Tomografia','R$ 980,00'),
+(411,112,'2026-10-30','Clínica Geral','R$ 180,00'),
+(412,127,'2026-10-30','Ressonância','R$ 1.250,00'),
+(413,129,'2026-10-30','Cardiologia','R$ 320,00'),
+(414,132,'2026-10-30','Clínica Geral','R$ 180,00'),
+(415,156,'2026-10-30','Clínica Geral','R$ 180,00'),
+(416,164,'2026-10-30','Ultrassom','R$ 310,00'),
+(417,165,'2026-10-30','Clínica Geral','R$ 180,00'),
+(418,170,'2026-10-30','Ultrassom','R$ 310,00'),
+(419,171,'2026-10-30','Clínica Geral','R$ 180,00'),
+(420,178,'2026-10-30','Clínica Geral','R$ 180,00'),
+(421,223,'2026-10-30','Ortopedia','R$ 280,00'),
+(422,225,'2026-10-30','Ortopedia','R$ 280,00'),
+(423,229,'2026-10-30','Cardiologia','R$ 320,00'),
+(424,20,'2026-10-31','Pediatria','R$ 220,00'),
+(425,29,'2026-10-31','Pediatria','R$ 220,00'),
+(426,61,'2026-10-31','Clínica Geral','R$ 180,00'),
+(427,70,'2026-10-31','Ultrassom','R$ 310,00'),
+(428,75,'2026-10-31','Clínica Geral','R$ 180,00'),
+(429,89,'2026-10-31','Ressonância','R$ 1.250,00'),
+(430,103,'2026-10-31','Clínica Geral','R$ 180,00'),
+(431,104,'2026-10-31','Clínica Geral','R$ 180,00'),
+(432,105,'2026-10-31','Dermatologia','R$ 250,00'),
+(433,125,'2026-10-31','Ultrassom','R$ 310,00'),
+(434,141,'2026-10-31','Cardiologia','R$ 320,00'),
+(435,144,'2026-10-31','Ortopedia','R$ 280,00'),
+(436,149,'2026-10-31','Cardiologia','R$ 320,00'),
+(437,160,'2026-10-31','Ressonância','R$ 1.250,00'),
+(438,169,'2026-10-31','Pediatria','R$ 220,00'),
+(439,181,'2026-10-31','Pediatria','R$ 220,00'),
+(440,189,'2026-10-31','Dermatologia','R$ 250,00'),
+(441,192,'2026-10-31','Cardiologia','R$ 320,00'),
+(442,228,'2026-10-31','Cardiologia','R$ 320,00'),
+(443,228,'2026-10-31','Ultrassom','R$ 310,00'),
+(444,228,'2026-10-31','Ortopedia','R$ 280,00');
+
+-- Segurança: bloqueia acesso pela API pública (o SQL Editor continua funcionando)
+ALTER TABLE atendente ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cadastro ENABLE ROW LEVEL SECURITY;
+ALTER TABLE consulta ENABLE ROW LEVEL SECURITY;
+
+-- Conferir a resposta:  SELECT verificar_caso7('resposta');
+CREATE FUNCTION verificar_caso7(resposta text) RETURNS text
+LANGUAGE sql AS $$
+  SELECT CASE md5(lower(trim(resposta)))
+    WHEN 'fcaef56e896572e32ee2b6ea4796a0f2' THEN
+      '🏆 CASO ENCERRADO! Foi essa pessoa que criou os cadastros em dobro para cobrar consultas repetidas. O Saúde Vida vai ser ressarcido. Parabéns, detetive!'
+    ELSE
+      '❌ Não é essa. Confira se escreveu exatamente como aparece nos dados e revise as pistas.'
+  END
+$$;
+
+SELECT '✅ Caso 7 instalado! Volte para o guia e comece a Etapa 1.' AS status;
+</script>
+
+<div class="tela-login" id="telaLogin" role="dialog" aria-modal="true" aria-labelledby="lgTitulo" hidden>
+  <div class="tela-card">
+    <aside class="tela-marca">
+      <svg class="tela-logo" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="27" cy="27" r="18" fill="none" stroke="#fff" stroke-width="5"/>
+        <path d="M40 40l16 16" stroke="#f3d64e" stroke-width="7" stroke-linecap="round"/>
+        <path d="M27 18v18M18 27h18" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+      </svg>
+      <h1 id="lgTitulo">Mistério no Hospital SQL</h1>
+      <p class="tela-lema">Aprenda SQL investigando casos de um hospital.</p>
+      <ul class="tela-itens">
+        <li>10 casos, do iniciante ao avançado</li>
+        <li>Seu progresso salvo em qualquer computador</li>
+        <li>Caderno do detetive com as suas anotações</li>
+      </ul>
+    </aside>
+    <section class="tela-form">
+      <p class="tela-sub" id="lgSubtitulo">Entre para continuar de onde parou</p>
+      <div class="tela-abas" id="lgAbas" role="tablist">
+        <button type="button" role="tab" id="lgTabEntrar" aria-selected="true">Entrar</button>
+        <button type="button" role="tab" id="lgTabCriar" aria-selected="false">Criar conta</button>
+      </div>
+      <div id="lgCampoEmail">
+        <label for="sbEmail">E-mail</label>
+        <div class="campo">
+          <span class="campo-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>
+          <input id="sbEmail" type="email" placeholder="voce@exemplo.com" autocomplete="email" inputmode="email">
+        </div>
+      </div>
+      <div>
+        <label for="sbPass" id="lgRotSenha">Senha <span class="tela-min">(mínimo 8 caracteres)</span></label>
+        <div class="campo">
+          <span class="campo-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+          <input id="sbPass" type="password" autocomplete="current-password" maxlength="72">
+          <button type="button" class="campo-ver" id="lgVer" aria-label="Mostrar senha" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
+      <button type="button" class="tela-principal" id="sbLogin">Entrar</button>
+      <button type="button" class="tela-principal" id="sbSignup" hidden>Criar conta</button>
+      <button type="button" class="tela-principal" id="lgNova" hidden>Salvar nova senha</button>
+      <button type="button" class="tela-link" id="lgEsqueci">Esqueci minha senha</button>
+      <div class="msg" id="lgMsg" role="status" aria-live="polite"></div>
+      <div class="tela-ou"><span>ou</span></div>
+      <button type="button" class="tela-pular" id="lgPular">Continuar sem entrar</button>
+      <p class="tela-nota">Sem entrar, o progresso fica salvo só neste navegador.</p>
+      <p class="tela-autoria">Aplicativo criado por Noemi Sales</p>
+    </section>
+  </div>
+</div>
+
+<dialog class="sync" id="syncDlg">
+  <h3>☁ Salvar progresso na nuvem</h3>
+  <div id="sbConnGrp">
+    <small>No Supabase: Project Settings → API. Use a <b>Project URL</b> e a chave <b>anon / public</b>. Nunca use a service_role. Rode antes o <code>banco_do_jogo.sql</code> atualizado.</small>
+    <label for="sbUrl">Project URL</label>
+    <input id="sbUrl" type="url" placeholder="https://xxxx.supabase.co" autocomplete="off">
+    <label for="sbKey">Chave anon (public)</label>
+    <input id="sbKey" type="text" placeholder="eyJ..." autocomplete="off">
+    <div class="row"><button type="button" class="btn" id="sbSave">Conectar</button></div>
+  </div>
+  <div id="sbUserGrp">
+    <p id="sbWho"></p>
+    <div class="row"><button type="button" class="btn" id="sbLogout">Sair</button></div>
+  </div>
+  <div class="msg" id="sbMsg" role="status"></div>
+  <div class="row">
+    <button type="button" class="btn" id="sbClear">Trocar projeto</button>
+    <button type="button" class="btn" id="sbClose">Fechar</button>
+  </div>
+</dialog>
+
+<script src="js/config.js?v=58dc78bb"></script>
+<script src="js/app.js?v=5417c6c0"></script>
+<script src="js/pwa.js?v=e304ae22"></script>
+<script src="js/catalogo.js?v=cd3ff46d"></script>
+<script src="js/caderno.js?v=716bce0b"></script>
+<script src="js/quadro.js?v=27dfa579"></script>
+<script src="js/computador.js?v=dc86bf00"></script>
+
+<script src="vendor/mermaid/mermaid.min.js"></script>
+<script src="js/mermaid-init.js?v=9cf16683"></script>
+
+</body>
+</html>

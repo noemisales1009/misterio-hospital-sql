@@ -1,6 +1,6 @@
 # 🕵️ Mistério no Hospital SQL
 
-Jogo de detetive para aprender SQL usando o Supabase. São seis casos, do mais simples ao mais exigente, todos com dados fictícios de um hospital.
+Jogo de detetive para aprender SQL usando o Supabase. São dez casos, do mais simples ao mais exigente, todos com dados fictícios de um hospital.
 
 Aplicativo criado por Noemi Sales.
 
@@ -14,16 +14,22 @@ Aplicativo criado por Noemi Sales.
 | 4 | O surto na UTI | Intermediário | datas, `WITH`, taxa de ataque | `caso4.html` e `caso4.sql` |
 | 5 | A conta que não fecha | Avançado | `WITH`, `UNION ALL`, anomalias | `caso5.html` e `caso5.sql` |
 | 6 | A cadeia de frio | Avançado | `LAG`, `LEAD`, `ROW_NUMBER` | `caso6.html` e `caso6.sql` |
+| 7 | O paciente em dobro | Intermediário | `TRIM`, `REPLACE`, `COALESCE`, `NULLIF`, `CAST`/`::` | `caso7.html` e `caso7.sql` |
+| 8 | As horas extras | Avançado | `EXTRACT`, `DATE_TRUNC`, `RANK`, `SUM() OVER`, `NOT EXISTS` | `caso8.html` e `caso8.sql` |
+| 9 | O prontuário espiado | Segurança (LGPD) | auditoria de acessos, anti-join, mascarar dado sensível | `caso9.html` e `caso9.sql` |
+| 10 | A invasão | Segurança | SQL injection, `GRANT`/`REVOKE`, RLS | `caso10.html` e `caso10.sql` |
 
-Cada caso tem as **próprias tabelas**, então os seis cabem no mesmo projeto do Supabase. As fases abrem em sequência: a próxima só libera quando a anterior é concluída, e uma fase abre por vez.
+Cada caso tem as **próprias tabelas**, então os dez cabem no mesmo projeto do Supabase. As fases abrem em sequência: a próxima só libera quando a anterior é concluída, e uma fase abre por vez.
+
+Os casos 9 e 10 são sobre **segurança**: investigar quem acessou dado sensível sem motivo (Caso 9) e reconstruir um ataque de SQL injection, com as defesas de menor privilégio e RLS (Caso 10). No Caso 10, comandos como `GRANT`, `REVOKE` e `CREATE POLICY` aparecem como exemplo para copiar e rodar à parte no computador da fase — eles não entram nas missões corrigidas automaticamente, porque mudam o banco e precisam ser vistos em ação, não só comparados.
 
 ## O que tem nesta pasta
 
 | Arquivo | Para que serve |
 |---|---|
 | `index.html` | Página inicial: escolha do caso, nome e botão "continuar de onde parei". |
-| `guia.html`, `caso2.html` … `caso6.html` | Os casos: explicações, missões, dicas e soluções. |
-| `banco_do_jogo.sql`, `caso2.sql` … `caso6.sql` | Os bancos de dados de cada caso. Vão no SQL Editor do Supabase. |
+| `guia.html`, `caso2.html` … `caso10.html` | Os casos: explicações, missões, dicas e soluções. |
+| `banco_do_jogo.sql`, `caso2.sql` … `caso10.sql` | Os bancos de dados de cada caso. Vão no SQL Editor do Supabase. |
 | `progresso.sql` | Só as tabelas da conta: progresso, perfil e anotações. Já está dentro do `banco_do_jogo.sql`. |
 | `css/estilo.css` | Visual. |
 | `js/app.js` | Fases em sequência, progresso, login e sincronização com o Supabase. |
@@ -48,6 +54,10 @@ SELECT verificar_caso3('Nome Completo');
 SELECT verificar_caso4('CÓDIGO');
 SELECT verificar_caso5('CÓDIGO');
 SELECT verificar_caso6('Nome Completo');
+SELECT verificar_caso7('Nome Completo');
+SELECT verificar_caso8('Nome Completo');
+SELECT verificar_caso9('Nome Completo');
+SELECT verificar_caso10('Nome Completo');
 ```
 
 ## Salvar no Supabase, com conta

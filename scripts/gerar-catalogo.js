@@ -11,6 +11,10 @@ const casos = [
   { arq: 'caso4.html', n: 4, titulo: 'O surto na UTI', nivel: 'Intermediário', resumo: 'Sete pacientes, a mesma bactéria.' },
   { arq: 'caso5.html', n: 5, titulo: 'A conta que não fecha', nivel: 'Avançado', resumo: 'O faturamento passou do esperado.' },
   { arq: 'caso6.html', n: 6, titulo: 'A cadeia de frio', nivel: 'Avançado', resumo: 'Hemoderivados fora da faixa de temperatura.' },
+  { arq: 'caso7.html', n: 7, titulo: 'O paciente em dobro', nivel: 'Intermediário', resumo: 'Cadastros duplicados cobrando consultas em dobro.' },
+  { arq: 'caso8.html', n: 8, titulo: 'As horas extras', nivel: 'Avançado', resumo: 'A folha de hora extra explodiu em setembro.' },
+  { arq: 'caso9.html', n: 9, titulo: 'O prontuário espiado', nivel: 'Segurança', resumo: 'O prontuário de uma paciente vazou nas redes.' },
+  { arq: 'caso10.html', n: 10, titulo: 'A invasão', nivel: 'Segurança', resumo: 'Um ataque pela busca de exames do portal do paciente.' },
 ];
 
 function limpa(s) {
