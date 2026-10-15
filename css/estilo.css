@@ -851,3 +851,10 @@ html{padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
 .cad-evidencia::before{content:"";position:absolute;z-index:2;top:-9px;left:50%;width:18px;height:18px;margin-left:-9px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff9a8a,#c0281c 60%,#7a1209);box-shadow:0 3px 4px rgba(0,0,0,.45),inset -2px -2px 4px rgba(0,0,0,.35)}
 .cad-evidencia .cad-img-vista{margin:0;border:0;border-radius:0;max-height:210px}
 .cad-evidencia figcaption{margin-top:6px;color:#2b2a26;font:700 20px/1 var(--f-mao);text-align:center}
+
+/* com foto, os botões da imagem abrem ao clicar nela */
+.cad-img-botoes[hidden]{display:none}
+.cad-evidencia{cursor:pointer}
+.cad-evidencia:focus-visible{outline:3px solid #1f6b5b;outline-offset:3px}
+.cad-evidencia .cad-img-vista,.cad-evidencia .cad-img-vista.grande{cursor:pointer}
+.cad-evidencia[aria-expanded="true"]{box-shadow:0 9px 18px rgba(0,0,0,.42)}

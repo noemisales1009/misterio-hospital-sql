@@ -592,19 +592,30 @@
         colImg.title = "Cola o print ou a imagem que você copiou";
         var cpImg = el("button", "btn", "Copiar imagem"); cpImg.type = "button"; cpImg.hidden = true;
         cpImg.title = "Copia esta imagem para colar em outro lugar";
+        var zoomImg = el("button", "btn", "🔍 Ampliar"); zoomImg.type = "button"; zoomImg.hidden = true;
         var rmImg = el("button", "btn", "Remover imagem"); rmImg.type = "button"; rmImg.hidden = true;
         var vista = el("img", "cad-img-vista"); vista.alt = "Imagem anexada à anotação"; vista.hidden = true;
-        vista.title = "Clique para ampliar ou reduzir";
-        vista.addEventListener("click", function () { vista.classList.toggle("grande"); });
+        // com foto, os botões ficam escondidos e abrem ao clicar nela
+        var menuAberto = false;
         var pintaImg = function () {
           if (imagemAtual) {
-            vista.src = imagemAtual; vista.hidden = false; moldura.hidden = false; rmImg.hidden = false; cpImg.hidden = false; addImg.textContent = "🖼 Trocar imagem";
+            vista.src = imagemAtual; vista.hidden = false; moldura.hidden = false;
+            rmImg.hidden = false; cpImg.hidden = false; zoomImg.hidden = false;
+            addImg.textContent = "🖼 Trocar imagem";
+            botoesImg.hidden = !menuAberto;
           } else {
-            vista.hidden = true; moldura.hidden = true; vista.removeAttribute("src"); rmImg.hidden = true; cpImg.hidden = true; addImg.textContent = "🖼 Adicionar imagem";
+            menuAberto = false; vista.classList.remove("grande");
+            vista.hidden = true; moldura.hidden = true; vista.removeAttribute("src");
+            rmImg.hidden = true; cpImg.hidden = true; zoomImg.hidden = true;
+            addImg.textContent = "🖼 Adicionar imagem";
+            botoesImg.hidden = false;
           }
+          moldura.setAttribute("aria-expanded", menuAberto ? "true" : "false");
+          zoomImg.textContent = vista.classList.contains("grande") ? "🔍 Reduzir" : "🔍 Ampliar";
         };
+        var alternaMenu = function () { menuAberto = !menuAberto; pintaImg(); };
         var defineImg = function (d) {
-          imagemAtual = d; removida = false;
+          imagemAtual = d; removida = false; menuAberto = false;
           idbPut(fa.id, d);
           pintaImg();
           avisoNota.alterou();
@@ -613,6 +624,7 @@
         addImg.addEventListener("click", function () {
           escolherArquivoImagem(function (arq) { processaImagem(arq, defineImg); });
         });
+        zoomImg.addEventListener("click", function () { vista.classList.toggle("grande"); pintaImg(); });
         rmImg.addEventListener("click", function () {
           imagemAtual = null; removida = true;
           idbDel(fa.id);
@@ -688,9 +700,16 @@
           var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
           if (f && /^image[/]/.test(f.type || "")) { e.preventDefault(); processaImagem(f, defineImg); }
         });
-        botoesImg.appendChild(addImg); botoesImg.appendChild(colImg); botoesImg.appendChild(cpImg); botoesImg.appendChild(rmImg);
+        botoesImg.appendChild(addImg); botoesImg.appendChild(colImg); botoesImg.appendChild(cpImg);
+        botoesImg.appendChild(zoomImg); botoesImg.appendChild(rmImg);
         // a imagem aparece como uma foto presa no quadro: moldura branca, alfinete e barbante vermelho
         var moldura = el("figure", "cad-evidencia"); moldura.hidden = true;
+        moldura.tabIndex = 0; moldura.setAttribute("role", "button");
+        moldura.title = "Clique na foto para ver as opções (trocar, copiar, ampliar, remover)";
+        moldura.addEventListener("click", alternaMenu);
+        moldura.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); alternaMenu(); }
+        });
         moldura.appendChild(vista);
         moldura.appendChild(el("figcaption", null, "Evidência · " + (fa.titulo || fa.nome)));
         areaImg.appendChild(botoesImg); areaImg.appendChild(moldura);
