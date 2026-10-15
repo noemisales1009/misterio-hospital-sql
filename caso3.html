@@ -85,6 +85,14 @@ erDiagram
 <section class="fase" id="c3-f1" data-fase="1" data-nome="Balanço">
   <div class="fase-head"><div class="num">1</div><div class="t"><h2>Qual item não fecha?</h2><div class="sub">SUM · GROUP BY · JOIN</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Tudo que sai do cofre deveria ter sido prescrito. Então, para cada item, o total <strong>retirado</strong> deveria ser parecido com o total <strong>prescrito</strong> nas receitas. Um item vai fugir desse padrão.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>SUM(quantidade)</code></td><td>soma a coluna dentro de cada grupo</td><td>“total de ampolas retiradas”</td></tr>
+    <tr><td><code>GROUP BY item_id</code></td><td>uma linha por item, juntando as demais</td><td>“um total por medicamento”</td></tr>
+    <tr><td><code>WHERE tipo = 'saida'</code></td><td>filtra as linhas antes de somar</td><td>“só as saídas do cofre”</td></tr>
+    <tr><td><code>ORDER BY … DESC</code></td><td>ordena do maior para o menor</td><td>“o item com maior diferença primeiro”</td></tr>
+    <tr><td><code>subconsulta no FROM</code></td><td>desafio: resultado de uma consulta usado como tabela</td><td>“comparar dois totais lado a lado”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Some a <strong>quantidade das saídas</strong> por item (<code>tipo = 'saida'</code>).</li><li>Some a <strong>quantidade prescrita</strong> nas receitas por item.</li><li>Compare e diga <strong>qual item</strong> tem a maior diferença, e de quanto é.</li></ul></div>
   <details><summary>Dica</summary><div><p>São duas consultas com <code>GROUP BY item_id</code>, uma em <code>movimento_estoque</code> (com <code>WHERE tipo = 'saida'</code>) e outra em <code>receita</code>. Compare os números lado a lado. Desafio extra: juntar as duas num único resultado usando subconsultas no <code>FROM</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
@@ -113,6 +121,13 @@ ORDER BY diferenca DESC;</pre></div>
 <section class="fase" id="c3-f2" data-fase="2" data-nome="Sem receita">
   <div class="fase-head"><div class="num">2</div><div class="t"><h2>Saídas sem receita</h2><div class="sub">IS NULL · SUM</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Uma parte da diferença pode ser inocente: em <strong>urgência</strong>, o médico manda retirar antes de prescrever, e a saída fica sem receita. Em SQL, “sem receita” é <code>receita_id IS NULL</code>.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>NULL</code></td><td>valor vazio: aqui, uma saída sem receita</td><td>“campo da receita em branco”</td></tr>
+    <tr><td><code>IS NULL</code></td><td>filtra quem está vazio (nunca = NULL)</td><td>“saídas sem receita”</td></tr>
+    <tr><td><code>SUM(…)</code></td><td>soma o que sobrou depois do filtro</td><td>“quanto saiu sem receita”</td></tr>
+    <tr><td><code>JOIN colaborador</code></td><td>troca o número pelo nome de quem retirou</td><td>“Gilson Albuquerque, e não o id 14”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as saídas de <strong>morfina</strong> (<code>item_id = 1</code>) que não têm receita, com o nome de quem retirou e o motivo.</li><li>Some a quantidade. Isso explica os 47? Quanto <strong>sobra</strong>?</li></ul></div>
   <details><summary>Dica</summary><div><p>Filtre <code>tipo = 'saida'</code>, <code>item_id = 1</code> e <code>receita_id IS NULL</code>. Para ver o nome, faça <code>JOIN colaborador</code> pelo <code>colaborador_id</code>. Nunca use <code>= NULL</code>: o certo é <code>IS NULL</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
@@ -131,6 +146,14 @@ WHERE tipo = 'saida' AND item_id = 1 AND receita_id IS NULL;</pre></div>
 <section class="fase" id="c3-f3" data-fase="3" data-nome="A mais">
   <div class="fase-head"><div class="num">3</div><div class="t"><h2>Retirou mais do que o prescrito</h2><div class="sub">JOIN · comparar colunas · GROUP BY</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Se a saída tem receita, mas a quantidade retirada é <strong>maior</strong> que a prescrita, a diferença some no meio da papelada. É onde estão as 38 ampolas. Agora compare duas colunas de tabelas diferentes: <code>movimento_estoque.quantidade</code> e <code>receita.quantidade</code>.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>JOIN receita r ON r.id = m.receita_id</code></td><td>liga cada saída à receita dela</td><td>“a retirada e a prescrição”</td></tr>
+    <tr><td><code>m.quantidade &gt; r.quantidade</code></td><td>compara colunas de tabelas diferentes</td><td>“retirou mais do que o prescrito”</td></tr>
+    <tr><td><code>m.quantidade - r.quantidade</code></td><td>conta feita linha a linha: o excesso</td><td>“retirou 5, prescrito 2: excesso 3”</td></tr>
+    <tr><td><code>COUNT(*)  e  SUM(…)</code></td><td>quantas vezes e quanto no total, por grupo</td><td>“9 ocorrências, 28 ampolas”</td></tr>
+    <tr><td><code>GROUP BY c.nome</code></td><td>uma linha por pessoa</td><td>“o balanço de cada colaborador”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para a morfina, ache as saídas em que a quantidade retirada é <strong>maior</strong> que a da receita.</li><li>Agrupe por colaborador: quantas ocorrências e quanto <strong>excesso</strong> (retirado − prescrito) cada um acumulou? A soma bate com os 38?</li></ul></div>
   <details><summary>Dica</summary><div><p><code>JOIN receita r ON r.id = m.receita_id</code> e <code>WHERE m.quantidade &gt; r.quantidade</code>. O excesso é <code>m.quantidade - r.quantidade</code>. Use <code>COUNT(*)</code> e <code>SUM(...)</code> com <code>GROUP BY c.nome</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
@@ -149,6 +172,13 @@ ORDER BY excesso DESC;</pre></div>
 <section class="fase" id="c3-f4" data-fase="4" data-nome="Justificativa">
   <div class="fase-head"><div class="num">4</div><div class="t"><h2>Justificado ou não?</h2><div class="sub">CASE · GROUP BY</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Nem todo excesso é desvio. Quando uma ampola quebra, o profissional registra o motivo <code>quebra de ampola</code> e retira outra. Isso é <strong>justificado</strong>. Qualquer outro motivo com excesso é <strong>sem justificativa</strong>. Use <code>CASE</code> para criar essa etiqueta.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>CASE WHEN … THEN</code></td><td>cria uma etiqueta a partir de uma condição</td><td>“se quebrou ampola, então justificado”</td></tr>
+    <tr><td><code>ELSE</code></td><td>o que vale quando a condição não se cumpre</td><td>“senão, sem justificativa”</td></tr>
+    <tr><td><code>AS situacao</code></td><td>dá nome à coluna criada</td><td>“situação do excesso”</td></tr>
+    <tr><td><code>GROUP BY nome, situacao</code></td><td>agrupa pela pessoa e pela etiqueta ao mesmo tempo</td><td>“Edson: sem justificativa, 28”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Repita a etapa 3, mas separe também por <strong>situação</strong>: <code>justificado</code> quando o motivo é <code>quebra de ampola</code>, e <code>sem justificativa</code> nos demais casos.</li><li>Quem sobra com excesso sem justificativa, e de quanto?</li></ul></div>
   <details><summary>Dica</summary><div><p>No <code>SELECT</code>: <code>CASE WHEN m.motivo = 'quebra de ampola' THEN 'justificado' ELSE 'sem justificativa' END AS situacao</code>. Repita <code>c.nome, situacao</code> no <code>GROUP BY</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
@@ -169,6 +199,14 @@ ORDER BY excesso DESC;</pre></div>
 <section class="fase" id="c3-f5" data-fase="5" data-nome="Madrugada">
   <div class="fase-head"><div class="num">5</div><div class="t"><h2>Só de madrugada</h2><div class="sub">HAVING · COUNT(DISTINCT) · OR</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Restaram duas pessoas. Um erro acontece uma vez ou outra. Um desvio acontece <strong>sempre</strong>, e escondido: de madrugada, quando a farmácia tem menos gente olhando. Madrugada aqui é <code>hora &gt;= 2200</code> ou <code>hora &lt;= 459</code>.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>&lt;&gt;</code></td><td>diferente de</td><td>“motivo diferente de quebra de ampola”</td></tr>
+    <tr><td><code>hora &gt;= 2200 OR hora &lt;= 459</code></td><td>faixa que atravessa a meia-noite precisa de OR</td><td>“das 22h às 4h59”</td></tr>
+    <tr><td><code>( … OR … )</code></td><td>parênteses para o OR não bagunçar os outros filtros</td><td>“só madrugada”</td></tr>
+    <tr><td><code>COUNT(DISTINCT data)</code></td><td>conta noites diferentes, não ocorrências</td><td>“em 8 noites”</td></tr>
+    <tr><td><code>HAVING … &gt;= 5</code></td><td>filtra os grupos depois da contagem</td><td>“5 noites ou mais”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Entre as saídas de morfina com excesso <strong>sem justificativa</strong>, feitas de <strong>madrugada</strong>, conte em quantas <strong>noites diferentes</strong> cada pessoa fez isso.</li><li>Fique só com quem fez em <strong>5 noites ou mais</strong>. Esse é o culpado. Confira com <code>SELECT verificar_caso3('Nome Completo');</code>.</li></ul></div>
   <details><summary>Dica</summary><div><p>Filtre o motivo com <code>m.motivo &lt;&gt; 'quebra de ampola'</code> e a hora com <code>(m.hora &gt;= 2200 OR m.hora &lt;= 459)</code>. Agrupe por nome e use <code>HAVING COUNT(DISTINCT m.data) &gt;= 5</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>

@@ -74,6 +74,14 @@ erDiagram
 <section class="fase" id="c7-f1" data-fase="1" data-nome="Nomes">
   <div class="fase-head"><div class="num">1</div><div class="t"><h2>Nomes bagunçados</h2><div class="sub">TRIM · UPPER · LENGTH</div></div></div>
   <div class="box"><b class="l">Situação</b><p>O sistema antigo da recepção foi importado às pressas e os nomes vieram de todo jeito: com espaço sobrando no começo ou no fim, tudo em maiúsculas, tudo em minúsculas. Para o computador, <code>'Ana Souza'</code>, <code>' Ana Souza'</code> e <code>'ANA SOUZA'</code> são três textos <strong>diferentes</strong>.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>TRIM(x)</code></td><td>tira espaços do começo e do fim</td><td>“' Ana Souza ' vira 'Ana Souza'”</td></tr>
+    <tr><td><code>UPPER(x)  /  LOWER(x)</code></td><td>tudo em maiúsculas ou minúsculas</td><td>“ANA e ana viram o mesmo”</td></tr>
+    <tr><td><code>LENGTH(x)</code></td><td>quantas letras tem o texto</td><td>“achar nome com espaço sobrando”</td></tr>
+    <tr><td><code>UPPER(TRIM(x))</code></td><td>uma função dentro da outra, de dentro para fora</td><td>“limpa e padroniza”</td></tr>
+    <tr><td><code>GROUP BY expressão</code></td><td>agrupa pelo valor já limpo</td><td>“achar o paciente repetido”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · Arrumar texto</b><p><code>TRIM(nome)</code> tira os espaços do começo e do fim. <code>UPPER(nome)</code> põe tudo em maiúsculas e <code>LOWER(nome)</code>, em minúsculas. <code>LENGTH(nome)</code> conta os caracteres, espaços incluídos. Dá para combinar: <code>UPPER(TRIM(nome))</code> primeiro tira os espaços e depois põe em maiúsculas. Assim, nomes escritos de jeitos diferentes viram o mesmo texto e podem ser comparados.</p></div>
   <div class="tw"><table><tr><th>nome gravado</th><th>LENGTH</th><th>TRIM(nome)</th><th>UPPER(TRIM(nome))</th></tr><tr><td><code>' ana souza'</code></td><td>10</td><td><code>'ana souza'</code></td><td><code>'ANA SOUZA'</code></td></tr><tr><td><code>'Ana Souza '</code></td><td>10</td><td><code>'Ana Souza'</code></td><td><code>'ANA SOUZA'</code></td></tr><tr><td><code>'ANA SOUZA'</code></td><td>9</td><td><code>'ANA SOUZA'</code></td><td><code>'ANA SOUZA'</code></td></tr></table></div>
   <div class="code"><pre data-sql>SELECT nome, LENGTH(nome) AS tamanho,
@@ -96,6 +104,13 @@ FROM cadastro;</pre></div>
 <section class="fase" id="c7-f2" data-fase="2" data-nome="CPF">
   <div class="fase-head"><div class="num">2</div><div class="t"><h2>Quem manda é o CPF</h2><div class="sub">REPLACE · GROUP BY · HAVING</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Duas pessoas diferentes podem ter o mesmo nome: são <strong>homônimos</strong>. Quem identifica alguém de verdade é o <strong>CPF</strong>. Só que ele também veio de dois jeitos: <code>'123.456.789-09'</code> e <code>'12345678909'</code>. Antes de comparar, tire a pontuação.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>REPLACE(x, 'a', 'b')</code></td><td>troca um trecho de texto por outro</td><td>“tirar os pontos do CPF”</td></tr>
+    <tr><td><code>REPLACE(REPLACE(…))</code></td><td>várias trocas em sequência</td><td>“tirar ponto e traço”</td></tr>
+    <tr><td><code>GROUP BY</code></td><td>junta as linhas com o mesmo valor</td><td>“mesmo CPF”</td></tr>
+    <tr><td><code>HAVING COUNT(*) &gt; 1</code></td><td>só grupos repetidos</td><td>“cadastros em dobro”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · REPLACE</b><p><code>REPLACE(texto, 'procura', 'troca')</code> troca todos os pedaços iguais a <em>procura</em>. Trocar por <code>''</code> (texto vazio) é o mesmo que apagar. Para tirar dois sinais diferentes, ponha um <code>REPLACE</code> dentro do outro: o de dentro roda primeiro.</p></div>
   <div class="tw"><table><tr><th>cpf gravado</th><th>REPLACE(cpf, '.', '')</th><th>REPLACE(REPLACE(cpf, '.', ''), '-', '')</th></tr><tr><td><code>'123.456.789-09'</code></td><td><code>'123456789-09'</code></td><td><code>'12345678909'</code></td></tr><tr><td><code>'12345678909'</code></td><td><code>'12345678909'</code></td><td><code>'12345678909'</code></td></tr></table></div>
   <div class="code"><pre data-sql>SELECT cpf, REPLACE(REPLACE(cpf, '.', ''), '-', '') AS cpf_limpo
@@ -123,6 +138,13 @@ ORDER BY nome_limpo;</pre></div>
 <section class="fase" id="c7-f3" data-fase="3" data-nome="Vazios">
   <div class="fase-head"><div class="num">3</div><div class="t"><h2>Vazio não é zero</h2><div class="sub">NULLIF · COALESCE · COUNT(coluna)</div></div></div>
   <div class="box"><b class="l">Situação</b><p>O campo <code>convenio</code> veio pior ainda. Em alguns cadastros ele é <strong>nulo</strong> (<code>NULL</code>: ninguém preencheu). Em outros é <strong>vazio</strong> (<code>''</code>, um texto sem nada) ou só tem espaços. Para o SQL são coisas diferentes: <code>''</code> é um texto como outro qualquer, e <code>NULL</code> não é igual a nada, nem a outro <code>NULL</code>. Pela regra do hospital, cadastro sem convênio é <strong>Particular</strong>.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>NULLIF(a, b)</code></td><td>devolve vazio se a for igual a b</td><td>“texto vazio vira NULL”</td></tr>
+    <tr><td><code>COALESCE(a, b)</code></td><td>usa a; se for vazio, usa b</td><td>“sem convênio vira 'Particular'”</td></tr>
+    <tr><td><code>COUNT(*)</code></td><td>conta todas as linhas</td><td>“quantos cadastros”</td></tr>
+    <tr><td><code>COUNT(coluna)</code></td><td>conta só as linhas em que a coluna está preenchida</td><td>“quantos têm convênio informado”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · NULLIF e COALESCE</b><p><code>COALESCE(a, b)</code> devolve o primeiro valor que <strong>não</strong> é nulo: <code>COALESCE(convenio, 'Particular')</code> troca o nulo por <code>'Particular'</code>. <code>NULLIF(a, b)</code> faz o contrário: devolve <code>NULL</code> quando <code>a = b</code>. Juntos, com um <code>TRIM</code>, tratam os três casos de uma vez.</p></div>
   <div class="tw"><table><tr><th>convenio gravado</th><th>NULLIF(TRIM(convenio), '')</th><th>COALESCE(…, 'Particular')</th></tr><tr><td><code>'Saúde Vida'</code></td><td><code>'Saúde Vida'</code></td><td><code>'Saúde Vida'</code></td></tr><tr><td><code>''</code></td><td>NULL</td><td><code>'Particular'</code></td></tr><tr><td><code>'  '</code></td><td>NULL</td><td><code>'Particular'</code></td></tr><tr><td>NULL</td><td>NULL</td><td><code>'Particular'</code></td></tr></table></div>
   <div class="box"><b class="l">Atenção · COUNT(*) e COUNT(coluna)</b><p><code>COUNT(*)</code> conta linhas. <code>COUNT(coluna)</code> conta só as linhas em que a coluna <strong>não</strong> é nula. Isso importa no <code>LEFT JOIN</code>: quem não tem par vem com <code>NULL</code> do outro lado e precisa contar <strong>zero</strong>, não um. E o filtro da tabela da direita vai no <code>ON</code>: no <code>WHERE</code>, ele apagaria justamente as linhas sem par.</p></div>
@@ -149,6 +171,13 @@ ORDER BY cadastros DESC;</pre></div>
 <section class="fase" id="c7-f4" data-fase="4" data-nome="Valores">
   <div class="fase-head"><div class="num">4</div><div class="t"><h2>Dinheiro guardado como texto</h2><div class="sub">CAST · :: · REPLACE</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Para saber quanto foi cobrado de cada convênio é preciso somar os valores das consultas. Mas o valor veio como <strong>texto</strong>, do jeito que aparecia na tela: <code>'R$ 1.250,00'</code>. Tente <code>SELECT SUM(valor) FROM consulta;</code> no computador e veja o erro: não dá para somar texto.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>CAST(x AS tipo)</code></td><td>converte o valor para outro tipo</td><td>“texto '120.50' vira número”</td></tr>
+    <tr><td><code>x::tipo</code></td><td>o mesmo, no jeito curto do Postgres</td><td>“valor::numeric”</td></tr>
+    <tr><td><code>REPLACE(x, ',', '.')</code></td><td>arruma o separador decimal antes de converter</td><td>“120,50 vira 120.50”</td></tr>
+    <tr><td><code>SUM(valor::numeric)</code></td><td>soma só depois de converter</td><td>“total cobrado”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · Converter tipos com CAST</b><p><code>CAST(x AS numeric)</code> transforma texto em número, e <code>x::numeric</code> é o atalho do Postgres para a mesma coisa. Só funciona se o texto já parecer um número do jeito americano: sem <code>R$</code>, sem ponto de milhar e com <strong>ponto</strong> no lugar da vírgula. Então arrume antes com <code>REPLACE</code>, nesta ordem:</p></div>
   <div class="tw"><table><tr><th>passo</th><th>resultado</th></tr><tr><td>valor gravado</td><td><code>'R$ 1.250,00'</code></td></tr><tr><td><code>REPLACE(valor, 'R$ ', '')</code></td><td><code>'1.250,00'</code></td></tr><tr><td><code>REPLACE(…, '.', '')</code></td><td><code>'1250,00'</code></td></tr><tr><td><code>REPLACE(…, ',', '.')</code></td><td><code>'1250.00'</code></td></tr><tr><td><code>…::numeric</code></td><td><strong>1250.00</strong> (agora é número)</td></tr></table></div>
   <div class="code"><pre data-sql>SELECT valor,
@@ -176,6 +205,13 @@ ORDER BY total DESC;</pre></div>
 <section class="fase" id="c7-f5" data-fase="5" data-nome="O dobro">
   <div class="fase-head"><div class="num">5</div><div class="t"><h2>Quem criou o dobro?</h2><div class="sub">WITH · MIN · tudo junto</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Hora de juntar tudo. Para cada CPF repetido, o cadastro <strong>mais antigo</strong> é o verdadeiro: o de menor <code>id</code>. Os outros são <strong>cópias</strong>. Quem criou as cópias? E alguma consulta foi lançada nelas?</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>WITH nome AS ( … )</code></td><td>guarda um passo da limpeza com nome</td><td>“cadastros já limpos”</td></tr>
+    <tr><td><code>MIN(id)</code></td><td>o menor id: o cadastro original</td><td>“o primeiro cadastro”</td></tr>
+    <tr><td><code>NOT IN (SELECT MIN …)</code></td><td>fica com todos menos o original</td><td>“as duplicatas”</td></tr>
+    <tr><td><code>SUM(…)</code></td><td>soma o que foi cobrado em dobro</td><td>“quanto custou o erro”</td></tr>
+  </table></div>
   <div class="box"><b class="l">Passo a passo com WITH</b><p>Monte a consulta em três blocos, um apoiado no outro. <strong>1)</strong> <code>limpo</code>: cada cadastro com o CPF sem pontuação. <strong>2)</strong> <code>original</code>: o menor <code>id</code> de cada CPF que aparece mais de uma vez. <strong>3)</strong> <code>copia</code>: os cadastros com CPF repetido que <strong>não</strong> são o original. Depois é só juntar <code>copia</code> com quem cadastrou e com as consultas.</p></div>
   <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Quantas cópias cada atendente criou?</li><li>Quantas consultas foram lançadas nas cópias, e de quanto, por atendente? Quem é o responsável? Confira com <code>SELECT verificar_caso7('Nome Completo');</code>.</li></ul></div>
   <details><summary>Dica</summary><div><p><code>original AS (SELECT cpf_limpo, MIN(id) AS id_original FROM limpo GROUP BY cpf_limpo HAVING COUNT(*) &gt; 1)</code> e <code>copia AS (SELECT l.* FROM limpo l JOIN original o ON o.cpf_limpo = l.cpf_limpo WHERE l.id &lt;&gt; o.id_original)</code>. Na segunda missão, junte <code>copia</code> com <code>consulta</code> e some o valor convertido como na etapa 4.</p></div></details>

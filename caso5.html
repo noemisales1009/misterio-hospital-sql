@@ -85,6 +85,14 @@ erDiagram
 <section class="fase" id="c5-f1" data-fase="1" data-nome="Acima">
   <div class="fase-head"><div class="num">1</div><div class="t"><h2>Acima da tabela</h2><div class="sub">JOIN · numeric · ROUND · SUM</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Primeiro erro: a linha foi cobrada por um valor <strong>maior que o da tabela</strong>. Para cada linha, o esperado é o preço de uma unidade vezes a quantidade. Compare com o que foi cobrado.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>JOIN procedimento</code></td><td>traz o preço de tabela para cada linha cobrada</td><td>“quanto custa de verdade”</td></tr>
+    <tr><td><code>valor_tabela * quantidade</code></td><td>conta entre colunas: o valor esperado da linha</td><td>“3 diárias de R$ 420”</td></tr>
+    <tr><td><code>valor_cobrado &gt; valor esperado</code></td><td>compara duas colunas</td><td>“cobrou acima da tabela”</td></tr>
+    <tr><td><code>SUM(a - b)</code></td><td>soma a diferença de todas as linhas</td><td>“excesso total”</td></tr>
+    <tr><td><code>ROUND(x, 2)</code></td><td>arredonda em reais e centavos</td><td>“R$ 9.897,86”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as linhas de <code>cobranca</code> em que <code>valor_cobrado</code> é maior que <code>valor_tabela * quantidade</code>, com o lote, o procedimento e os dois valores.</li><li>Quantas são, e qual o <strong>excesso total</strong> em reais, com 2 casas decimais?</li></ul></div>
   <details><summary>Dica</summary><div><p><code>JOIN procedimento p ON p.id = c.procedimento_id</code> e <code>WHERE c.valor_cobrado &gt; p.valor_tabela * c.quantidade</code>. O excesso de cada linha é a diferença entre os dois. Some com <code>SUM(...)</code> e arredonde com <code>ROUND(..., 2)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
@@ -106,6 +114,13 @@ WHERE c.valor_cobrado &gt; p.valor_tabela * c.quantidade;</pre></div>
 <section class="fase" id="c5-f2" data-fase="2" data-nome="Repetidas">
   <div class="fase-head"><div class="num">2</div><div class="t"><h2>Cobradas duas vezes</h2><div class="sub">GROUP BY · HAVING · NOT IN (SELECT MIN)</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Segundo erro: o mesmo procedimento, no mesmo atendimento, cobrado <strong>mais de uma vez</strong>. Primeiro você enxerga os pares. Depois isola só as linhas <em>repetidas</em>, sem contar a original, para o lote ficar com a culpa certa.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>GROUP BY a, b</code></td><td>agrupa pelo par de colunas</td><td>“mesmo atendimento e mesmo procedimento”</td></tr>
+    <tr><td><code>HAVING COUNT(*) &gt; 1</code></td><td>só grupos com mais de uma linha</td><td>“cobrado mais de uma vez”</td></tr>
+    <tr><td><code>MIN(id)</code></td><td>o menor id do grupo: a linha original</td><td>“a primeira cobrança”</td></tr>
+    <tr><td><code>NOT IN (SELECT MIN(id) …)</code></td><td>fica com tudo, menos a original</td><td>“só as cópias”</td></tr>
+  </table></div>
   <div class="box alerta"><b class="l">Cuidado</b><p>Se você apontar as duas linhas do par como erro, vai contar o dobro. A original é legítima. Erro é só a cópia: a linha cujo <code>id</code> não é o menor do grupo.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Ache os pares (atendimento e procedimento) que aparecem mais de uma vez em <code>cobranca</code>.</li><li>Liste só as <strong>linhas repetidas</strong> (as cópias), com o lote. Quantas são?</li></ul></div>
   <details><summary>Dica</summary><div><p>Pares: <code>GROUP BY atendimento_id, procedimento_id HAVING COUNT(*) &gt; 1</code>. Cópias: <code>WHERE id NOT IN (SELECT MIN(id) FROM cobranca GROUP BY atendimento_id, procedimento_id)</code>. A subconsulta devolve o id da primeira linha de cada grupo.</p></div></details>
@@ -129,6 +144,12 @@ ORDER BY id;</pre></div>
 <section class="fase" id="c5-f3" data-fase="3" data-nome="Fantasmas">
   <div class="fase-head"><div class="num">3</div><div class="t"><h2>Cobradas e não realizadas</h2><div class="sub">LEFT JOIN · IS NULL com 2 colunas</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Terceiro erro, o mais grave: o procedimento foi <strong>cobrado, mas não consta como realizado</strong>. A chave da execução tem duas colunas, atendimento e procedimento, então o JOIN também usa as duas.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>LEFT JOIN … ON a AND b</code></td><td>a chave tem duas colunas, então o ON também tem</td><td>“atendimento e procedimento”</td></tr>
+    <tr><td><code>e.atendimento_id IS NULL</code></td><td>sem par em execucao: não foi realizado</td><td>“cobrado, mas não consta como feito”</td></tr>
+    <tr><td><code>COUNT(*)  e  SUM(valor)</code></td><td>quantas linhas e quanto dinheiro</td><td>“30 linhas, R$ 25.462,00”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as linhas de <code>cobranca</code> que <strong>não têm correspondente</strong> em <code>execucao</code> (mesmo atendimento e mesmo procedimento).</li><li>Quantas são, e qual o valor total cobrado nelas?</li></ul></div>
   <details><summary>Dica</summary><div><p><code>LEFT JOIN execucao e ON e.atendimento_id = c.atendimento_id AND e.procedimento_id = c.procedimento_id</code> e depois <code>WHERE e.atendimento_id IS NULL</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
@@ -151,6 +172,13 @@ WHERE e.atendimento_id IS NULL;</pre></div>
 <section class="fase" id="c5-f4" data-fase="4" data-nome="Juntar">
   <div class="fase-head"><div class="num">4</div><div class="t"><h2>Juntando os três erros</h2><div class="sub">WITH · UNION ALL · GROUP BY</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Agora você tem três listas, cada uma com um <code>lote</code>. Para saber qual lote concentra mais erros, empilhe as três e conte por lote. Cada lista vira um bloco do <code>WITH</code>, e o <code>UNION ALL</code> empilha as linhas.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>WITH a AS (…), b AS (…)</code></td><td>vários blocos nomeados, separados por vírgula</td><td>“acima, repetidas e fantasmas”</td></tr>
+    <tr><td><code>UNION ALL</code></td><td>empilha resultados com as mesmas colunas</td><td>“as três listas numa só”</td></tr>
+    <tr><td><code>GROUP BY lote</code></td><td>uma linha por lote</td><td>“erros de cada lote”</td></tr>
+    <tr><td><code>ORDER BY erros DESC  +  LIMIT</code></td><td>o campeão primeiro, só os principais</td><td>“o lote que foge do padrão”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · WITH com vários blocos e UNION ALL</b><p>Dá para ter vários blocos num <code>WITH</code>, separados por vírgula. <code>UNION ALL</code> empilha resultados com as <strong>mesmas colunas</strong>, mantendo todas as linhas. Aqui cada bloco devolve só o <code>lote</code>.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Escreva um <code>WITH</code> com três blocos, <code>acima</code>, <code>repetidas</code> e <code>fantasmas</code>, cada um devolvendo o <code>lote</code> das linhas com aquele erro.</li><li>Empilhe os três e conte os erros <strong>por lote</strong>, do maior para o menor. Qual lote foge do padrão?</li></ul></div>
   <details><summary>Dica</summary><div><p>Cada bloco usa a consulta da etapa correspondente, selecionando só <code>c.lote</code> (ou <code>lote</code>). No fim: <code>SELECT lote, COUNT(*) FROM (SELECT lote FROM acima UNION ALL SELECT lote FROM repetidas UNION ALL SELECT lote FROM fantasmas) t GROUP BY lote ORDER BY 2 DESC</code>.</p></div></details>
@@ -188,6 +216,13 @@ LIMIT 5;</pre></div>
 <section class="fase" id="c5-f5" data-fase="5" data-nome="Assinatura">
   <div class="fase-head"><div class="num">5</div><div class="t"><h2>Quem assinou o lote?</h2><div class="sub">JOIN · DISTINCT · fechar o caso</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Com o lote em mãos, falta a papelada: quem assinou, e quanto dinheiro está em jogo. Esse lote concentra os três tipos de erro de uma só vez, o que é difícil de acontecer por descuido.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>JOIN faturista</code></td><td>troca o número pelo nome</td><td>“quem assinou o lote”</td></tr>
+    <tr><td><code>DISTINCT</code></td><td>cada nome uma vez só</td><td>“o mesmo faturista em várias linhas”</td></tr>
+    <tr><td><code>COUNT(*)  e  SUM(…)</code></td><td>tamanho e valor do lote</td><td>“100 linhas, R$ 88.045,91”</td></tr>
+    <tr><td><code>SELECT verificar_caso5('…')</code></td><td>função do jogo que confere a resposta</td><td>“perguntar ao sistema se acertei”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Mostre o <strong>nome do faturista</strong> responsável pelo lote encontrado.</li><li>Some o <strong>valor total</strong> cobrado nesse lote e o número de linhas.</li><li>Confira o código do lote com <code>SELECT verificar_caso5('L-0000-X');</code>.</li></ul></div>
   <details><summary>Dica</summary><div><p><code>JOIN faturista f ON f.id = c.faturista_id</code> e <code>WHERE c.lote = '…'</code>. Use <code>DISTINCT</code> no nome, porque o faturista aparece em cada linha do lote.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>

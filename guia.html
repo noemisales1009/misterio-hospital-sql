@@ -129,6 +129,17 @@ erDiagram
 <section class="fase" id="fase2" data-fase="2" data-nome="WHERE">
   <div class="fase-head"><div class="num">2</div><div class="t"><h2>O relatório perdido</h2><div class="sub">WHERE · AND · OR</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p><code>WHERE</code> é o filtro. Igual ao filtro do Excel, ou quando você filtra na lista de leitos só os “ocupados” da UTI. <code>AND</code> junta condições: <em>todas</em> precisam ser verdade. <code>OR</code> aceita <em>qualquer uma</em>.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>WHERE</code></td><td>filtra as linhas: só ficam no resultado as que cumprem a condição</td><td>“só os registros da Farmácia”</td></tr>
+    <tr><td><code>=</code></td><td>igual a. Texto vai entre aspas simples, número vai sem aspas</td><td>“tipo igual a 'furto'”</td></tr>
+    <tr><td><code>&lt;&gt;  ou  !=</code></td><td>diferente de</td><td>“qualquer setor, menos a Farmácia”</td></tr>
+    <tr><td><code>&gt;  &lt;  &gt;=  &lt;=</code></td><td>maior, menor, maior ou igual, menor ou igual (números e datas)</td><td>“paciente com mais de 60 anos”</td></tr>
+    <tr><td><code>AND</code></td><td>as duas condições precisam ser verdadeiras ao mesmo tempo</td><td>“da UTI e internado hoje”</td></tr>
+    <tr><td><code>OR</code></td><td>basta uma das condições ser verdadeira</td><td>“Farmácia ou Almoxarifado”</td></tr>
+    <tr><td><code>( )</code></td><td>agrupa condições e decide quem é avaliado primeiro</td><td>“(Farmácia ou Almoxarifado) e furto”</td></tr>
+  </table></div>
+  <div class="box passo"><b class="l">Como o WHERE decide, passo a passo</b><ol class="steps"><li>O SQL pega a primeira linha da tabela.</li><li>Testa a condição do WHERE nessa linha, por exemplo <code>tipo = 'furto'</code>.</li><li>Se der verdadeiro, a linha entra no resultado. Se der falso, é descartada.</li><li>Repete o teste em todas as linhas, até o fim da tabela.</li><li>Com <code>AND</code>, a linha precisa passar em todos os testes. Com <code>OR</code>, basta passar em um.</li></ol><p>Erros comuns: esquecer as aspas simples no texto, usar aspas duplas, escrever <code>'Furto'</code> quando o dado é <code>'furto'</code>, e misturar AND com OR sem parênteses.</p></div>
   <div class="tw"><table>
     <tr><th>Regra</th><th>Exemplo</th></tr>
     <tr><td>Texto vai entre aspas simples</td><td><code>tipo = 'furto'</code></td></tr>
@@ -154,6 +165,17 @@ WHERE data = 20260310
 <section class="fase" id="fase3" data-fase="3" data-nome="LIKE">
   <div class="fase-head"><div class="num">3</div><div class="t"><h2>Caçando as testemunhas</h2><div class="sub">LIKE · % · ORDER BY · DESC</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p>Às vezes você só sabe <em>parte</em> do nome. É como buscar um paciente no sistema digitando só “Lor”. O <code>%</code> é um curinga que significa “qualquer coisa aqui”. E o <code>ORDER BY</code> organiza a lista, igual ordenar uma coluna da planilha do maior pro menor.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>LIKE</code></td><td>compara com um padrão, e não com um valor exato</td><td>“nome que começa com Lor”</td></tr>
+    <tr><td><code>%</code></td><td>curinga: vale por qualquer quantidade de letras, até nenhuma</td><td>“Lor e depois qualquer coisa”</td></tr>
+    <tr><td><code>_</code></td><td>curinga de exatamente uma letra</td><td>“A_a acha Ana, Ara e Ada”</td></tr>
+    <tr><td><code>ILIKE</code></td><td>igual ao LIKE, mas ignora maiúscula e minúscula (Postgres)</td><td>“lorena, Lorena e LORENA”</td></tr>
+    <tr><td><code>ORDER BY</code></td><td>ordena o resultado pela coluna escolhida</td><td>“do mais recente ao mais antigo”</td></tr>
+    <tr><td><code>ASC  /  DESC</code></td><td>crescente (o padrão) ou decrescente</td><td>“do maior número para o menor”</td></tr>
+    <tr><td><code>LIMIT</code></td><td>corta o resultado depois de ordenar</td><td>“só os 3 primeiros”</td></tr>
+  </table></div>
+  <div class="box passo"><b class="l">Como o LIKE e o ORDER BY trabalham, passo a passo</b><ol class="steps"><li>O <code>LIKE</code> compara o texto com um padrão, e não com um valor exato.</li><li>O <code>%</code> vale por qualquer quantidade de letras, inclusive nenhuma.</li><li><code>'Lor%'</code> pega o que começa com Lor, <code>'%Lor'</code> o que termina, e <code>'%Lor%'</code> o que contém.</li><li>Primeiro o WHERE filtra. Depois o <code>ORDER BY</code> ordena o que sobrou.</li><li>Por último o <code>LIMIT</code> corta: “os 3 primeiros”.</li></ol><p>Erro comum: usar <code>=</code> com curinga. Para curinga é sempre <code>LIKE</code>.</p></div>
   <div class="tw"><table>
     <tr><th>Escrevendo</th><th>Encontra</th></tr>
     <tr><td><code>LIKE 'Ana%'</code></td><td>começa com Ana: Ana Silva, Ana Lorena…</td></tr>
@@ -189,6 +211,15 @@ WHERE nome LIKE 'Lorena%'
 <section class="fase" id="fase4" data-fase="4" data-nome="JOIN">
   <div class="fase-head"><div class="num">4</div><div class="t"><h2>Ouvindo as testemunhas</h2><div class="sub">JOIN · ON · IN</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p>Os depoimentos estão em outra tabela e só têm o <code>pessoa_id</code>, sem o nome. O <code>JOIN</code> cola duas tabelas lado a lado usando o número que elas têm em comum. É exatamente o que acontece quando você bipa a pulseira do paciente e o sistema puxa o prontuário dele.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>JOIN</code></td><td>une duas tabelas, linha a linha, por uma coluna em comum</td><td>“juntar a ficha do paciente com o depoimento”</td></tr>
+    <tr><td><code>ON</code></td><td>diz qual coluna de uma tabela bate com qual coluna da outra</td><td>“o número da pessoa é o mesmo nas duas fichas”</td></tr>
+    <tr><td><code>tabela.coluna</code></td><td>escreve a coluna com o nome da tabela para não confundir</td><td>“nome da pessoa, e não o nome do plano”</td></tr>
+    <tr><td><code>pessoa p</code></td><td>apelido curto para a tabela, usado no resto da consulta</td><td>“p de pessoa”</td></tr>
+    <tr><td><code>IN (a, b, c)</code></td><td>o valor está dentro de uma lista</td><td>“setor é UTI, Emergência ou Centro Cirúrgico”</td></tr>
+  </table></div>
+  <div class="box passo"><b class="l">Como o JOIN junta as tabelas, passo a passo</b><ol class="steps"><li>O SQL pega uma linha da primeira tabela.</li><li>Procura, na segunda tabela, as linhas onde a coluna do <code>ON</code> tem o mesmo valor.</li><li>Para cada par encontrado, cola as colunas das duas lado a lado.</li><li>Linha sem par some do resultado. É por isso que existe o <code>LEFT JOIN</code>, que você vai ver mais adiante.</li><li>Use apelidos e <code>tabela.coluna</code> para não confundir colunas com o mesmo nome.</li></ol><p>Erro comum: esquecer o <code>ON</code>, ou ligar as colunas erradas, e receber linhas demais.</p></div>
 <pre class="mermaid">
 flowchart LR
   A["pessoa<br/>id = 10234<br/>nome = Maria"] -- "pessoa.id = depoimento.pessoa_id" --> B["depoimento<br/>pessoa_id = 10234<br/>transcricao = ..."]
@@ -219,6 +250,14 @@ WHERE (p.rua_endereco = 'Rua das Acácias' AND p.numero_endereco = (SELECT MAX(n
 <section class="fase" id="fase5" data-fase="5" data-nome="Academia">
   <div class="fase-head"><div class="num">5</div><div class="t"><h2>A pista da academia</h2><div class="sub">JOIN + LIKE + vários filtros</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p>Agora você junta tudo que aprendeu numa consulta só. É como montar um filtro no sistema do hospital: “pacientes da UTI <em>e</em> com prescrição de antibiótico <em>e</em> internados ontem”. Cada pista vira uma linha do <code>WHERE</code>.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>JOIN encadeado</code></td><td>liga uma terceira tabela à segunda, como vagões de trem</td><td>“pessoa, depois sócio, depois entradas”</td></tr>
+    <tr><td><code>WHERE … AND … AND</code></td><td>empilha filtros: cada um deixa o resultado mais estreito</td><td>“sócio ouro, que entrou no dia 9”</td></tr>
+    <tr><td><code>LIKE 'ABC%'</code></td><td>acha por começo de texto, como o início de uma placa</td><td>“placa que começa com L337”</td></tr>
+    <tr><td><code>= 'texto'</code></td><td>compara com valor exato, inclusive maiúsculas e acentos</td><td>“plano igual a 'ouro'”</td></tr>
+    <tr><td><code>ORDER BY … LIMIT 1</code></td><td>ordena e pega só o primeiro</td><td>“o check-in mais recente”</td></tr>
+  </table></div>
   <div class="tw"><table>
     <tr><th>Pista do depoimento</th><th>Vira no SQL</th></tr>
     <tr><td>número de sócio começa com 48Z</td><td><code>m.id LIKE '48Z%'</code></td></tr>
@@ -244,6 +283,13 @@ WHERE m.id LIKE '48Z%'
 <section class="fase" id="fase6" data-fase="6" data-nome="Culpado">
   <div class="fase-head"><div class="num">6</div><div class="t"><h2>Fechando o cerco</h2><div class="sub">JOIN de 4 tabelas · verificar_solucao</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p>Um <code>JOIN</code> pode ser encadeado, como vagões de trem. A placa está em <code>habilitacao</code>, que se liga a <code>pessoa</code>, que se liga a <code>academia_membro</code>, que se liga a <code>academia_checkin</code>. No mundo real é assim que um sistema hospitalar cruza paciente, leito, prescrição e farmácia.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>JOIN × 3</code></td><td>liga quatro tabelas em cadeia, uma depois da outra</td><td>“pessoa, habilitação, renda e depoimento”</td></tr>
+    <tr><td><code>ON a.x = b.y</code></td><td>cada JOIN precisa do seu próprio par de colunas</td><td>“a ponte entre uma ficha e a próxima”</td></tr>
+    <tr><td><code>WHERE + AND</code></td><td>filtra no final, depois que tudo está ligado</td><td>“mulher, ruiva e dona do carro da placa”</td></tr>
+    <tr><td><code>SELECT verificar_solucao('Nome')</code></td><td>chama a função do jogo, que diz se o nome está certo</td><td>“perguntar ao sistema se acertei”</td></tr>
+  </table></div>
 <pre class="mermaid">
 flowchart LR
   C[academia_checkin] -- membro_id = id --> M[academia_membro]
@@ -270,6 +316,15 @@ WHERE m.id LIKE '48Z%'
 <section class="fase bonus" id="fase7" data-fase="7" data-nome="Bônus">
   <div class="fase-head"><div class="num">★</div><div class="t"><h2>Bônus: quem mandou?</h2><div class="sub">BETWEEN · GROUP BY · HAVING · COUNT</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p><code>GROUP BY</code> junta linhas iguais num monte só, e <code>COUNT</code> conta quantas tem em cada monte. É o que você faria para saber “quantas notificações cada setor abriu no mês”. <code>HAVING</code> é o <code>WHERE</code> dos montes: filtra depois de contar. <code>BETWEEN</code> pega uma faixa, tipo “altura entre 165 e 170”.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>BETWEEN a AND b</code></td><td>o valor está dentro da faixa, incluindo as pontas</td><td>“altura de 165 a 170 cm”</td></tr>
+    <tr><td><code>GROUP BY</code></td><td>junta as linhas iguais numa coluna em um único grupo</td><td>“agrupar atendimentos por setor”</td></tr>
+    <tr><td><code>COUNT(*)</code></td><td>conta quantas linhas há em cada grupo</td><td>“quantos atendimentos por setor”</td></tr>
+    <tr><td><code>HAVING</code></td><td>filtra os grupos depois da contagem (o WHERE filtra as linhas antes)</td><td>“só setores com mais de 100 atendimentos”</td></tr>
+    <tr><td><code>AS nome</code></td><td>dá um nome à coluna do resultado</td><td>“chamar a contagem de vezes”</td></tr>
+  </table></div>
+  <div class="box passo"><b class="l">Como o GROUP BY e o HAVING funcionam, passo a passo</b><ol class="steps"><li>O <code>WHERE</code> filtra as linhas primeiro.</li><li>O <code>GROUP BY</code> junta as linhas que têm o mesmo valor na coluna escolhida.</li><li>Funções como <code>COUNT</code> e <code>SUM</code> rodam dentro de cada grupo.</li><li>O <code>HAVING</code> filtra os grupos depois da contagem.</li><li>Por fim, <code>ORDER BY</code> e <code>LIMIT</code> organizam o resultado.</li></ol><p>Regra de bolso: WHERE filtra linhas antes de agrupar. HAVING filtra grupos depois de contar.</p></div>
   <div class="lbl">Exemplo: quantas pessoas foram a cada evento</div>
   <div class="code"><pre data-sql>SELECT nome_evento, COUNT(*) AS presencas
 FROM evento_checkin
@@ -405,14 +460,14 @@ WHERE p.rua_endereco = 'Rua das Acácias'
 <section class="fase bonus" id="fase9" data-fase="9" data-nome="Números">
   <div class="fase-head"><div class="num">A</div><div class="t"><h2>Contando e somando</h2><div class="sub">DISTINCT · MIN · MAX · AVG · SUM · ROUND</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p>Até aqui você listou linhas. Agora você vai <em>resumir</em>: quantos tipos existem, qual o maior valor, qual a média. É o que você faz numa planilha com a linha de totais no rodapé. <code>DISTINCT</code> tira os repetidos, e <code>MIN</code>, <code>MAX</code>, <code>AVG</code> e <code>SUM</code> calculam sobre a coluna inteira.</p></div>
-  <div class="tw"><table>
-    <tr><th>Escrevendo</th><th>Significa</th></tr>
-    <tr><td><code>DISTINCT tipo</code></td><td>cada tipo aparece uma vez só</td></tr>
-    <tr><td><code>COUNT(DISTINCT setor)</code></td><td>quantos setores diferentes existem</td></tr>
-    <tr><td><code>MIN(x) / MAX(x)</code></td><td>o menor e o maior valor</td></tr>
-    <tr><td><code>AVG(x)</code></td><td>a média</td></tr>
-    <tr><td><code>SUM(x)</code></td><td>a soma</td></tr>
-    <tr><td><code>ROUND(x, 1)</code></td><td>arredonda para 1 casa decimal</td></tr>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>DISTINCT</code></td><td>tira os repetidos: cada valor aparece uma vez só</td><td>“cada setor uma única vez”</td></tr>
+    <tr><td><code>COUNT(DISTINCT x)</code></td><td>conta quantos valores diferentes existem</td><td>“quantos setores diferentes”</td></tr>
+    <tr><td><code>MIN(x)  /  MAX(x)</code></td><td>o menor e o maior valor da coluna</td><td>“a menor e a maior renda”</td></tr>
+    <tr><td><code>AVG(x)</code></td><td>a média</td><td>“idade média dos pacientes”</td></tr>
+    <tr><td><code>SUM(x)</code></td><td>a soma</td><td>“total de ampolas retiradas”</td></tr>
+    <tr><td><code>ROUND(x, n)</code></td><td>arredonda para n casas decimais</td><td>“média com 1 casa”</td></tr>
   </table></div>
   <div class="lbl">Exemplos</div>
   <div class="code"><pre data-sql>-- cada tipo de ocorrência, sem repetir
@@ -435,11 +490,13 @@ FROM habilitacao;</pre></div>
 <section class="fase bonus" id="fase10" data-fase="10" data-nome="Subconsulta">
   <div class="fase-head"><div class="num">B</div><div class="t"><h2>Consulta dentro de consulta</h2><div class="sub">SUBCONSULTA · IN · = (SELECT …)</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p>Às vezes a resposta de uma pergunta depende da resposta de outra. “Quem ganha acima da média?” primeiro pede a média, depois compara. Em SQL você escreve a primeira pergunta <em>entre parênteses</em>, dentro da segunda. É como abrir um prontuário para achar o número do leito e usar esse número para abrir outro.</p></div>
-  <div class="tw"><table>
-    <tr><th>Escrevendo</th><th>Significa</th></tr>
-    <tr><td><code>WHERE x &gt; (SELECT AVG(x) …)</code></td><td>compara com um valor calculado na hora</td></tr>
-    <tr><td><code>WHERE x = (SELECT MAX(x) …)</code></td><td>pega quem tem o maior valor</td></tr>
-    <tr><td><code>WHERE id IN (SELECT …)</code></td><td>o id está na lista que a subconsulta devolve</td></tr>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>( SELECT … )</code></td><td>uma consulta dentro de outra, entre parênteses</td><td>“primeiro descubro a média, depois comparo”</td></tr>
+    <tr><td><code>&gt; (SELECT AVG(x) …)</code></td><td>compara com um valor calculado na hora</td><td>“quem ganha acima da média”</td></tr>
+    <tr><td><code>= (SELECT MAX(x) …)</code></td><td>pega quem tem o maior (ou menor) valor</td><td>“a pessoa de maior renda”</td></tr>
+    <tr><td><code>IN (SELECT …)</code></td><td>o valor está na lista que a subconsulta devolve</td><td>“quem foi ao evento X”</td></tr>
+    <tr><td><code>NOT IN (SELECT …)</code></td><td>o valor não está na lista (cuidado com valores vazios)</td><td>“quem nunca foi ao evento”</td></tr>
   </table></div>
   <div class="lbl">Exemplos</div>
   <div class="code"><pre data-sql>-- quem foi ao Congresso de Gestão Hospitalar (sem JOIN)
@@ -471,12 +528,14 @@ WHERE habilitacao_id IN (SELECT id FROM habilitacao WHERE marca_carro = 'Tesla')
 <section class="fase bonus" id="fase11" data-fase="11" data-nome="CASE">
   <div class="fase-head"><div class="num">C</div><div class="t"><h2>Classificando com CASE</h2><div class="sub">CASE · WHEN · THEN · ELSE · END</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p><code>CASE</code> é o “se isso, então aquilo” do SQL. Serve para criar uma coluna nova com uma etiqueta, como a classificação de risco do paciente: verde, amarelo ou vermelho, conforme os sinais. Depois você pode contar quantos caem em cada etiqueta com <code>GROUP BY</code>.</p></div>
-  <div class="tw"><table>
-    <tr><th>Escrevendo</th><th>Significa</th></tr>
-    <tr><td><code>WHEN condição THEN valor</code></td><td>se a condição for verdadeira, usa este valor</td></tr>
-    <tr><td><code>ELSE valor</code></td><td>se nenhuma condição bater, usa este</td></tr>
-    <tr><td><code>END</code></td><td>fecha o CASE</td></tr>
-    <tr><td><code>AS nome</code></td><td>dá nome à coluna criada</td></tr>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>CASE</code></td><td>abre uma escolha do tipo “se isso, então aquilo”</td><td>“classificação de risco do paciente”</td></tr>
+    <tr><td><code>WHEN condição THEN valor</code></td><td>se a condição for verdadeira, usa este valor</td><td>“se a renda é menor que 50 mil, então 'baixa'”</td></tr>
+    <tr><td><code>ELSE valor</code></td><td>valor para quando nenhuma condição acima for verdadeira</td><td>“senão, 'alta'”</td></tr>
+    <tr><td><code>END</code></td><td>fecha o CASE</td><td>“fim da regra”</td></tr>
+    <tr><td><code>AS nome</code></td><td>dá nome à coluna criada pelo CASE</td><td>“chamar de faixa”</td></tr>
+    <tr><td><code>GROUP BY nome</code></td><td>conta quantos caíram em cada etiqueta</td><td>“quantos baixa, média e alta”</td></tr>
   </table></div>
   <div class="lbl">Exemplos</div>
   <div class="code"><pre data-sql>-- etiqueta nova para cada sócio
@@ -515,12 +574,13 @@ ORDER BY total DESC;</pre></div>
 <section class="fase bonus" id="fase12" data-fase="12" data-nome="LEFT JOIN">
   <div class="fase-head"><div class="num">D</div><div class="t"><h2>Quem ficou de fora</h2><div class="sub">LEFT JOIN · IS NULL</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p>O <code>JOIN</code> que você já conhece só mostra quem tem par nas duas tabelas. Mas a pergunta, às vezes, é a contrária: <em>quem não tem</em>. Quais pacientes não têm retorno marcado? Quais sócios nunca foram? O <code>LEFT JOIN</code> mantém todo mundo da tabela da esquerda. Quem não achou par fica com <code>NULL</code>, e é só filtrar por <code>IS NULL</code>.</p></div>
-  <div class="tw"><table>
-    <tr><th>Escrevendo</th><th>Significa</th></tr>
-    <tr><td><code>JOIN</code></td><td>só quem tem par nas duas tabelas</td></tr>
-    <tr><td><code>LEFT JOIN</code></td><td>todos da esquerda, com ou sem par</td></tr>
-    <tr><td><code>IS NULL</code></td><td>o valor está vazio (sem par)</td></tr>
-    <tr><td><code>IS NOT NULL</code></td><td>o valor existe</td></tr>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>JOIN</code></td><td>só mostra quem tem par nas duas tabelas</td><td>“pacientes que têm consulta”</td></tr>
+    <tr><td><code>LEFT JOIN</code></td><td>mantém todos da tabela da esquerda, com ou sem par</td><td>“todos os sócios, com ou sem entrada”</td></tr>
+    <tr><td><code>NULL</code></td><td>valor vazio: sem par, ou sem dado</td><td>“campo em branco na ficha”</td></tr>
+    <tr><td><code>IS NULL</code></td><td>filtra os vazios (nunca use = NULL)</td><td>“sócios que nunca entraram”</td></tr>
+    <tr><td><code>IS NOT NULL</code></td><td>filtra os preenchidos</td><td>“quem tem telefone cadastrado”</td></tr>
   </table></div>
   <div class="lbl">Exemplos</div>
   <div class="code"><pre data-sql>-- todos os sócios, com ou sem entrada na academia

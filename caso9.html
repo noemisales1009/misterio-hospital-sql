@@ -87,6 +87,14 @@ erDiagram
 <section class="fase" id="c9-f1" data-fase="1" data-nome="Acessos">
   <div class="fase-head"><div class="num">1</div><div class="t"><h2>Quem abriu o prontuário?</h2><div class="sub">JOIN · GROUP BY · COUNT(DISTINCT)</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Todo sistema de prontuário sério guarda um <strong>log de auditoria</strong>: uma linha para cada vez que alguém abre, imprime ou exporta um prontuário, dizendo quem, quando, o quê e de qual computador. É a câmera de segurança dos dados. Comece pelo básico: quantas vezes o prontuário da Lia foi aberto, e por quantas pessoas?</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>JOIN</code></td><td>liga o acesso à ficha de quem acessou</td><td>“nome do usuário no registro”</td></tr>
+    <tr><td><code>COUNT(*)</code></td><td>quantos acessos</td><td>“acessos de cada usuário”</td></tr>
+    <tr><td><code>COUNT(DISTINCT x)</code></td><td>quantos valores diferentes</td><td>“quantos pacientes diferentes”</td></tr>
+    <tr><td><code>GROUP BY usuario</code></td><td>uma linha por usuário</td><td>“o resumo de cada pessoa”</td></tr>
+    <tr><td><code>ORDER BY … DESC</code></td><td>maior primeiro</td><td>“quem acessou mais”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · Ler um log</b><p>Num log, cada linha é um <strong>acontecimento</strong>, e quase tudo nele é código: <code>usuario_id</code> aponta para <code>usuario</code> e <code>internado_id</code>, para <code>internado</code>. Para ler o log como gente, junte com essas tabelas. E lembre a diferença entre as duas contas: <code>COUNT(*)</code> conta linhas (cada acesso conta uma vez) e <code>COUNT(DISTINCT usuario_id)</code> conta <strong>pessoas diferentes</strong> (quem abriu dez vezes conta uma só).</p></div>
   <div class="tw"><table><tr><th>usuario_id</th><th>internado_id</th><th>momento</th><th>acao</th><th>estacao</th></tr><tr><td>4</td><td>12</td><td>2026-10-21 08:14:32</td><td>visualizar</td><td>CLM-PC02</td></tr><tr><td>4</td><td>12</td><td>2026-10-21 10:02:10</td><td>visualizar</td><td>CLM-PC02</td></tr><tr><td>15</td><td>12</td><td>2026-10-21 14:30:05</td><td>imprimir</td><td>CLM-PC01</td></tr></table></div>
   <div class="box"><b class="l">Nessas três linhas</b><p><code>COUNT(*)</code> dá <strong>3</strong> e <code>COUNT(DISTINCT usuario_id)</code> dá <strong>2</strong>: a pessoa 4 abriu duas vezes.</p></div>
@@ -116,6 +124,13 @@ ORDER BY a.momento;</pre></div>
 <section class="fase" id="c9-f2" data-fase="2" data-nome="Sem vínculo">
   <div class="fase-head"><div class="num">2</div><div class="t"><h2>Quem não era da equipe?</h2><div class="sub">NOT EXISTS · LEFT JOIN … IS NULL · SUBSTRING · ||</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Pela LGPD, só pode abrir o prontuário quem cuida da paciente. No hospital, isso está na tabela <code>equipe_cuidado</code>: um par (paciente, funcionário) para cada pessoa da equipe. Quem abriu o prontuário da Lia e <strong>não</strong> está nessa lista espiou sem motivo. O sistema deixa abrir, porque numa emergência ninguém pode ficar travado, mas registra tudo.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>NOT EXISTS ( … )</code></td><td>verdadeiro se não existir nenhuma linha correspondente</td><td>“sem vínculo com o paciente”</td></tr>
+    <tr><td><code>LEFT JOIN … IS NULL</code></td><td>outro jeito de achar quem não tem par</td><td>“acesso sem plantão”</td></tr>
+    <tr><td><code>SUBSTRING(x, 1, 3)</code></td><td>pega um pedaço do texto</td><td>“os 3 primeiros dígitos”</td></tr>
+    <tr><td><code>a || b</code></td><td>junta dois textos</td><td>“nome e sobrenome”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · NOT EXISTS</b><p><code>NOT EXISTS (subconsulta)</code> é verdadeiro quando a subconsulta <strong>não devolve nenhuma linha</strong>. A subconsulta pode usar as colunas da consulta de fora: para cada linha de fora, o banco pergunta <em>existe um par para esta linha?</em>. O <code>SELECT 1</code> lá dentro é só um jeito curto de escrever, porque o que importa é se existe linha, não o que vem nela. Ficar com o que <strong>não tem par</strong> se chama <strong>anti-junção</strong>. Exemplo: quem nunca abriu prontuário nenhum na semana.</p></div>
   <div class="code"><pre data-sql>SELECT u.nome, u.setor
 FROM usuario u
@@ -174,6 +189,13 @@ ORDER BY u.nome;</pre></div>
 <section class="fase" id="c9-f3" data-fase="3" data-nome="Fora do turno">
   <div class="fase-head"><div class="num">3</div><div class="t"><h2>Fora do horário</h2><div class="sub">EXTRACT · CASE · OR</div></div></div>
   <div class="box"><b class="l">Situação</b><p>A Jaqueline é da equipe, então passou no teste da etapa 2. Mas ela é do turno da <strong>manhã</strong>, das 7h às 13h. O que o prontuário da Lia fazia sendo exportado com a conta dela quase à meia-noite? Procure todos os acessos ao prontuário da Lia feitos <strong>fora do turno</strong> de quem acessou.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>EXTRACT(HOUR FROM x)</code></td><td>só a hora do momento</td><td>“22h”</td></tr>
+    <tr><td><code>CASE WHEN … THEN</code></td><td>define o turno pela hora</td><td>“noite, manhã ou tarde”</td></tr>
+    <tr><td><code>OR</code></td><td>uma condição ou a outra</td><td>“hora &gt;= 19 ou hora &lt; 7”</td></tr>
+    <tr><td><code>( … OR … )</code></td><td>parênteses protegem os outros filtros</td><td>“só fora do turno”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · EXTRACT</b><p><code>EXTRACT(HOUR FROM momento)</code> tira um pedaço de um <code>timestamp</code>: a <strong>hora</strong>, de 0 a 23. Os minutos ficam de fora, então 12:59 dá 12. Também funciona com <code>DAY</code>, <code>MONTH</code>, <code>MINUTE</code> e outros pedaços.</p></div>
   <div class="tw"><table><tr><th>momento</th><th>EXTRACT(HOUR FROM momento)</th><th>turno pela hora</th></tr><tr><td>2026-10-21 06:58:10</td><td>6</td><td>noite</td></tr><tr><td>2026-10-21 12:59:40</td><td>12</td><td>manhã</td></tr><tr><td>2026-10-21 13:00:05</td><td>13</td><td>tarde</td></tr><tr><td>2026-10-21 23:47:05</td><td>23</td><td>noite</td></tr></table></div>
   <div class="box"><b class="l">Atenção · o turno que vira a noite</b><p>Manhã é hora de 7 a 12 (<code>BETWEEN 7 AND 12</code> vai até 12:59) e tarde, de 13 a 18. A noite começa às 19h e termina às 7h do <strong>dia seguinte</strong>: passa pela meia-noite, quando a hora volta a 0. Por isso <code>hora &gt;= 19 AND hora &lt; 7</code> nunca é verdade, porque nenhum número é as duas coisas ao mesmo tempo. O certo é <strong>OR</strong>: <code>hora &gt;= 19 OR hora &lt; 7</code>. Para escolher a regra certa para cada pessoa, use um <code>CASE</code> pelo turno. Aqui o <code>CASE</code> devolve <code>true</code> ou <code>false</code>, não um texto. O exemplo mostra a troca de turno das 13h do dia 22: procure a linha que dá <code>false</code>.</p></div>
@@ -218,6 +240,13 @@ ORDER BY momento;</pre></div>
 <section class="fase" id="c9-f4" data-fase="4" data-nome="Força bruta">
   <div class="fase-head"><div class="num">4</div><div class="t"><h2>Senha no chute</h2><div class="sub">COUNT(*) FILTER · GROUP BY · HAVING · MIN/MAX</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Se não foi a Jaqueline, alguém entrou com a senha dela. Um jeito comum é a <strong>força bruta</strong>: tentar senha atrás de senha até acertar, como quem testa todas as chaves de um molho. Senha fraca (data de nascimento, nome do filho, <code>123456</code>) cai em poucas tentativas. Por isso os sistemas <strong>bloqueiam a conta</strong> depois de poucos erros seguidos, por exemplo 5: o chute fica limitado a 5 tentativas, e não 5 mil. A tabela <code>log_login</code> guarda cada tentativa de entrar, certa ou errada. Errar a senha uma ou duas vezes é normal. Uma rajada de erros, não.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>COUNT(*) FILTER (WHERE …)</code></td><td>conta só as linhas que cumprem a condição</td><td>“quantas tentativas erradas”</td></tr>
+    <tr><td><code>GROUP BY usuario</code></td><td>uma linha por usuário</td><td>“tentativas de cada conta”</td></tr>
+    <tr><td><code>HAVING … &gt; n</code></td><td>filtra os grupos depois de contar</td><td>“mais de 5 erros”</td></tr>
+    <tr><td><code>MIN(x)  /  MAX(x)</code></td><td>primeira e última ocorrência</td><td>“começou às 02:10 e foi até 02:45”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · COUNT(*) FILTER</b><p><code>COUNT(*) FILTER (WHERE condição)</code> conta só as linhas do grupo que passam na condição. Com ele você conta as tentativas erradas e as certas <strong>na mesma linha</strong>, sem fazer duas consultas. O <code>FILTER</code> funciona com qualquer agregação: <code>MIN(momento) FILTER (WHERE NOT sucesso)</code> é o horário do primeiro erro do grupo. Como <code>sucesso</code> já é verdadeiro ou falso, não precisa escrever <code>= true</code>: basta <code>WHERE sucesso</code> ou <code>WHERE NOT sucesso</code>.</p></div>
   <div class="tw"><table><tr><th>no grupo da ana.souza (errou, errou, acertou)</th><th>resultado</th></tr><tr><td><code>COUNT(*)</code></td><td>3</td></tr><tr><td><code>COUNT(*) FILTER (WHERE NOT sucesso)</code></td><td>2</td></tr><tr><td><code>COUNT(*) FILTER (WHERE sucesso)</code></td><td>1</td></tr><tr><td><code>MIN(momento) FILTER (WHERE NOT sucesso)</code></td><td>o horário do 1º erro</td></tr></table></div>
   <div class="box"><b class="l">Lembrete · HAVING</b><p>O <code>WHERE</code> filtra linhas <strong>antes</strong> de agrupar. Para filtrar pelo resultado de uma conta do grupo, use <code>HAVING</code>, depois do <code>GROUP BY</code>. O exemplo abaixo conta as tentativas por dia (<code>momento::date</code> corta a hora e deixa só a data).</p></div>
@@ -251,6 +280,13 @@ ORDER BY primeira_falha;</pre></div>
 <section class="fase" id="c9-f5" data-fase="5" data-nome="Quem estava lá">
   <div class="fase-head"><div class="num">5</div><div class="t"><h2>Quem estava no FAT-PC07?</h2><div class="sub">ORDER BY · LIMIT · subconsulta</div></div></div>
   <div class="box"><b class="l">Situação</b><p>A Jaqueline estava em casa: o turno dela tinha acabado às 13h. Quem chutou 20 senhas no FAT-PC07 estava <strong>sentado na frente dele</strong>. Agora a pergunta é: quem tinha entrado nesse computador naquela noite, antes da rajada?</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>ORDER BY momento</code></td><td>ordena pelo horário</td><td>“linha do tempo”</td></tr>
+    <tr><td><code>LIMIT 1</code></td><td>fica com a primeira linha</td><td>“o último a entrar”</td></tr>
+    <tr><td><code>( SELECT … )</code></td><td>subconsulta com o instante do acesso</td><td>“quem estava lá naquele momento”</td></tr>
+    <tr><td><code>&lt;= e &gt;=</code></td><td>compara horários para ver se estava presente</td><td>“entrou antes e saiu depois”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · O último com ORDER BY … DESC LIMIT 1</b><p><code>ORDER BY momento DESC</code> põe o mais recente primeiro, e <code>LIMIT 1</code> fica só com a primeira linha. Juntos respondem <em>qual foi o último?</em>. Sem o <code>DESC</code>, a ordem é do mais antigo para o mais novo, e o <code>LIMIT 1</code> traz o primeiro. Cuidado com empates: se duas linhas tivessem o mesmo horário, o <code>LIMIT 1</code> escolheria uma delas sem avisar.</p></div>
   <div class="box novo"><b class="l">Ferramenta nova · Subconsulta que devolve um valor</b><p>Em vez de copiar um id ou um horário na mão, deixe o banco buscar: <code>WHERE coluna = (SELECT …)</code>. A subconsulta entre parênteses roda primeiro e devolve <strong>um único valor</strong>, que entra na comparação como se você tivesse digitado. Se ela devolver mais de uma linha, dá erro. O exemplo acha a primeira pessoa a abrir o prontuário da Lia, sem saber o id dela.</p></div>
   <div class="code"><pre data-sql>SELECT u.nome, a.momento, a.estacao

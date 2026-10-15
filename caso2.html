@@ -84,6 +84,14 @@ erDiagram
 <section class="fase" id="c2-f1" data-fase="1" data-nome="Janela">
   <div class="fase-head"><div class="num">1</div><div class="t"><h2>A janela do crime</h2><div class="sub">WHERE · AND · BETWEEN</div></div></div>
   <div class="box"><b class="l">Situação</b><p>O relatório da auditoria diz: <em>“dose alterada entre 02h00 e 03h59 de 14/08/2026”</em>. Comece achando todas as alterações dessa janela. A hora é um número: 02h15 é <code>215</code>, 03h59 é <code>359</code>.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>WHERE</code></td><td>só deixa passar as linhas que cumprem a condição</td><td>“só as alterações do dia 14”</td></tr>
+    <tr><td><code>data = 20260814</code></td><td>a data aqui é um número no formato AAAAMMDD</td><td>“14 de agosto de 2026”</td></tr>
+    <tr><td><code>acao = 'alterou'</code></td><td>texto vai entre aspas simples e precisa ser idêntico</td><td>“só quem alterou, não quem visualizou”</td></tr>
+    <tr><td><code>BETWEEN a AND b</code></td><td>o valor está entre os dois, incluindo as pontas</td><td>“entre 02h00 e 03h59”</td></tr>
+    <tr><td><code>AND</code></td><td>todas as condições ao mesmo tempo</td><td>“dia 14 e alterou e de madrugada”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste todas as linhas de <code>acesso_prontuario</code> em que a <strong>data</strong> é 14/08/2026, a <strong>ação</strong> é <code>alterou</code> e a <strong>hora</strong> está entre 02h00 e 03h59.</li></ul></div>
   <details><summary>Dica</summary><div><p>Três condições ligadas por <code>AND</code>: <code>data = 20260814</code>, <code>acao = 'alterou'</code> e <code>hora BETWEEN 200 AND 359</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
@@ -98,6 +106,14 @@ WHERE data = 20260814
 <section class="fase" id="c2-f2" data-fase="2" data-nome="Senha">
   <div class="fase-head"><div class="num">2</div><div class="t"><h2>De quem é a senha?</h2><div class="sub">JOIN de 3 tabelas</div></div></div>
   <div class="box"><b class="l">Situação</b><p>O setor do paciente está em <code>prontuario</code> e o nome de quem logou está em <code>funcionario</code>. Você precisa ligar as três tabelas: <code>acesso_prontuario</code> com cada uma das outras, pelos ids.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>JOIN … ON</code></td><td>liga duas tabelas pelo número que elas têm em comum</td><td>“auditoria com a ficha do funcionário”</td></tr>
+    <tr><td><code>2º JOIN</code></td><td>liga mais uma tabela, em cadeia</td><td>“e também com o prontuário”</td></tr>
+    <tr><td><code>a, f, pr</code></td><td>apelidos curtos para as tabelas</td><td>“a de acesso, f de funcionário”</td></tr>
+    <tr><td><code>tabela.coluna</code></td><td>diz de qual tabela vem cada coluna</td><td>“setor do prontuário, e não do funcionário”</td></tr>
+    <tr><td><code>WHERE pr.setor = 'UTI Adulto'</code></td><td>filtra depois de ligar as tabelas</td><td>“só prontuários da UTI Adulto”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Repita a consulta da etapa 1, mas mostre a <strong>hora</strong>, o <strong>nome</strong> e o <strong>cargo</strong> do funcionário e o <strong>código</strong> e o <strong>setor</strong> do prontuário.</li><li>Fique só com os prontuários da <strong>UTI Adulto</strong>. Quantas pessoas aparecem?</li></ul></div>
   <details><summary>Dica</summary><div><p>Dois <code>JOIN</code> seguidos: um com <code>funcionario f ON f.id = a.funcionario_id</code> e outro com <code>prontuario pr ON pr.id = a.prontuario_id</code>. Depois acrescente <code>pr.setor = 'UTI Adulto'</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
@@ -115,6 +131,14 @@ WHERE a.data = 20260814
 <section class="fase" id="c2-f3" data-fase="3" data-nome="Plantão">
   <div class="fase-head"><div class="num">3</div><div class="t"><h2>Quem estava de plantão?</h2><div class="sub">JOIN com condição dupla · NOT</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Agora a escala. Para cada uma das duas pessoas, veja o que a tabela <code>plantao</code> diz <strong>naquela data</strong>. Quem estava no plantão <code>noturno</code> na <code>UTI Adulto</code> tem motivo para estar logada. Quem não estava, não.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>ON … AND …</code></td><td>o JOIN pode ter mais de uma condição</td><td>“mesmo funcionário e mesma data”</td></tr>
+    <tr><td><code>turno / setor</code></td><td>colunas da escala que dizem onde a pessoa estava</td><td>“noturno na UTI Adulto”</td></tr>
+    <tr><td><code>NOT ( … )</code></td><td>nega tudo o que está entre parênteses</td><td>“quem não estava no plantão”</td></tr>
+    <tr><td><code>( a AND b )</code></td><td>parênteses mantêm as duas condições juntas dentro do NOT</td><td>“noturno e na UTI, junto”</td></tr>
+    <tr><td><code>folga</code></td><td>valor da coluna turno quando a pessoa não trabalha</td><td>“de folga naquele dia”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Ligue <code>plantao</code> à consulta anterior pelo funcionário <strong>e</strong> pela data, e mostre o <code>turno</code> e o <code>setor</code> do plantão.</li><li>Filtre para ficar só com quem <strong>não</strong> estava no plantão noturno da UTI Adulto. De quem é a senha usada?</li></ul></div>
   <details><summary>Dica</summary><div><p>O JOIN leva duas condições: <code>pl.funcionario_id = f.id AND pl.data = a.data</code>. Para negar as duas ao mesmo tempo, use parênteses: <code>NOT (pl.turno = 'noturno' AND pl.setor = 'UTI Adulto')</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
@@ -134,6 +158,13 @@ WHERE a.data = 20260814
 <section class="fase" id="c2-f4" data-fase="4" data-nome="Porta">
   <div class="fase-head"><div class="num">4</div><div class="t"><h2>Quem abriu a porta?</h2><div class="sub">LEFT JOIN · IS NULL</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Quem mexeu no prontuário estava <em>fisicamente</em> na UTI Adulto. A porta com crachá registra as entradas. Você quer quem entrou ali perto das 02h12 <strong>sem ter plantão noturno na UTI Adulto</strong>. É a pergunta de “quem não tem par”, o trabalho do <code>LEFT JOIN</code> com <code>IS NULL</code>.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>LEFT JOIN</code></td><td>mantém todos da esquerda, mesmo sem par na direita</td><td>“todas as entradas, com ou sem plantão”</td></tr>
+    <tr><td><code>ON com várias condições</code></td><td>só conta como par quem cumpre todas</td><td>“plantão noturno na UTI Adulto na mesma data”</td></tr>
+    <tr><td><code>IS NULL</code></td><td>filtra quem ficou sem par</td><td>“entrou na porta sem ter plantão ali”</td></tr>
+    <tr><td><code>BETWEEN 150 AND 220</code></td><td>faixa de horas em número (01h50 a 02h20)</td><td>“entre 01h50 e 02h20”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Em <code>porta_log</code>, ache as entradas no local <code>UTI Adulto</code> em 14/08/2026 entre <strong>01h50 e 02h20</strong>.</li><li>Mantenha só quem <strong>não</strong> tinha plantão noturno na UTI Adulto naquela data. Quantas pessoas sobram e quais são?</li></ul></div>
   <details><summary>Dica</summary><div><p>Faça <code>LEFT JOIN plantao</code> e coloque as condições do plantão (data, <code>turno = 'noturno'</code>, <code>setor = 'UTI Adulto'</code>) <strong>no ON</strong>, não no WHERE. Quem ficar com <code>pl.funcionario_id IS NULL</code> não tinha esse plantão.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
@@ -155,6 +186,13 @@ WHERE l.local = 'UTI Adulto'
 <section class="fase" id="c2-f5" data-fase="5" data-nome="Hábito">
   <div class="fase-head"><div class="num">5</div><div class="t"><h2>O hábito</h2><div class="sub">GROUP BY · HAVING · COUNT(DISTINCT)</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Uma entrada isolada pode ser engano. Um <strong>hábito</strong> não. Entre as três pessoas da etapa anterior, veja quem entrou na porta da UTI Adulto de madrugada, <strong>sem ter plantão noturno ali</strong>, em várias noites de agosto.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>GROUP BY nome</code></td><td>uma linha por pessoa, juntando todas as entradas dela</td><td>“cada funcionário uma vez”</td></tr>
+    <tr><td><code>COUNT(DISTINCT data)</code></td><td>conta em quantos dias diferentes aconteceu</td><td>“em quantas noites diferentes”</td></tr>
+    <tr><td><code>HAVING COUNT(…) &gt;= 3</code></td><td>filtra os grupos depois da contagem</td><td>“só quem repetiu 3 noites ou mais”</td></tr>
+    <tr><td><code>IN (41, 55, 58)</code></td><td>restringe a lista de pessoas</td><td>“só as três suspeitas”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Entre as três (use os ids que você achou), conte em quantas <strong>noites diferentes</strong> de agosto cada uma entrou na porta da UTI Adulto entre <strong>01h00 e 04h00</strong> sem ter plantão noturno ali.</li><li>Fique só com quem fez isso em <strong>3 noites ou mais</strong>. Esse é o culpado. Confira com <code>SELECT verificar_caso2('Nome Completo');</code>.</li></ul></div>
   <details><summary>Dica</summary><div><p>Reaproveite o <code>LEFT JOIN … IS NULL</code> da etapa 4, troque a janela para <code>hora BETWEEN 100 AND 400</code>, tire o filtro de data, agrupe por nome e use <code>HAVING COUNT(DISTINCT l.data) &gt;= 3</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>

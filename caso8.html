@@ -71,6 +71,13 @@ erDiagram
 <section class="fase" id="c8-f1" data-fase="1" data-nome="Mês a mês">
   <div class="fase-head"><div class="num">1</div><div class="t"><h2>A folha mês a mês</h2><div class="sub">DATE_TRUNC · TO_CHAR · GROUP BY</div></div></div>
   <div class="box"><b class="l">Situação</b><p>O RH quer ver os plantões extras <strong>mês a mês</strong>, para saber se setembro foi mesmo fora do normal. Cada linha de <code>hora_extra</code> tem um <code>inicio</code> com data e hora, como <code>2026-09-13 07:00:00</code>. Para contar por mês, cada data precisa virar o <strong>mês</strong> a que ela pertence.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>DATE_TRUNC('month', x)</code></td><td>arredonda a data para o começo do mês</td><td>“todas as datas de setembro viram 01/09”</td></tr>
+    <tr><td><code>TO_CHAR(x, 'YYYY-MM')</code></td><td>escreve a data no formato escolhido</td><td>“2026-09”</td></tr>
+    <tr><td><code>GROUP BY mês</code></td><td>uma linha por mês</td><td>“horas extras de cada mês”</td></tr>
+    <tr><td><code>SUM(…)</code></td><td>soma dentro de cada mês</td><td>“total do mês”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · DATE_TRUNC e TO_CHAR</b><p><code>DATE_TRUNC('month', inicio)</code> corta a data no começo do mês: 13/09 às 07:00 vira 01/09 às 00:00. Todos os plantões de setembro ficam com o mesmo valor e dá para agrupar. Também funciona com <code>'day'</code>, <code>'week'</code> e <code>'year'</code>. <code>TO_CHAR(inicio, 'YYYY-MM')</code> faz parecido, mas devolve <strong>texto</strong> no formato que você escolher: <code>YYYY</code> é o ano, <code>MM</code> o mês, <code>DD</code> o dia, <code>HH24</code> a hora e <code>MI</code> os minutos. Texto é bom para mostrar; para fazer conta com datas, use <code>DATE_TRUNC</code>, que continua sendo data.</p></div>
   <div class="tw"><table><tr><th>inicio</th><th>DATE_TRUNC('month', inicio)</th><th>TO_CHAR(inicio, 'YYYY-MM')</th></tr><tr><td>2026-08-31 19:00:00</td><td>2026-08-01 00:00:00</td><td><code>'2026-08'</code></td></tr><tr><td>2026-09-13 07:00:00</td><td>2026-09-01 00:00:00</td><td><code>'2026-09'</code></td></tr><tr><td>2026-09-30 19:00:00</td><td>2026-09-01 00:00:00</td><td><code>'2026-09'</code></td></tr></table></div>
   <div class="code"><pre data-sql>SELECT inicio,
@@ -98,6 +105,13 @@ WHERE inicio &gt;= '2026-09-01'
 <section class="fase" id="c8-f2" data-fase="2" data-nome="Dia e hora">
   <div class="fase-head"><div class="num">2</div><div class="t"><h2>Que dia, que hora?</h2><div class="sub">EXTRACT · DOW · CASE</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Setembro teve muito mais plantões. Em que <strong>dias</strong> e em que <strong>horários</strong>? Hora extra costuma começar à noite, depois do expediente, ou no fim de semana. Vamos ver se setembro segue esse padrão ou se aparece algo estranho.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>EXTRACT(DOW FROM x)</code></td><td>dia da semana: 0 é domingo, 6 é sábado</td><td>“foi num fim de semana?”</td></tr>
+    <tr><td><code>EXTRACT(HOUR FROM x)</code></td><td>só a hora</td><td>“começou às 22h”</td></tr>
+    <tr><td><code>CASE WHEN … THEN</code></td><td>cria a etiqueta de dia útil ou fim de semana</td><td>“útil, sábado ou domingo”</td></tr>
+    <tr><td><code>GROUP BY etiqueta</code></td><td>conta por etiqueta</td><td>“quantas por tipo de dia”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · EXTRACT</b><p><code>EXTRACT(parte FROM inicio)</code> tira um pedaço da data, como número: <code>YEAR</code> (ano), <code>MONTH</code> (mês), <code>DAY</code> (dia), <code>HOUR</code> (hora, de 0 a 23), <code>MINUTE</code> (minuto) e <code>DOW</code>, o dia da semana (<em>day of week</em>): <strong>0 é domingo</strong>, 1 é segunda, e assim por diante até <strong>6, sábado</strong>.</p></div>
   <div class="tw"><table><tr><th>inicio</th><th>EXTRACT(DOW FROM inicio)</th><th>dia (CASE)</th><th>EXTRACT(HOUR FROM inicio)</th></tr><tr><td>2026-09-05 07:00:00</td><td>6</td><td>sábado</td><td>7</td></tr><tr><td>2026-09-06 13:00:00</td><td>0</td><td>domingo</td><td>13</td></tr><tr><td>2026-09-09 19:30:00</td><td>3</td><td>quarta</td><td>19</td></tr></table></div>
   <div class="box"><b class="l">Atenção · O nome do dia</b><p><code>TO_CHAR(inicio, 'Day')</code> também dá o nome do dia, mas no idioma do servidor: quase sempre sai <code>Sunday</code>, <code>Monday</code>… Para ter o nome em português, traduza o número com <code>CASE</code>. Quando todos os testes comparam a mesma coisa, dá para escrever essa coisa uma vez só, logo depois do <code>CASE</code>: <code>CASE EXTRACT(DOW FROM inicio) WHEN 0 THEN 'domingo' WHEN 1 THEN 'segunda' … END</code>.</p></div>
@@ -143,6 +157,13 @@ ORDER BY hora;</pre></div>
 <section class="fase" id="c8-f3" data-fase="3" data-nome="Horas">
   <div class="fase-head"><div class="num">3</div><div class="t"><h2>Quantas horas, quanto dinheiro</h2><div class="sub">INTERVAL · EPOCH · ROUND</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Contar plantões não basta: um plantão de 4 horas e um de 12 pesam bem diferente na folha. Agora você vai medir as <strong>horas</strong> de cada plantão e transformar em <strong>dinheiro</strong>.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>fim - inicio</code></td><td>subtrair dois instantes dá um intervalo</td><td>“2 horas e 30 minutos”</td></tr>
+    <tr><td><code>EXTRACT(EPOCH FROM x)</code></td><td>converte o intervalo em segundos</td><td>“9000 segundos”</td></tr>
+    <tr><td><code>… / 3600.0</code></td><td>divide por 3600 para ter horas</td><td>“2,5 horas”</td></tr>
+    <tr><td><code>ROUND(x, 2)</code></td><td>arredonda para 2 casas</td><td>“2,50”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · Intervalo de tempo e EPOCH</b><p>Subtrair dois <code>timestamp</code> dá um <code>interval</code>, uma quantidade de tempo: <code>fim - inicio</code> pode dar <code>08:00:00</code> ou <code>04:30:00</code>. Para fazer conta, transforme em número: <code>EXTRACT(EPOCH FROM fim - inicio)</code> dá o intervalo em <strong>segundos</strong>, e dividindo por <code>3600</code> você tem as <strong>horas</strong>. Cuidado com <code>EXTRACT(HOUR FROM fim - inicio)</code>: ele pega só o pedaço “horas” e joga fora os minutos.</p></div>
   <div class="tw"><table><tr><th>inicio</th><th>fim</th><th>fim - inicio</th><th>EXTRACT(HOUR FROM …)</th><th>EXTRACT(EPOCH FROM …) / 3600</th></tr><tr><td>2026-09-05 07:00:00</td><td>2026-09-05 19:00:00</td><td>12:00:00</td><td>12</td><td>12</td></tr><tr><td>2026-09-09 19:30:00</td><td>2026-09-10 00:00:00</td><td>04:30:00</td><td>4 (sumiu meia hora)</td><td><strong>4.5</strong></td></tr></table></div>
   <div class="box"><b class="l">A regra do pagamento</b><p>Cada hora extra vale a hora normal mais 50%: <code>horas * valor_hora * 1.5</code>. No SQL a casa decimal é <strong>ponto</strong>: <code>1.5</code>, não <code>1,5</code>. Conta com dinheiro sai com muitas casas; <code>ROUND(x, 2)</code> deixa com duas.</p></div>
@@ -170,6 +191,14 @@ LIMIT 5;</pre></div>
 <section class="fase" id="c8-f4" data-fase="4" data-nome="Ranking">
   <div class="fase-head"><div class="num">4</div><div class="t"><h2>O ranking de setembro</h2><div class="sub">RANK · SUM OVER · %</div></div></div>
   <div class="box"><b class="l">Situação</b><p>O RH quer o <strong>ranking</strong> completo de setembro: a posição de cada pessoa e quanto ela representa do total de horas extras do mês. Duas pessoas estão muito acima das outras.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>RANK() OVER (ORDER BY …)</code></td><td>posição no ranking; empates repetem a posição</td><td>“1º, 2º, 2º, 4º”</td></tr>
+    <tr><td><code>DENSE_RANK()</code></td><td>posição sem pular número</td><td>“1º, 2º, 2º, 3º”</td></tr>
+    <tr><td><code>ROW_NUMBER()</code></td><td>numera sem empates</td><td>“1, 2, 3, 4”</td></tr>
+    <tr><td><code>SUM(x) OVER ()</code></td><td>soma geral ao lado de cada linha, sem juntar as linhas</td><td>“para calcular a % de cada um”</td></tr>
+    <tr><td><code>ROUND(100.0 * a / b, 1)</code></td><td>porcentagem com 1 casa</td><td>“14,3% do total”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · RANK e SUM( ) OVER ( )</b><p>Lembra das funções de janela do Caso 6? <code>RANK() OVER (ORDER BY horas DESC)</code> dá a <strong>posição</strong> de cada linha: quem tem mais horas é 1. <code>SUM(horas) OVER ()</code> soma a coluna inteira e repete o total em <strong>todas</strong> as linhas, sem juntar nenhuma: o <code>OVER ()</code> vazio quer dizer “a tabela toda é uma janela só”. Com o total ao lado, a porcentagem é uma conta simples: <code>100 * horas / SUM(horas) OVER ()</code>.</p></div>
   <div class="box"><b class="l">Empates · RANK, DENSE_RANK e ROW_NUMBER</b><p>Quando duas linhas empatam, <code>RANK</code> dá a mesma posição para as duas e <strong>pula</strong> a seguinte, como no pódio: dois segundos lugares, e o próximo é o quarto. <code>DENSE_RANK</code> não pula. <code>ROW_NUMBER</code> não empata nunca: desempata do jeito que quiser.</p></div>
   <div class="tw"><table><tr><th>nome</th><th>horas</th><th>RANK</th><th>DENSE_RANK</th><th>ROW_NUMBER</th></tr><tr><td>Ana</td><td>30</td><td>1</td><td>1</td><td>1</td></tr><tr><td>Bia</td><td>24</td><td>2</td><td>2</td><td>2</td></tr><tr><td>Caio</td><td>24</td><td>2</td><td>2</td><td>3</td></tr><tr><td>Davi</td><td>20</td><td><strong>4</strong></td><td><strong>3</strong></td><td>4</td></tr></table></div>
@@ -223,6 +252,13 @@ ORDER BY pos_rank;</pre></div>
 <section class="fase" id="c8-f5" data-fase="5" data-nome="Catraca">
   <div class="fase-head"><div class="num">5</div><div class="t"><h2>Quem não passou na catraca?</h2><div class="sub">NOT EXISTS · subconsulta correlacionada</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Muita hora extra não é crime: falta saber se as horas <strong>aconteceram</strong>. Quem vem fazer plantão extra passa pela catraca antes de começar. Para cada plantão de setembro, procure uma <strong>entrada</strong> da mesma pessoa entre <strong>1 hora antes</strong> e <strong>30 minutos depois</strong> do início. Plantão sem entrada é suspeito.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>EXISTS ( … )</code></td><td>verdadeiro se a subconsulta achar ao menos uma linha</td><td>“tem entrada na catraca?”</td></tr>
+    <tr><td><code>NOT EXISTS ( … )</code></td><td>verdadeiro se não achar nenhuma</td><td>“fez hora extra sem passar pela catraca”</td></tr>
+    <tr><td><code>subconsulta correlacionada</code></td><td>usa colunas da linha de fora dentro da subconsulta</td><td>“a entrada daquela mesma pessoa”</td></tr>
+    <tr><td><code>WHERE x.coluna = y.coluna</code></td><td>é a ligação entre a linha de fora e a de dentro</td><td>“mesmo funcionário, mesmo dia”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · NOT EXISTS</b><p><code>EXISTS (subconsulta)</code> é verdadeiro quando a subconsulta devolve <strong>pelo menos uma linha</strong>; <code>NOT EXISTS</code>, quando ela não devolve nenhuma. Aqui a subconsulta é <strong>correlacionada</strong>: ela usa colunas da linha de fora (como <code>h.profissional_id</code> e <code>h.inicio</code>), então é testada de novo para cada plantão. O <code>SELECT 1</code> é costume: não importa o que ela devolve, só se devolve alguma coisa.</p></div>
   <div class="tw"><table><tr><th>plantão</th><th>entradas da mesma pessoa na janela</th><th>NOT EXISTS</th></tr><tr><td>sábado 07:00</td><td>06:48</td><td>falso (passou na catraca)</td></tr><tr><td>domingo 22:00</td><td>nenhuma</td><td><strong>verdadeiro</strong></td></tr></table></div>
   <div class="box"><b class="l">Exemplo · Quem não fez hora extra em setembro?</b><p>Para cada profissional, a subconsulta procura um plantão dele em setembro. Se não acha nenhum, o <code>NOT EXISTS</code> deixa a pessoa passar. Repare no <code>h.profissional_id = p.id</code>: é ele que liga a subconsulta à linha de fora.</p></div>

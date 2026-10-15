@@ -87,6 +87,14 @@ erDiagram
 <section class="fase" id="c4-f1" data-fase="1" data-nome="Casos">
   <div class="fase-head"><div class="num">1</div><div class="t"><h2>Quem são os casos?</h2><div class="sub">WHERE · BETWEEN com datas</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Em epidemiologia, o primeiro passo é a <strong>definição de caso</strong>: quem entra na contagem. Aqui: cultura <strong>positiva</strong> para <em>Klebsiella pneumoniae</em>, com coleta em <strong>agosto de 2026</strong>. Existem culturas negativas, de outras bactérias e até uma positiva de julho. Só os casos de agosto contam.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>'2026-08-01'</code></td><td>data entre aspas simples, no formato ano-mês-dia</td><td>“1º de agosto de 2026”</td></tr>
+    <tr><td><code>BETWEEN a AND b</code></td><td>dentro do período, incluindo as pontas</td><td>“coletas de agosto”</td></tr>
+    <tr><td><code>germe = 'Klebsiella pneumoniae'</code></td><td>texto exato, com maiúsculas e acentos</td><td>“a bactéria do surto”</td></tr>
+    <tr><td><code>resultado = 'positivo'</code></td><td>exame que acusou a bactéria</td><td>“cultura positiva”</td></tr>
+    <tr><td><code>ORDER BY data_coleta</code></td><td>ordena do mais antigo ao mais novo</td><td>“linha do tempo dos casos”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as culturas que atendem à definição de caso, com o <strong>paciente</strong> e a <strong>data da coleta</strong>, em ordem de data.</li><li>Quantos casos são?</li></ul></div>
   <details><summary>Dica</summary><div><p>Quatro condições com <code>AND</code>: <code>germe = 'Klebsiella pneumoniae'</code>, <code>resultado = 'positivo'</code> e <code>data_coleta BETWEEN '2026-08-01' AND '2026-08-31'</code>. Datas vão entre aspas simples.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
@@ -102,6 +110,13 @@ ORDER BY data_coleta;</pre></div>
 <section class="fase" id="c4-f2" data-fase="2" data-nome="Onde">
   <div class="fase-head"><div class="num">2</div><div class="t"><h2>Onde estavam?</h2><div class="sub">JOIN por intervalo de datas · IS NULL</div></div></div>
   <div class="box"><b class="l">Situação</b><p>O paciente pode ter passado por vários setores. Para saber onde ele estava <strong>no dia da coleta</strong>, junte a cultura com a internação cuja estadia <em>cobre</em> esse dia: a coleta é igual ou posterior à entrada <strong>e</strong> igual ou anterior à saída. Quem ainda está internado tem a saída vazia.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>JOIN … ON a AND b</code></td><td>liga por mais de uma condição, inclusive com &gt;= e &lt;=</td><td>“a estadia que cobre o dia da coleta”</td></tr>
+    <tr><td><code>c.data_coleta &gt;= i.data_entrada</code></td><td>a coleta é no dia da entrada ou depois</td><td>“já estava internado”</td></tr>
+    <tr><td><code>i.data_saida IS NULL</code></td><td>paciente que ainda não teve alta</td><td>“ainda internado”</td></tr>
+    <tr><td><code>( … OR … )</code></td><td>parênteses agrupam as duas formas de estar internado</td><td>“ainda internado ou saiu depois”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · Juntar por intervalo</b><p>O <code>ON</code> do JOIN pode ter mais de uma condição, inclusive com <code>&gt;=</code> e <code>&lt;=</code>. Para estadias em aberto, use <code>(i.data_saida IS NULL OR c.data_coleta &lt;= i.data_saida)</code>. Os parênteses são obrigatórios: sem eles o <code>OR</code> bagunça o resto.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para cada caso, mostre o <strong>setor</strong> e o <strong>leito</strong> em que o paciente estava no dia da coleta.</li><li>Quantos estavam na UTI Adulto? Algum estava em outro setor?</li></ul></div>
   <details><summary>Dica</summary><div><p><code>JOIN internacao i ON i.paciente_id = c.paciente_id AND c.data_coleta &gt;= i.data_entrada AND (i.data_saida IS NULL OR c.data_coleta &lt;= i.data_saida)</code>. Mantenha os filtros da etapa anterior no <code>WHERE</code>.</p></div></details>
@@ -122,6 +137,14 @@ ORDER BY c.data_coleta;</pre></div>
 <section class="fase" id="c4-f3" data-fase="3" data-nome="Em comum">
   <div class="fase-head"><div class="num">3</div><div class="t"><h2>O que eles usaram?</h2><div class="sub">WITH · JOIN por intervalo · COUNT(DISTINCT)</div></div></div>
   <div class="box"><b class="l">Situação</b><p>A infecção aparece alguns dias depois da exposição. Por isso você vai olhar os <strong>7 dias anteriores à coleta</strong> de cada caso e ver quais aparelhos ele usou. O aparelho culpado deve aparecer nos <strong>7 casos</strong>.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>WITH casos AS ( … )</code></td><td>dá nome a uma consulta para usá-la como uma tabela</td><td>“a lista dos 7 casos”</td></tr>
+    <tr><td><code>data_coleta - 7</code></td><td>em tipo date, subtrair é voltar dias</td><td>“7 dias antes da coleta”</td></tr>
+    <tr><td><code>BETWEEN … AND …</code></td><td>no ON, para olhar só a janela de dias</td><td>“usou o aparelho na semana anterior”</td></tr>
+    <tr><td><code>COUNT(DISTINCT paciente_id)</code></td><td>quantos pacientes diferentes</td><td>“usado por 7 dos 7 casos”</td></tr>
+    <tr><td><code>HAVING … = 7</code></td><td>só aparelhos presentes em todos os casos</td><td>“o que todos tiveram em comum”</td></tr>
+  </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · Datas e CTE</b><p>Em <code>date</code>, <code>data_coleta - 7</code> é “7 dias antes”. E <code>WITH casos AS (…)</code> dá um nome a uma consulta para você usá-la como se fosse uma tabela. Fica bem mais legível do que subconsulta aninhada.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Crie uma consulta <code>casos</code> com os pacientes e as datas de coleta da etapa 1.</li><li>Junte com <code>uso_equipamento</code> nos <strong>7 dias até a coleta</strong> e conte, por aparelho, quantos casos diferentes o usaram.</li><li>Quais aparelhos foram usados pelos <strong>7</strong> casos?</li></ul></div>
   <details><summary>Dica</summary><div><p><code>u.data BETWEEN c.data_coleta - 7 AND c.data_coleta</code> dentro do <code>ON</code>. Conte com <code>COUNT(DISTINCT c.paciente_id)</code> e filtre os grupos com <code>HAVING COUNT(DISTINCT c.paciente_id) = 7</code>.</p></div></details>
@@ -149,6 +172,14 @@ ORDER BY e.codigo;</pre></div>
 <section class="fase" id="c4-f4" data-fase="4" data-nome="Taxa">
   <div class="fase-head"><div class="num">4</div><div class="t"><h2>A taxa de ataque</h2><div class="sub">LEFT JOIN · CASE · COUNT(DISTINCT) · ROUND</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Um aparelho muito usado aparece em todo caso por acaso. O que denuncia o culpado é a <strong>taxa de ataque</strong>: entre <em>todos</em> os pacientes que usaram o aparelho em agosto, que fração ficou doente? Quanto maior a taxa, mais suspeito. Uma bomba usada por 29 pacientes, com 7 doentes, é bem menos suspeita do que uma usada por 8, com 7 doentes.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>LEFT JOIN casos c</code></td><td>mantém todos os usuários do aparelho, doentes ou não</td><td>“todos que usaram a bomba”</td></tr>
+    <tr><td><code>CASE WHEN … IS NOT NULL</code></td><td>marca quem está na lista de casos</td><td>“este usuário adoeceu?”</td></tr>
+    <tr><td><code>COUNT(DISTINCT CASE …)</code></td><td>conta só os que cumprem a condição</td><td>“quantos dos usuários adoeceram”</td></tr>
+    <tr><td><code>ROUND(100.0 * a / b, 1)</code></td><td>porcentagem com 1 casa decimal</td><td>“taxa de ataque de 87,5%”</td></tr>
+    <tr><td><code>IN ('BI-02', …)</code></td><td>limita a uma lista de aparelhos</td><td>“os três suspeitos”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para <strong>BI-02</strong>, <strong>BI-07</strong> e <strong>VT-03</strong>, conte quantos pacientes <strong>usaram</strong> o aparelho em agosto, quantos desses são <strong>casos</strong> e a <strong>taxa em %</strong> (com 1 casa decimal).</li><li>Ordene da maior para a menor taxa.</li></ul></div>
   <details><summary>Dica</summary><div><p>Use a consulta <code>casos</code> (só os pacientes) e <code>LEFT JOIN casos c ON c.paciente_id = u.paciente_id</code>. Os doentes são <code>COUNT(DISTINCT CASE WHEN c.paciente_id IS NOT NULL THEN u.paciente_id END)</code>. A taxa é <code>ROUND(100.0 * doentes / usaram, 1)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
@@ -179,6 +210,13 @@ ORDER BY taxa_pct DESC;</pre></div>
 <section class="fase" id="c4-f5" data-fase="5" data-nome="Limpeza">
   <div class="fase-head"><div class="num">5</div><div class="t"><h2>Quem ficou sem limpeza?</h2><div class="sub">LEFT JOIN · HAVING · IS NULL</div></div></div>
   <div class="box"><b class="l">Situação</b><p>Taxa alta é indício, não prova. A prova é um motivo: o aparelho <strong>não foi limpo</strong> no período? A tabela <code>limpeza_equipamento</code> registra cada desinfecção. Veja, entre os três suspeitos, quem não tem nenhuma limpeza em agosto.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>LEFT JOIN … AND data BETWEEN</code></td><td>o período vai no ON, para não perder quem não tem par</td><td>“limpezas só de agosto”</td></tr>
+    <tr><td><code>MAX(l.data)</code></td><td>a data mais recente de cada grupo</td><td>“última limpeza”</td></tr>
+    <tr><td><code>HAVING MAX(…) IS NULL</code></td><td>grupos sem nenhuma limpeza no período</td><td>“aparelho que não foi limpo”</td></tr>
+    <tr><td><code>IN (…)</code></td><td>restringe aos suspeitos</td><td>“só BI-02, BI-07 e VT-03”</td></tr>
+  </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para os três aparelhos, descubra qual <strong>não tem nenhum registro de limpeza em agosto</strong>.</li><li>Esse é o culpado. Confira com <code>SELECT verificar_caso4('CÓDIGO');</code>.</li></ul></div>
   <details><summary>Dica</summary><div><p><code>LEFT JOIN limpeza_equipamento l ON l.equipamento_id = e.id AND l.data BETWEEN '2026-08-01' AND '2026-08-31'</code>. Quem não tem par fica com <code>MAX(l.data)</code> vazio: <code>HAVING MAX(l.data) IS NULL</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
