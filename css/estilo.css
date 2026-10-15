@@ -815,3 +815,8 @@ html{padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
   .pc-tab summary{padding-block:8px}
   .pc-ver{padding:8px 10px}
 }
+
+/* botoes Copiar e Levar para o computador: sempre em linha propria, nunca por cima do codigo */
+.code{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}
+.code pre{order:1;flex:1 1 100%}
+.code .btn,.code .btn.pc-leva{position:static;order:2}
