@@ -200,10 +200,15 @@
     var acoes = el("div", "pc-acoes");
     var rodar = el("button", "pc-botao pc-rodar", "▶ Rodar"); rodar.type = "button";
     var ligarBtn = el("button", "pc-botao", "⏻ Ligar"); ligarBtn.type = "button";
+    var copiar = el("button", "pc-botao", "Copiar"); copiar.type = "button";
+    copiar.title = "Copia o que está no editor";
+    var colar = el("button", "pc-botao", "Colar"); colar.type = "button";
+    colar.title = "Cola o que você copiou, no ponto onde está o cursor";
     var limpar = el("button", "pc-botao", "Limpar"); limpar.type = "button";
     var reset = el("button", "pc-botao", "Reiniciar banco"); reset.type = "button";
     reset.title = "Volta o banco ao começo, desfazendo qualquer alteração que você fez";
-    acoes.appendChild(ligarBtn); acoes.appendChild(rodar); acoes.appendChild(limpar); acoes.appendChild(reset);
+    acoes.appendChild(ligarBtn); acoes.appendChild(rodar); acoes.appendChild(copiar); acoes.appendChild(colar);
+    acoes.appendChild(limpar); acoes.appendChild(reset);
     acoes.appendChild(el("span", "pc-dica", "Ctrl+Enter roda"));
     principal.appendChild(acoes);
 
@@ -429,6 +434,57 @@
     ligarBtn.addEventListener("click", function () { liga().catch(function () {}); });
     rodar.addEventListener("click", roda);
     limpar.addEventListener("click", function () { area.value = ""; guardaRascunho(); area.focus(); });
+
+    // feedback no próprio botão: "Copiado!" por um instante
+    function aviso(btn, texto) {
+      var antes = btn.getAttribute("data-rot") || btn.textContent;
+      btn.setAttribute("data-rot", antes);
+      btn.textContent = texto;
+      clearTimeout(btn._t);
+      btn._t = setTimeout(function () { btn.textContent = antes; }, 1500);
+    }
+    function copiaTexto(txt) {
+      if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(txt);
+      return new Promise(function (ok, no) {
+        try {
+          var t = document.createElement("textarea");
+          t.value = txt; t.style.position = "fixed"; t.style.opacity = "0";
+          document.body.appendChild(t); t.select();
+          var r = document.execCommand("copy");
+          t.remove();
+          r ? ok() : no(new Error("copy"));
+        } catch (e) { no(e); }
+      });
+    }
+    copiar.addEventListener("click", function () {
+      var txt = area.value;
+      if (!txt.trim()) { aviso(copiar, "Nada para copiar"); return; }
+      copiaTexto(txt).then(function () { aviso(copiar, "Copiado!"); }, function () {
+        area.focus(); area.select();
+        aviso(copiar, "Selecionado: use Ctrl+C");
+      });
+    });
+    colar.addEventListener("click", function () {
+      var coloca = function (txt) {
+        var ini = area.selectionStart, fim = area.selectionEnd;
+        area.value = area.value.slice(0, ini) + txt + area.value.slice(fim);
+        area.selectionStart = area.selectionEnd = ini + txt.length;
+        guardaRascunho(); area.focus();
+        aviso(colar, "Colado!");
+      };
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText().then(function (t) {
+          if (t) coloca(t); else aviso(colar, "Nada copiado");
+        }, function () {
+          // o navegador pode não deixar ler a área de transferência: pede o atalho
+          area.focus();
+          aviso(colar, "Aperte Ctrl+V");
+        });
+      } else {
+        area.focus();
+        aviso(colar, "Aperte Ctrl+V");
+      }
+    });
     reset.addEventListener("click", function () {
       marca("ligando", "reiniciando…");
       mensagem("> reiniciando o banco de dados…", "boot");
