@@ -504,6 +504,7 @@
       return sincronizaImagens(n, legado);
     }).then(function () {
       atualizaBotao();
+      marcaBotoesFase();
       if (depois) depois();
     }).catch(function () { if (depois) depois(); });
   }
@@ -615,6 +616,7 @@
   }
 
   function abrir(aba) {
+    fechaGaveta();
     if (!dlg) monta();
     abaAtual = aba || abaAtual;
     var r = resumo();
@@ -727,6 +729,167 @@
     c.appendChild(conta);
   }
 
+  // editor de anotação de uma fase: texto + imagens + aviso de "salvo".
+  // É usado no Caderno (aba Missões) e na gaveta que puxa ao lado da fase.
+  function criaEditorNota(fa, opt) {
+    var raiz = el("div", "cad-editor");
+    var ta = el("textarea", "cad-nota-area"); ta.rows = (opt && opt.linhas) || 2; ta.maxLength = 4000;
+    ta.placeholder = "Minhas anotações desta fase…"; ta.value = notas[fa.id] || "";
+    var imagens = [], imagensSujas = false, verImg = 0, noVisor = false;
+    var avisoNota = criaAviso(function (k) {
+      var v = verImg, lote = imagens.slice(), sujas = imagensSujas;
+      var passoImg = sujas ? salvaImagensNuvem(fa.id, lote) : Promise.resolve("ok");
+      return passoImg.then(function (ri) {
+        var op = { keepalive: k && !sujas };
+        // as imagens já estão na tabela nova: limpa a coluna antiga da anotação
+        if (sujas && ri === "ok") op.imagem = null;
+        return salvaNotaNuvem(fa.id, ta.value, op).then(function (rt) {
+          if (sujas && ri === "ok" && v === verImg) imagensSujas = false;
+          if (ri === "sem-conta" || rt === "sem-conta") return "sem-conta";
+          return ri === "ok" && rt === "ok" ? "ok" : "erro";
+        });
+      });
+    });
+    var areaImg = el("div", "cad-img");
+    var botoesImg = el("div", "cad-img-botoes");
+    var addImg = el("button", "btn", "🖼 Adicionar imagem"); addImg.type = "button";
+    addImg.title = "Escolha uma ou várias imagens do computador";
+    var colImg = el("button", "btn", "📋 Colar imagem"); colImg.type = "button";
+    colImg.title = "Cola o print ou a imagem que você copiou";
+    var contaImg = el("span", "cad-img-conta");
+    var fotos = el("div", "cad-fotos"); fotos.hidden = true;
+    var titulo = fa.titulo || fa.nome;
+    // as imagens aparecem como fotos presas no quadro; clicar abre o popup
+    var pintaImg = function () {
+      fotos.textContent = "";
+      imagens.forEach(function (d, i) {
+        var fig = el("figure", "cad-evidencia");
+        fig.tabIndex = 0; fig.setAttribute("role", "button"); fig.setAttribute("aria-haspopup", "dialog");
+        fig.title = "Clique para ver em detalhe";
+        var im = el("img", "cad-img-vista"); im.alt = "Imagem " + (i + 1) + " da anotação"; im.src = d;
+        fig.appendChild(im);
+        fig.appendChild(el("figcaption", null, imagens.length > 1 ? "Evidência " + (i + 1) : "Evidência · " + titulo));
+        fig.addEventListener("click", function () { abreFoto(i); });
+        fig.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abreFoto(i); }
+        });
+        fotos.appendChild(fig);
+      });
+      fotos.hidden = !imagens.length;
+      var cheio = imagens.length >= IMG_MAX_POR_FASE;
+      addImg.disabled = colImg.disabled = cheio;
+      addImg.title = cheio ? "Limite de " + IMG_MAX_POR_FASE + " imagens por anotação" : "Escolha uma ou várias imagens do computador";
+      contaImg.textContent = imagens.length ? imagens.length + " de " + IMG_MAX_POR_FASE + " imagens" : "";
+      atualizaVisor();
+    };
+    var mudou = function () {
+      verImg++; imagensSujas = true;
+      if (imagens.length) idbPut(fa.id, imagens.slice()); else idbDel(fa.id);
+      pintaImg();
+      avisoNota.alterou();
+    };
+    var adicionaImg = function (d) {
+      if (imagens.length >= IMG_MAX_POR_FASE) { toast("Máximo de " + IMG_MAX_POR_FASE + " imagens por anotação"); return; }
+      imagens.push(d); mudou();
+      if (noVisor) irVisor(imagens.length - 1);
+    };
+    // várias de uma vez: processa todas e adiciona na ordem em que foram escolhidas
+    var adicionaArquivos = function (arqs) {
+      var livre = IMG_MAX_POR_FASE - imagens.length;
+      if (livre <= 0) { toast("Máximo de " + IMG_MAX_POR_FASE + " imagens por anotação"); return; }
+      var lote = [].slice.call(arqs, 0, livre);
+      if (arqs.length > livre) toast("Só cabem mais " + livre + " nesta anotação");
+      var res = new Array(lote.length), faltam = lote.length;
+      var fim = function () {
+        if (--faltam) return;
+        res.forEach(function (d) { if (d) adicionaImg(d); });
+      };
+      lote.forEach(function (a, k) {
+        processaImagem(a, function (d) { res[k] = d; fim(); }, fim);
+      });
+    };
+    // colar um print (Ctrl+V) em qualquer ponto da anotação
+    var colaDoEvento = function (e) {
+      var itens = (e.clipboardData && e.clipboardData.items) || [], arqs = [];
+      for (var i = 0; i < itens.length; i++) {
+        if (itens[i].type && itens[i].type.indexOf("image/") === 0) {
+          var arq = itens[i].getAsFile();
+          if (arq) arqs.push(arq);
+        }
+      }
+      if (arqs.length) { e.preventDefault(); adicionaArquivos(arqs); }
+    };
+    // o que o popup pode pedir a esta anotação
+    var ctrl = {
+      n: function () { return imagens.length; },
+      src: function (i) { return imagens[i]; },
+      legenda: function (i) {
+        return imagens.length > 1 ? "Evidência " + (i + 1) + " de " + imagens.length + " · " + titulo : "Evidência · " + titulo;
+      },
+      troca: function (i, d) { if (i < imagens.length) { imagens[i] = d; mudou(); } },
+      remove: function (i) { if (i < imagens.length) { imagens.splice(i, 1); mudou(); } },
+      cola: colaDoEvento,
+      aoFechar: function () { noVisor = false; }
+    };
+    var abreFoto = function (i) {
+      if (noVisor || !imagens.length) return;
+      noVisor = true;
+      abreVisor(ctrl, i);
+    };
+    idbGet(fa.id).then(function (v) {
+      var l = listaImagens(v);
+      if (l.length && !imagens.length) { imagens = l; pintaImg(); }
+    });
+    addImg.addEventListener("click", function () { escolherArquivoImagem(adicionaArquivos, true); });
+    // botão "Colar imagem": lê a imagem que está na área de transferência
+    colImg.addEventListener("click", function () {
+      var pedeAtalho = function () {
+        ta.focus();
+        avisaBtn(colImg, "Aperte Ctrl+V");
+        toast("Clique no texto da anotação e aperte Ctrl+V");
+      };
+      if (!(navigator.clipboard && navigator.clipboard.read)) { pedeAtalho(); return; }
+      navigator.clipboard.read().then(function (itens) {
+        for (var i = 0; i < itens.length; i++) {
+          for (var j = 0; j < itens[i].types.length; j++) {
+            if (itens[i].types[j].indexOf("image/") === 0) {
+              return itens[i].getType(itens[i].types[j]).then(function (blob) {
+                adicionaArquivos([blob]);
+                avisaBtn(colImg, "Colada!");
+              });
+            }
+          }
+        }
+        avisaBtn(colImg, "Nenhuma imagem copiada");
+      }, pedeAtalho);
+    });
+    raiz.addEventListener("paste", colaDoEvento);
+    // arrastar imagens para cima da anotação
+    raiz.addEventListener("dragover", function (e) {
+      if (e.dataTransfer && [].indexOf.call(e.dataTransfer.types || [], "Files") > -1) e.preventDefault();
+    });
+    raiz.addEventListener("drop", function (e) {
+      var fs = e.dataTransfer && e.dataTransfer.files
+        ? [].filter.call(e.dataTransfer.files, function (f) { return /^image[/]/.test(f.type || ""); }) : [];
+      if (fs.length) { e.preventDefault(); adicionaArquivos(fs); }
+    });
+    botoesImg.appendChild(addImg); botoesImg.appendChild(colImg); botoesImg.appendChild(contaImg);
+    areaImg.appendChild(botoesImg); areaImg.appendChild(fotos);
+    ta.addEventListener("input", function () {
+      notas[fa.id] = ta.value; gravar(K_NOTAS, notas);
+      avisoNota.alterou();
+    });
+    raiz.appendChild(ta);
+    raiz.appendChild(areaImg);
+    raiz.appendChild(avisoNota.no);
+    return {
+      no: raiz,
+      foca: function () { ta.focus(); },
+      // termina de enviar o que ainda estava esperando (ao fechar a gaveta ou trocar de fase)
+      descarrega: function () { if (avisoNota.pendente) avisoNota.envia(false); }
+    };
+  }
+
   function paginaMissoes(r) {
     var c = corpo;
     c.appendChild(el("p", "cad-nota", "Cada fase tem seu espaço de anotações. Ele fica salvo automaticamente."));
@@ -754,155 +917,8 @@
         }
         linha.appendChild(cab);
         if (fa.missao) linha.appendChild(el("p", "cad-missao", fa.missao));
-        var ta = el("textarea", "cad-nota-area"); ta.rows = 2; ta.maxLength = 4000;
-        ta.placeholder = "Minhas anotações desta fase…"; ta.value = notas[fa.id] || "";
-        var imagens = [], imagensSujas = false, verImg = 0, noVisor = false;
-        var avisoNota = criaAviso(function (k) {
-          var v = verImg, lote = imagens.slice(), sujas = imagensSujas;
-          var passoImg = sujas ? salvaImagensNuvem(fa.id, lote) : Promise.resolve("ok");
-          return passoImg.then(function (ri) {
-            var op = { keepalive: k && !sujas };
-            // as imagens já estão na tabela nova: limpa a coluna antiga da anotação
-            if (sujas && ri === "ok") op.imagem = null;
-            return salvaNotaNuvem(fa.id, ta.value, op).then(function (rt) {
-              if (sujas && ri === "ok" && v === verImg) imagensSujas = false;
-              if (ri === "sem-conta" || rt === "sem-conta") return "sem-conta";
-              return ri === "ok" && rt === "ok" ? "ok" : "erro";
-            });
-          });
-        });
-        var areaImg = el("div", "cad-img");
-        var botoesImg = el("div", "cad-img-botoes");
-        var addImg = el("button", "btn", "🖼 Adicionar imagem"); addImg.type = "button";
-        addImg.title = "Escolha uma ou várias imagens do computador";
-        var colImg = el("button", "btn", "📋 Colar imagem"); colImg.type = "button";
-        colImg.title = "Cola o print ou a imagem que você copiou";
-        var contaImg = el("span", "cad-img-conta");
-        var fotos = el("div", "cad-fotos"); fotos.hidden = true;
-        var titulo = fa.titulo || fa.nome;
-        // as imagens aparecem como fotos presas no quadro; clicar abre o popup
-        var pintaImg = function () {
-          fotos.textContent = "";
-          imagens.forEach(function (d, i) {
-            var fig = el("figure", "cad-evidencia");
-            fig.tabIndex = 0; fig.setAttribute("role", "button"); fig.setAttribute("aria-haspopup", "dialog");
-            fig.title = "Clique para ver em detalhe";
-            var im = el("img", "cad-img-vista"); im.alt = "Imagem " + (i + 1) + " da anotação"; im.src = d;
-            fig.appendChild(im);
-            fig.appendChild(el("figcaption", null, imagens.length > 1 ? "Evidência " + (i + 1) : "Evidência · " + titulo));
-            fig.addEventListener("click", function () { abreFoto(i); });
-            fig.addEventListener("keydown", function (e) {
-              if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abreFoto(i); }
-            });
-            fotos.appendChild(fig);
-          });
-          fotos.hidden = !imagens.length;
-          var cheio = imagens.length >= IMG_MAX_POR_FASE;
-          addImg.disabled = colImg.disabled = cheio;
-          addImg.title = cheio ? "Limite de " + IMG_MAX_POR_FASE + " imagens por anotação" : "Escolha uma ou várias imagens do computador";
-          contaImg.textContent = imagens.length ? imagens.length + " de " + IMG_MAX_POR_FASE + " imagens" : "";
-          atualizaVisor();
-        };
-        var mudou = function () {
-          verImg++; imagensSujas = true;
-          if (imagens.length) idbPut(fa.id, imagens.slice()); else idbDel(fa.id);
-          pintaImg();
-          avisoNota.alterou();
-        };
-        var adicionaImg = function (d) {
-          if (imagens.length >= IMG_MAX_POR_FASE) { toast("Máximo de " + IMG_MAX_POR_FASE + " imagens por anotação"); return; }
-          imagens.push(d); mudou();
-          if (noVisor) irVisor(imagens.length - 1);
-        };
-        // várias de uma vez: processa todas e adiciona na ordem em que foram escolhidas
-        var adicionaArquivos = function (arqs) {
-          var livre = IMG_MAX_POR_FASE - imagens.length;
-          if (livre <= 0) { toast("Máximo de " + IMG_MAX_POR_FASE + " imagens por anotação"); return; }
-          var lote = [].slice.call(arqs, 0, livre);
-          if (arqs.length > livre) toast("Só cabem mais " + livre + " nesta anotação");
-          var res = new Array(lote.length), faltam = lote.length;
-          var fim = function () {
-            if (--faltam) return;
-            res.forEach(function (d) { if (d) adicionaImg(d); });
-          };
-          lote.forEach(function (a, k) {
-            processaImagem(a, function (d) { res[k] = d; fim(); }, fim);
-          });
-        };
-        // colar um print (Ctrl+V) em qualquer ponto da anotação
-        var colaDoEvento = function (e) {
-          var itens = (e.clipboardData && e.clipboardData.items) || [], arqs = [];
-          for (var i = 0; i < itens.length; i++) {
-            if (itens[i].type && itens[i].type.indexOf("image/") === 0) {
-              var arq = itens[i].getAsFile();
-              if (arq) arqs.push(arq);
-            }
-          }
-          if (arqs.length) { e.preventDefault(); adicionaArquivos(arqs); }
-        };
-        // o que o popup pode pedir a esta anotação
-        var ctrl = {
-          n: function () { return imagens.length; },
-          src: function (i) { return imagens[i]; },
-          legenda: function (i) {
-            return imagens.length > 1 ? "Evidência " + (i + 1) + " de " + imagens.length + " · " + titulo : "Evidência · " + titulo;
-          },
-          troca: function (i, d) { if (i < imagens.length) { imagens[i] = d; mudou(); } },
-          remove: function (i) { if (i < imagens.length) { imagens.splice(i, 1); mudou(); } },
-          cola: colaDoEvento,
-          aoFechar: function () { noVisor = false; }
-        };
-        var abreFoto = function (i) {
-          if (noVisor || !imagens.length) return;
-          noVisor = true;
-          abreVisor(ctrl, i);
-        };
-        idbGet(fa.id).then(function (v) {
-          var l = listaImagens(v);
-          if (l.length && !imagens.length) { imagens = l; pintaImg(); }
-        });
-        addImg.addEventListener("click", function () { escolherArquivoImagem(adicionaArquivos, true); });
-        // botão "Colar imagem": lê a imagem que está na área de transferência
-        colImg.addEventListener("click", function () {
-          var pedeAtalho = function () {
-            ta.focus();
-            avisaBtn(colImg, "Aperte Ctrl+V");
-            toast("Clique no texto da anotação e aperte Ctrl+V");
-          };
-          if (!(navigator.clipboard && navigator.clipboard.read)) { pedeAtalho(); return; }
-          navigator.clipboard.read().then(function (itens) {
-            for (var i = 0; i < itens.length; i++) {
-              for (var j = 0; j < itens[i].types.length; j++) {
-                if (itens[i].types[j].indexOf("image/") === 0) {
-                  return itens[i].getType(itens[i].types[j]).then(function (blob) {
-                    adicionaArquivos([blob]);
-                    avisaBtn(colImg, "Colada!");
-                  });
-                }
-              }
-            }
-            avisaBtn(colImg, "Nenhuma imagem copiada");
-          }, pedeAtalho);
-        });
-        linha.addEventListener("paste", colaDoEvento);
-        // arrastar imagens para cima da anotação
-        linha.addEventListener("dragover", function (e) {
-          if (e.dataTransfer && [].indexOf.call(e.dataTransfer.types || [], "Files") > -1) e.preventDefault();
-        });
-        linha.addEventListener("drop", function (e) {
-          var fs = e.dataTransfer && e.dataTransfer.files
-            ? [].filter.call(e.dataTransfer.files, function (f) { return /^image[/]/.test(f.type || ""); }) : [];
-          if (fs.length) { e.preventDefault(); adicionaArquivos(fs); }
-        });
-        botoesImg.appendChild(addImg); botoesImg.appendChild(colImg); botoesImg.appendChild(contaImg);
-        areaImg.appendChild(botoesImg); areaImg.appendChild(fotos);
-        ta.addEventListener("input", function () {
-          notas[fa.id] = ta.value; gravar(K_NOTAS, notas);
-          avisoNota.alterou();
-        });
-        linha.appendChild(ta);
-        linha.appendChild(areaImg);
-        linha.appendChild(avisoNota.no);
+        var ed = criaEditorNota(fa);
+        linha.appendChild(ed.no);
         lista.appendChild(linha);
       });
       d.appendChild(lista);
@@ -1008,6 +1024,138 @@
     casos.parentNode.insertBefore(box, casos);
   }
 
+  // ------------------------------------------------------------------ gaveta: o caderno puxado ao lado da fase
+  var gaveta = null, gavetaAba = null, gavetaTitulo = null, gavetaCaso = null, gavetaMissao = null, gavetaCorpo = null;
+  var gavetaFase = null, gavetaEditor = null;
+  function casoDaPagina() {
+    var arq = arqAtual();
+    return CAT.filter(function (cs) { return cs.arq === arq; })[0] || null;
+  }
+  function faseDoCaso(cs, id) {
+    return cs.fases.filter(function (f) { return f.id === id; })[0] || null;
+  }
+  // fase em foco: a que está aberta, senão a próxima a fazer, senão a primeira
+  function faseEmFoco(cs) {
+    var sec = document.querySelector("section.fase.aberta") || document.querySelector("section.fase.atual") || document.querySelector("section.fase");
+    return (sec && faseDoCaso(cs, sec.id)) || cs.fases[0] || null;
+  }
+  function criaGaveta() {
+    if (gaveta) return gaveta;
+    var g = el("aside", "gaveta"); g.id = "gavetaNotas";
+    g.setAttribute("aria-label", "Anotações da fase");
+    gavetaAba = el("button", "gaveta-aba"); gavetaAba.type = "button";
+    gavetaAba.setAttribute("aria-controls", "gavetaNotas"); gavetaAba.setAttribute("aria-expanded", "false");
+    gavetaAba.title = "Puxar o caderno para anotar";
+    gavetaAba.appendChild(el("span", "gaveta-aba-ic", "📓"));
+    gavetaAba.appendChild(el("span", "gaveta-aba-t", "Anotações"));
+    var painel = el("div", "gaveta-painel");
+    var topo = el("div", "gaveta-topo");
+    var tit = el("div", "gaveta-titulo");
+    gavetaCaso = el("small"); gavetaTitulo = el("b");
+    tit.appendChild(gavetaCaso); tit.appendChild(gavetaTitulo);
+    var x = el("button", "gaveta-x", "✕"); x.type = "button"; x.setAttribute("aria-label", "Guardar o caderno");
+    topo.appendChild(tit); topo.appendChild(x);
+    gavetaMissao = el("p", "gaveta-missao");
+    gavetaCorpo = el("div", "gaveta-corpo");
+    var rod = el("div", "gaveta-rodape");
+    var todas = el("button", "btn", "📚 Ver todas as anotações"); todas.type = "button";
+    rod.appendChild(todas);
+    painel.appendChild(topo); painel.appendChild(gavetaMissao); painel.appendChild(gavetaCorpo); painel.appendChild(rod);
+    g.appendChild(gavetaAba); g.appendChild(painel);
+    gavetaAba.addEventListener("click", function () {
+      if (g.classList.contains("aberta")) fechaGaveta(); else abreGaveta();
+    });
+    x.addEventListener("click", fechaGaveta);
+    todas.addEventListener("click", function () { abrir("missoes"); });
+    g.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && g.classList.contains("aberta")) { e.preventDefault(); fechaGaveta(); gavetaAba.focus(); }
+    });
+    document.body.appendChild(g);
+    gaveta = g;
+    return g;
+  }
+  function abreGaveta(id, opt) {
+    var cs = casoDaPagina(); if (!cs) return;
+    var fa = (typeof id === "string" && faseDoCaso(cs, id)) || faseEmFoco(cs);
+    if (!fa) return;
+    var semFoco = !!(opt && opt.semFoco);
+    var g = criaGaveta();
+    if (gavetaEditor && gavetaFase === fa.id && g.classList.contains("aberta")) {
+      if (!semFoco) gavetaEditor.foca();
+      return;
+    }
+    if (gavetaEditor) gavetaEditor.descarrega();
+    gavetaFase = fa.id;
+    gavetaCaso.textContent = "Caso " + cs.n + " · " + cs.titulo;
+    gavetaTitulo.textContent = fa.num + " · " + (fa.titulo || fa.nome);
+    gavetaMissao.textContent = fa.missao || ""; gavetaMissao.hidden = !fa.missao;
+    gavetaCorpo.textContent = "";
+    gavetaEditor = criaEditorNota(fa, { linhas: 7 });
+    gavetaCorpo.appendChild(gavetaEditor.no);
+    g.classList.add("aberta");
+    document.body.classList.add("com-gaveta");
+    gavetaAba.setAttribute("aria-expanded", "true");
+    gavetaAba.title = "Guardar o caderno";
+    if (!semFoco) gavetaEditor.foca();
+  }
+  function fechaGaveta() {
+    if (!gaveta || !gaveta.classList.contains("aberta")) return;
+    if (gavetaEditor) gavetaEditor.descarrega();
+    gavetaEditor = null; gavetaFase = null;
+    gaveta.classList.remove("aberta");
+    document.body.classList.remove("com-gaveta");
+    gavetaAba.setAttribute("aria-expanded", "false");
+    gavetaAba.title = "Puxar o caderno para anotar";
+    marcaBotoesFase();
+  }
+  // botão "Anotar nesta fase" dentro de cada fase da página do caso
+  function botoesDasFases() {
+    var cs = casoDaPagina(); if (!cs) return;
+    cs.fases.forEach(function (fa) {
+      var sec = document.getElementById(fa.id);
+      if (!sec || sec.querySelector(".fase-notas")) return;
+      var corpoFase = sec.querySelector(".fase-corpo") || sec;
+      var b = el("button", "fase-notas"); b.type = "button";
+      b.setAttribute("data-fase-notas", fa.id);
+      b.addEventListener("click", function () { abreGaveta(fa.id); });
+      var ref = corpoFase.querySelector(".missao");
+      if (ref) corpoFase.insertBefore(b, ref.nextSibling);
+      else corpoFase.insertBefore(b, corpoFase.querySelector(".done-row"));
+    });
+    marcaBotoesFase();
+  }
+  // o botão avisa quando a fase já tem anotação (texto ou imagem)
+  function marcaBotoesFase() {
+    idbChaves().then(function (chaves) {
+      var comImg = {};
+      (chaves || []).forEach(function (k) { comImg[k] = true; });
+      [].forEach.call(document.querySelectorAll(".fase-notas"), function (b) {
+        var id = b.getAttribute("data-fase-notas");
+        var tem = !!(notas[id] || "").trim() || !!comImg[id];
+        b.classList.toggle("tem", tem);
+        b.textContent = tem ? "📓 Minhas anotações desta fase" : "📓 Anotar nesta fase";
+      });
+    });
+  }
+  // com a gaveta aberta, ela acompanha a fase que o jogador abre
+  function observaFases() {
+    if (!window.MutationObserver) return;
+    var obs = new MutationObserver(function () {
+      if (!gaveta || !gaveta.classList.contains("aberta")) return;
+      var sec = document.querySelector("section.fase.aberta");
+      if (sec && sec.id !== gavetaFase) abreGaveta(sec.id, { semFoco: true });
+    });
+    [].forEach.call(document.querySelectorAll("section.fase"), function (s) {
+      obs.observe(s, { attributes: true, attributeFilter: ["class"] });
+    });
+  }
+  function gavetaIniciar() {
+    if (!casoDaPagina() || !document.querySelector("section.fase")) return;
+    criaGaveta();
+    botoesDasFases();
+    observaFases();
+  }
+
   // ------------------------------------------------------------------ pop-up da primeira entrada
   var K_BV = "misterio-sql-boasvindas";
   var popup = null;
@@ -1081,6 +1229,7 @@
     rodapeAutoria();
     criaBotao();
     rodapeNav();
+    gavetaIniciar();
     homeExtras();
     document.addEventListener("misterio:login", function () { puxaNuvem(function () { homeRefaz(); talvezBoasVindas(); }); });
     document.addEventListener("misterio:sessao", function () { atualizaSair(); atualizaBotao(); });
@@ -1098,7 +1247,7 @@
     var b = document.getElementById("cadBoasVindas");
     if (b) { b.remove(); homeExtras(); }
   }
-  window.MisterioCaderno = { abrir: abrir };
+  window.MisterioCaderno = { abrir: abrir, anotar: abreGaveta, guardar: fechaGaveta };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar);
   else iniciar();
 })();

@@ -893,3 +893,41 @@ dialog.cad-visor::backdrop{background:rgba(8,10,12,.84)}
 .cad-visor-seta:hover,.cad-visor-seta:focus-visible{background:rgba(31,107,91,.92)}
 .cad-visor-seta[hidden]{display:none}
 .cad-visor-acoes{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+
+/* gaveta: o caderno puxado ao lado da fase, para anotar sem sair dela */
+.gaveta{--ink:#2b2a26;--muted:#6f6a5c;--line:#ddd5bd;--bg:#fffdf3;--paper:#fbf7e8;--scrub:#1f6b5b;--scrub-soft:#e0eee8;--stamp:#c03a28;--clue:#f3d64e;position:fixed;top:0;right:0;bottom:0;z-index:60;width:min(420px,92vw);transform:translateX(100%);transition:transform .26s ease;color:var(--ink)}
+.gaveta.aberta{transform:none}
+.gaveta-painel{display:flex;flex-direction:column;box-sizing:border-box;height:100%;padding:14px 16px 12px;background:repeating-linear-gradient(transparent 0 27px,rgba(110,140,190,.16) 27px 28px),var(--paper);border-left:6px solid var(--scrub);box-shadow:-12px 0 30px rgba(0,0,0,.32);visibility:hidden;transition:visibility 0s linear .26s}
+.gaveta.aberta .gaveta-painel{visibility:visible;transition-delay:0s}
+.gaveta-aba{position:absolute;left:-46px;top:34%;display:flex;flex-direction:column;align-items:center;gap:8px;width:46px;padding:12px 4px 14px;border:0;border-radius:12px 0 0 12px;background:var(--clue);color:#16211e;cursor:pointer;box-shadow:-3px 3px 8px rgba(0,0,0,.3)}
+.gaveta-aba:hover,.gaveta-aba:focus-visible{background:#f7e27a}
+.gaveta-aba-ic{font-size:20px;line-height:1}
+.gaveta-aba-t{writing-mode:vertical-rl;font:700 21px/1 var(--f-mao)}
+.gaveta-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.gaveta-titulo{display:flex;flex-direction:column;gap:2px;min-width:0}
+.gaveta-titulo small{color:var(--muted);font:600 12px var(--f-mono)}
+.gaveta-titulo b{color:var(--scrub);font:700 27px/1.05 var(--f-mao)}
+.gaveta-x{flex:none;width:34px;height:34px;border:0;border-radius:50%;background:#c0281c;color:#fff;font:700 16px/1 var(--f-body);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.gaveta-x:hover,.gaveta-x:focus-visible{background:#a31f15}
+.gaveta-missao{margin:10px 0 0;max-height:5.8em;overflow:auto;padding:6px 8px;border-left:3px solid var(--clue);background:rgba(243,214,78,.2);font:.8rem/1.4 var(--f-body)}
+.gaveta-missao[hidden]{display:none}
+.gaveta-corpo{flex:1;min-height:0;margin-top:10px;overflow:auto}
+.gaveta-corpo .cad-nota-area{min-height:9em;font-size:.95rem}
+.gaveta-rodape{display:flex;justify-content:center;padding-top:10px;border-top:1px solid var(--line)}
+.gaveta .btn{padding:8px 14px;border:1.5px solid #bdb48f;border-radius:10px;background:rgba(255,253,243,.9);color:#2b2a26;font:700 .85rem var(--f-body);cursor:pointer;transition:border-color .12s,color .12s,background .12s}
+.gaveta .btn:hover,.gaveta .btn:focus-visible{border-color:#1f6b5b;color:#1f6b5b;background:#fff}
+.gaveta .btn:disabled{opacity:.5;cursor:not-allowed}
+body{transition:padding-right .26s ease,padding-bottom .26s ease}
+@media (min-width:1000px){body.com-gaveta{padding-right:min(420px,92vw)}}
+@media (max-width:640px){
+  .gaveta{top:auto;left:0;right:0;width:auto;height:min(72dvh,560px);transform:translateY(100%)}
+  .gaveta.aberta{transform:none}
+  .gaveta-painel{border-left:0;border-top:6px solid var(--scrub);box-shadow:0 -10px 26px rgba(0,0,0,.32)}
+  .gaveta-aba{left:auto;right:14px;top:-46px;flex-direction:row;width:auto;height:42px;padding:0 14px;border-radius:12px 12px 0 0;box-shadow:0 -3px 8px rgba(0,0,0,.25)}
+  .gaveta-aba-t{writing-mode:horizontal-tb;font-size:19px}
+  body.com-gaveta{padding-bottom:min(72dvh,560px)}
+}
+/* botão dentro de cada fase */
+.fase-notas{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border:1.5px dashed var(--scrub);border-radius:10px;background:var(--scrub-soft);color:var(--scrub);font:700 .88rem var(--f-body);cursor:pointer;transition:background .12s,color .12s}
+.fase-notas:hover,.fase-notas:focus-visible{background:var(--scrub);color:var(--paper)}
+.fase-notas.tem{border-style:solid}
