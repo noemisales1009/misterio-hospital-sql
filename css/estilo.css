@@ -830,3 +830,10 @@ html{padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
 .aviso-data .tw{margin:8px 0 6px}
 .aviso-data td:first-child{white-space:nowrap;font-weight:700}
 .aviso-data p{margin:0}
+
+/* aviso de "salvo" nas anotações e no nome */
+.cad-salvo{min-height:18px;margin-top:4px;color:#6f6a5c;font:600 12px var(--f-mono)}
+.cad-salvo.ok{color:#1f6b5b}
+.cad-salvo.pend{color:#8a7a2a}
+.cad-salvo.erro{color:#b3261e}
+.cad-salvo button{margin-left:6px;padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;cursor:pointer}

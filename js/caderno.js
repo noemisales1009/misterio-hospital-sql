@@ -204,20 +204,69 @@
   }
 
   // ------------------------------------------------------------------ nuvem
-  function salvaPerfilNuvem() {
-    var n = nuvem(); if (!n) return;
-    n.api("perfil?on_conflict=user_id", {
+  // devolvem "ok", "erro" ou "sem-conta"; opt.keepalive deixa o envio terminar mesmo ao fechar a página
+  function salvaPerfilNuvem(opt) {
+    var n = nuvem(); if (!n) return Promise.resolve("sem-conta");
+    return n.api("perfil?on_conflict=user_id", {
       method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      keepalive: !!(opt && opt.keepalive),
       body: JSON.stringify([{ user_id: n.uid(), nome: jog.nome || "", foto: fotoValida(jog.foto) ? jog.foto : null, atualizado_em: new Date().toISOString() }])
-    }).catch(function () {});
+    }).then(function () { return "ok"; }, function () { return "erro"; });
   }
-  function salvaNotaNuvem(fase, texto) {
-    var n = nuvem(); if (!n) return;
-    n.api("anotacao?on_conflict=user_id,fase", {
+  function salvaNotaNuvem(fase, texto, opt) {
+    var n = nuvem(); if (!n) return Promise.resolve("sem-conta");
+    return n.api("anotacao?on_conflict=user_id,fase", {
       method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      keepalive: !!(opt && opt.keepalive),
       body: JSON.stringify([{ user_id: n.uid(), fase: fase, texto: texto, atualizado_em: new Date().toISOString() }])
-    }).catch(function () {});
+    }).then(function () { return "ok"; }, function () { return "erro"; });
   }
+  // aviso discreto de "salvo", usado nas anotações e no nome
+  function criaAviso(enviar) {
+    var box = el("div", "cad-salvo");
+    box.setAttribute("aria-live", "polite");
+    var timer = null;
+    var api = {
+      no: box,
+      mostra: function (txt, cls) { box.textContent = txt; box.className = "cad-salvo " + (cls || ""); },
+      // chamado a cada alteração: grava no aparelho (já feito) e agenda o envio para a nuvem
+      alterou: function () {
+        if (nuvem()) {
+          api.mostra("✓ Salvo neste aparelho · enviando para a nuvem…", "pend");
+          clearTimeout(timer);
+          timer = setTimeout(function () { api.envia(false); }, 800);
+          api.pendente = true;
+        } else {
+          api.pendente = false;
+          api.mostra("✓ Salvo neste aparelho. Entre na conta para guardar na nuvem.", "ok");
+        }
+      },
+      envia: function (keepalive) {
+        clearTimeout(timer); timer = null;
+        if (!nuvem()) { api.pendente = false; return Promise.resolve(); }
+        api.mostra("Enviando para a nuvem…", "pend");
+        return enviar(keepalive).then(function (r) {
+          api.pendente = false;
+          if (r === "ok") { api.mostra("☁ Salvo na nuvem", "ok"); return; }
+          api.mostra("⚠ Salvo neste aparelho, mas a nuvem não respondeu. ", "erro");
+          var b = el("button", null, "Tentar de novo"); b.type = "button";
+          b.addEventListener("click", function () { api.envia(false); });
+          box.appendChild(b);
+        });
+      },
+      pendente: false
+    };
+    avisosPendentes.push(api);
+    return api;
+  }
+  var avisosPendentes = [];
+  // ao sair da página, termina de enviar o que ainda estava esperando
+  function terminaEnvios() {
+    avisosPendentes = avisosPendentes.filter(function (a) { return a.no.isConnected; });
+    avisosPendentes.forEach(function (a) { if (a.pendente) a.envia(true); });
+  }
+  window.addEventListener("pagehide", terminaEnvios);
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") terminaEnvios(); });
   function puxaNuvem(depois) {
     var n = nuvem(); if (!n) return;
     n.api("perfil?select=nome,foto").then(function (rows) {
@@ -348,13 +397,13 @@
     var rotulo = el("label", null, "Nome do detetive"); rotulo.setAttribute("for", "cadNome");
     var inp = el("input"); inp.id = "cadNome"; inp.type = "text"; inp.maxLength = 40;
     inp.placeholder = "Como devemos te chamar?"; inp.value = jog.nome || "";
-    var t;
+    var avisoNome = criaAviso(function (k) { return salvaPerfilNuvem({ keepalive: k }); });
     inp.addEventListener("input", function () {
       jog.nome = inp.value.trim().slice(0, 40); gravar(K_JOG, jog); atualizaBotao();
       if (!jog.foto) { av.textContent = ""; av.appendChild(avatarNode(null, jog.nome)); }
-      clearTimeout(t); t = setTimeout(salvaPerfilNuvem, 700);
+      avisoNome.alterou();
     });
-    dados.appendChild(rotulo); dados.appendChild(inp);
+    dados.appendChild(rotulo); dados.appendChild(inp); dados.appendChild(avisoNome.no);
     var fb = el("div", "cad-foto-botoes");
     var addFoto = el("button", "btn", jog.foto ? "Trocar foto" : "Adicionar foto"); addFoto.type = "button"; addFoto.id = "cadAddFoto";
     addFoto.addEventListener("click", function () {
@@ -460,12 +509,13 @@
         if (fa.missao) linha.appendChild(el("p", "cad-missao", fa.missao));
         var ta = el("textarea", "cad-nota-area"); ta.rows = 2; ta.maxLength = 4000;
         ta.placeholder = "Minhas anotações desta fase…"; ta.value = notas[fa.id] || "";
-        var tm;
+        var avisoNota = criaAviso(function (k) { return salvaNotaNuvem(fa.id, ta.value, { keepalive: k }); });
         ta.addEventListener("input", function () {
           notas[fa.id] = ta.value; gravar(K_NOTAS, notas);
-          clearTimeout(tm); tm = setTimeout(function () { salvaNotaNuvem(fa.id, ta.value); }, 800);
+          avisoNota.alterou();
         });
         linha.appendChild(ta);
+        linha.appendChild(avisoNota.no);
         lista.appendChild(linha);
       });
       d.appendChild(lista);
