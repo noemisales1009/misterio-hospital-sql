@@ -1571,31 +1571,28 @@
     var pinos = ["vermelho", "azul", "amarelo", "verde"];
     var quadro = document.querySelector(".quadro-home") || document.querySelector(".wrap");
     var rq = quadro ? quadro.getBoundingClientRect() : { left: 0, right: window.innerWidth };
-    var sobraEsq = rq.left - 28, sobraDir = window.innerWidth - rq.right - 28;
-    var sobraFotos = Math.min(sobraEsq, sobraDir);
-    // casos 1 a 5 na esquerda, 6 a 10 na direita; o tamanho acompanha a altura da tela para caberem todos
+    var sobraEsq = rq.left - 28;
+    // as 10 fotos ficam na esquerda, em duas colunas (casos 1 a 5 e 6 a 10); o tamanho acompanha a altura da tela
     var linhas = Math.ceil(CAT.length / 2);
     var altura = window.innerHeight - 120;
     var wAltura = (altura - 15 * (linhas - 1) - 42 * linhas) / (0.94 * linhas);
-    var w = Math.floor(Math.max(56, Math.min(140, wAltura, sobraFotos - 30)));
-    // post-its de andamento: ficam do lado de fora das fotos da esquerda, se couber
-    var larguraNota = 176;
-    var comNotas = sobraEsq >= w + 60 + larguraNota + 16;
+    var AW = Math.min(sobraEsq, 440);          // largura que as duas colunas podem ocupar
+    var folga = 30;                            // espaço para o "tortinho" de cada lado
+    var wLargura = (AW - 16) / 2 - 2 * folga;
+    var w = Math.floor(Math.max(56, Math.min(140, wAltura, wLargura)));
+    var dxMax = Math.max(0, Math.min(folga + 6, ((AW - 16) / 2 - w) / 2 - 4));
     var giros = [-4.6, 3.4, -2.8, 4.2, -3.6, 2.8, -4.2, 3.6, -3, 4.4];
     var desloc = [-1, 0.7, -0.4, 1, -0.75];
-    var dxEsq = Math.max(0, Math.min(48, (Math.min(sobraEsq - (comNotas ? larguraNota + 14 : 0), 300) - w) / 2 - 8));
-    var dxDir = Math.max(0, Math.min(48, (Math.min(sobraDir, 300) - w) / 2 - 8));
-    muralEsq.style.setProperty("--foto-w", w + "px"); muralDir.style.setProperty("--foto-w", w + "px");
-    var colEsq = el("div", "mural-col fotos"), colDir = el("div", "mural-col fotos");
-    // a folga do "tortinho" fica dentro da coluna: as fotos não invadem os post-its
-    colEsq.style.padding = "0 " + Math.round(dxEsq) + "px"; colDir.style.padding = "0 " + Math.round(dxDir) + "px";
+    muralEsq.style.setProperty("--foto-w", w + "px");
+    var colA = el("div", "mural-col fotos"), colB = el("div", "mural-col fotos");
+    // a folga do "tortinho" fica dentro de cada coluna: as fotos não invadem a vizinha
+    colA.style.padding = "0 " + Math.round(dxMax) + "px"; colB.style.padding = "0 " + Math.round(dxMax) + "px";
     CAT.forEach(function (cs, i) {
       var cul = CULPADOS[cs.arq];
       var feito = casoCompleto(cs, r.st);
-      var esq = i < linhas;
       var fig = el("figure", "mural-item mural-foto mini");
       fig.style.setProperty("--giro", giros[i % giros.length] + "deg");
-      fig.style.setProperty("--dx", Math.round(desloc[i % linhas] * (esq ? dxEsq : dxDir)) + "px");
+      fig.style.setProperty("--dx", Math.round(desloc[(i + (i >= linhas ? 2 : 0)) % linhas] * dxMax) + "px");
       fig.appendChild(el("span", "pino pino-" + pinos[i % 4]));
       fig.appendChild(el("span", "mural-num", String(cs.n)));
       var ret = el("div", "ficha-retrato");
@@ -1612,34 +1609,32 @@
       leg.appendChild(nb);
       leg.appendChild(el("small", null, feito && cul ? "Caso " + cs.n + " · " + cs.titulo : "Culpado do Caso " + cs.n));
       fig.appendChild(leg);
-      (esq ? colEsq : colDir).appendChild(fig);
+      (i < linhas ? colA : colB).appendChild(fig);
     });
-    if (comNotas) {
-      muralEsq.classList.add("duplo");
-      var colNotas = el("div", "mural-col notas");
-      var cores = ["#fff1a0", "#ffd9e2", "#d6f0c5", "#cfe6fb"];
-      var encerrados = CAT.filter(function (cs) { return casoCompleto(cs, r.st); });
-      var prox = proximaFase(r.st);
-      var notas = [
-        { t: "Nível " + (r.nivel + 1) + " · " + NIVEIS[r.nivel].nome, x: r.feitas + " de " + r.total + " fases concluídas." },
-        { t: "Casos encerrados", x: encerrados.length + " de " + CAT.length + (encerrados.length ? ". O último foi o Caso " + encerrados[encerrados.length - 1].n + "." : ". Falta pegar o primeiro culpado!") },
-        prox ? { t: "Próxima pista", x: "Caso " + prox.caso.n + " · " + (prox.fase.titulo || prox.fase.nome) }
-             : { t: "Parabéns, detetive!", x: "Você encerrou todos os casos." }
-      ];
-      if (r.qtdNotas) notas.push({ t: "Suas anotações", x: r.qtdNotas + (r.qtdNotas === 1 ? " fase com anotação." : " fases com anotação.") });
-      notas.forEach(function (nt, i) {
-        var no = el("div", "mural-item mural-nota");
-        no.style.setProperty("--cor", cores[i % 4]);
-        no.style.setProperty("--giro", (i % 2 ? -2.4 : 2.2) + "deg");
-        no.appendChild(el("span", "pino pino-" + pinos[(i + 2) % 4]));
-        no.appendChild(el("small", null, nt.t));
-        no.appendChild(el("p", null, nt.x));
-        colNotas.appendChild(no);
-      });
-      muralEsq.appendChild(colNotas);
-    }
-    muralEsq.appendChild(colEsq);
-    muralDir.appendChild(colDir);
+    muralEsq.appendChild(colA);
+    muralEsq.appendChild(colB);
+    // à direita: o andamento, em post-its
+    var colNotas = el("div", "mural-col notas");
+    var cores = ["#fff1a0", "#ffd9e2", "#d6f0c5", "#cfe6fb"];
+    var encerrados = CAT.filter(function (cs) { return casoCompleto(cs, r.st); });
+    var prox = proximaFase(r.st);
+    var notas = [
+      { t: "Nível " + (r.nivel + 1) + " · " + NIVEIS[r.nivel].nome, x: r.feitas + " de " + r.total + " fases concluídas." },
+      { t: "Casos encerrados", x: encerrados.length + " de " + CAT.length + (encerrados.length ? ". O último foi o Caso " + encerrados[encerrados.length - 1].n + "." : ". Falta pegar o primeiro culpado!") },
+      prox ? { t: "Próxima pista", x: "Caso " + prox.caso.n + " · " + (prox.fase.titulo || prox.fase.nome) }
+           : { t: "Parabéns, detetive!", x: "Você encerrou todos os casos." }
+    ];
+    if (r.qtdNotas) notas.push({ t: "Suas anotações", x: r.qtdNotas + (r.qtdNotas === 1 ? " fase com anotação." : " fases com anotação.") });
+    notas.forEach(function (nt, i) {
+      var no = el("div", "mural-item mural-nota");
+      no.style.setProperty("--cor", cores[i % 4]);
+      no.style.setProperty("--giro", (i % 2 ? -2.4 : 2.2) + "deg");
+      no.appendChild(el("span", "pino pino-" + pinos[(i + 2) % 4]));
+      no.appendChild(el("small", null, nt.t));
+      no.appendChild(el("p", null, nt.x));
+      colNotas.appendChild(no);
+    });
+    muralDir.appendChild(colNotas);
     medeMural();
   }
 
@@ -1721,8 +1716,8 @@
     }
     var larguraDir = limiteDir - r.right - 28;
     var lados = [
-      { no: muralEsq, w: Math.min(larguraEsq, muralModoHome ? (muralEsq.classList.contains("duplo") ? 470 : 300) : 250), x0: 0, sobra: larguraEsq, min: 190, ref: 0 },
-      { no: muralDir, w: Math.min(larguraDir, muralModoHome ? 300 : 250), x0: r.right, sobra: larguraDir, min: 200, ref: r.right }
+      { no: muralEsq, w: Math.min(larguraEsq, muralModoHome ? 460 : 250), x0: 0, sobra: larguraEsq, min: muralModoHome ? 150 : 190, ref: 0 },
+      { no: muralDir, w: Math.min(larguraDir, 250), x0: r.right, sobra: larguraDir, min: 200, ref: r.right }
     ];
     lados.forEach(function (l, k) {
       var tem = l.no.childElementCount > 0 && l.sobra >= l.min;
