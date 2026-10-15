@@ -14,7 +14,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=d41de5f1">
+<link rel="stylesheet" href="css/estilo.css?v=1e293c90">
 </head>
 <body>
 
@@ -5015,6 +5015,10 @@ CREATE POLICY "atualiza as proprias anotacoes" ON anotacao
   WITH CHECK (user_id = (SELECT auth.uid()));
 REVOKE ALL ON anotacao FROM anon;
 GRANT SELECT, INSERT, UPDATE ON anotacao TO authenticated;
+-- Imagem opcional na anotação (JPEG reduzido, em texto)
+ALTER TABLE anotacao ADD COLUMN IF NOT EXISTS imagem text;
+ALTER TABLE anotacao DROP CONSTRAINT IF EXISTS anotacao_imagem_tamanho;
+ALTER TABLE anotacao ADD CONSTRAINT anotacao_imagem_tamanho CHECK (imagem IS NULL OR char_length(imagem) <= 300000);
 
 -- Conferir a resposta:  SELECT verificar_solucao('Nome Completo');
 CREATE FUNCTION verificar_solucao(suspeito text) RETURNS text
@@ -5106,7 +5110,7 @@ SELECT '✅ Jogo instalado! Volte para o guia e comece a Fase 1.' AS status;
 <script src="js/app.js?v=5417c6c0"></script>
 <script src="js/pwa.js?v=e304ae22"></script>
 <script src="js/catalogo.js?v=cd3ff46d"></script>
-<script src="js/caderno.js?v=3981610f"></script>
+<script src="js/caderno.js?v=d21ac333"></script>
 <script src="js/quadro.js?v=27dfa579"></script>
 <script src="js/computador.js?v=c7848d06"></script>
 

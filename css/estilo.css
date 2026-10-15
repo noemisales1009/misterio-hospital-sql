@@ -837,3 +837,9 @@ html{padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
 .cad-salvo.pend{color:#8a7a2a}
 .cad-salvo.erro{color:#b3261e}
 .cad-salvo button{margin-left:6px;padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;cursor:pointer}
+
+/* imagem anexada à anotação */
+.cad-img{margin-top:6px}
+.cad-img-botoes{display:flex;flex-wrap:wrap;gap:8px}
+.cad-img-vista{display:block;max-width:100%;max-height:170px;margin-top:8px;border:1px solid #bdb48f;border-radius:8px;background:#fff;object-fit:contain;cursor:zoom-in}
+.cad-img-vista.grande{max-height:none;cursor:zoom-out}

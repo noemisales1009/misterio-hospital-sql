@@ -4369,6 +4369,10 @@ CREATE POLICY "atualiza as proprias anotacoes" ON anotacao
   WITH CHECK (user_id = (SELECT auth.uid()));
 REVOKE ALL ON anotacao FROM anon;
 GRANT SELECT, INSERT, UPDATE ON anotacao TO authenticated;
+-- Imagem opcional na anotação (JPEG reduzido, em texto)
+ALTER TABLE anotacao ADD COLUMN IF NOT EXISTS imagem text;
+ALTER TABLE anotacao DROP CONSTRAINT IF EXISTS anotacao_imagem_tamanho;
+ALTER TABLE anotacao ADD CONSTRAINT anotacao_imagem_tamanho CHECK (imagem IS NULL OR char_length(imagem) <= 300000);
 
 -- Conferir a resposta:  SELECT verificar_solucao('Nome Completo');
 CREATE FUNCTION verificar_solucao(suspeito text) RETURNS text

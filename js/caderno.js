@@ -134,6 +134,70 @@
     if (!contaLista || contaLista.hidden) return;
     contaLista.hidden = true; contaBotao.setAttribute("aria-expanded", "false");
   }
+  // imagem anexada a uma anotação: reduzida a no máximo 900 px e guardada como JPEG pequeno
+  var IMG_MAX_CARACTERES = 300000;
+  function imagemValida(d) {
+    return typeof d === "string" && d.length <= IMG_MAX_CARACTERES && d.indexOf(PREFIXO_FOTO) === 0 &&
+      /^[A-Za-z0-9+/=]+$/.test(d.slice(PREFIXO_FOTO.length));
+  }
+  function processaImagem(arquivo, pronto) {
+    if (!arquivo || !/^image[/]/.test(arquivo.type || "")) { toast("Escolha um arquivo de imagem"); return; }
+    if (arquivo.size > 15 * 1024 * 1024) { toast("A imagem é grande demais (máximo 15 MB)"); return; }
+    var url = URL.createObjectURL(arquivo), img = new Image();
+    img.onload = function () {
+      URL.revokeObjectURL(url);
+      var maior = Math.max(img.width, img.height);
+      if (!maior) { toast("Não consegui abrir essa imagem"); return; }
+      var tentativas = [[900, 0.78], [800, 0.65], [640, 0.55], [480, 0.5]];
+      for (var i = 0; i < tentativas.length; i++) {
+        var esc = Math.min(1, tentativas[i][0] / maior);
+        var cv = document.createElement("canvas");
+        cv.width = Math.max(1, Math.round(img.width * esc));
+        cv.height = Math.max(1, Math.round(img.height * esc));
+        var cx = cv.getContext("2d");
+        cx.fillStyle = "#ffffff"; cx.fillRect(0, 0, cv.width, cv.height);
+        cx.drawImage(img, 0, 0, cv.width, cv.height);
+        var d = cv.toDataURL("image/jpeg", tentativas[i][1]);
+        if (imagemValida(d)) { pronto(d); return; }
+      }
+      toast("Essa imagem ficou grande demais mesmo reduzida");
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); toast("Não consegui abrir essa imagem"); };
+    img.src = url;
+  }
+  function escolherArquivoImagem(cb) {
+    var f = document.createElement("input");
+    f.type = "file"; f.accept = "image/*"; f.style.display = "none";
+    f.addEventListener("change", function () {
+      var a = f.files && f.files[0];
+      f.remove();
+      if (a) cb(a);
+    });
+    document.body.appendChild(f);
+    f.click();
+  }
+  // as imagens ficam no IndexedDB do navegador (cabem mais do que no localStorage)
+  function abreIDB() {
+    return new Promise(function (res, rej) {
+      var rq = indexedDB.open("misterio-sql", 1);
+      rq.onupgradeneeded = function () { rq.result.createObjectStore("imagens"); };
+      rq.onsuccess = function () { res(rq.result); };
+      rq.onerror = function () { rej(rq.error); };
+    });
+  }
+  function idbOp(modo, fn) {
+    return abreIDB().then(function (db) {
+      return new Promise(function (res) {
+        var st = db.transaction("imagens", modo).objectStore("imagens");
+        var rq = fn(st);
+        rq.onsuccess = function () { res(rq.result === undefined ? null : rq.result); };
+        rq.onerror = function () { res(null); };
+      });
+    }).catch(function () { return null; });
+  }
+  function idbGet(k) { return idbOp("readonly", function (s) { return s.get(k); }); }
+  function idbPut(k, v) { return idbOp("readwrite", function (s) { return s.put(v, k); }); }
+  function idbDel(k) { return idbOp("readwrite", function (s) { return s["delete"](k); }); }
   var NIVEIS = [
     { min: 0, nome: "Aprendiz" },
     { min: 15, nome: "Investigação" },
@@ -215,10 +279,13 @@
   }
   function salvaNotaNuvem(fase, texto, opt) {
     var n = nuvem(); if (!n) return Promise.resolve("sem-conta");
+    var linha = { user_id: n.uid(), fase: fase, texto: texto, atualizado_em: new Date().toISOString() };
+    // a imagem só vai junto quando existe (ou quando foi removida), assim o banco antigo continua aceitando o texto
+    if (opt && "imagem" in opt) linha.imagem = opt.imagem;
     return n.api("anotacao?on_conflict=user_id,fase", {
       method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-      keepalive: !!(opt && opt.keepalive),
-      body: JSON.stringify([{ user_id: n.uid(), fase: fase, texto: texto, atualizado_em: new Date().toISOString() }])
+      keepalive: !!(opt && opt.keepalive && !(opt && opt.imagem)),
+      body: JSON.stringify([linha])
     }).then(function () { return "ok"; }, function () { return "erro"; });
   }
   // aviso discreto de "salvo", usado nas anotações e no nome
@@ -275,10 +342,13 @@
         if (fotoValida(rows[0].foto)) jog.foto = rows[0].foto;
         gravar(K_JOG, jog);
       } else if (jog.nome) { salvaPerfilNuvem(); }
-      return n.api("anotacao?select=fase,texto");
+      return n.api("anotacao?select=fase,texto,imagem").catch(function () { return n.api("anotacao?select=fase,texto"); });
     }).then(function (rows) {
       var remoto = {};
-      (rows || []).forEach(function (r) { remoto[r.fase] = r.texto; notas[r.fase] = r.texto; });
+      (rows || []).forEach(function (r) {
+        remoto[r.fase] = r.texto; notas[r.fase] = r.texto;
+        if (imagemValida(r.imagem)) idbPut(r.fase, r.imagem);
+      });
       gravar(K_NOTAS, notas);
       Object.keys(notas).forEach(function (f) { if (notas[f] && !(f in remoto)) salvaNotaNuvem(f, notas[f]); });
       atualizaBotao();
@@ -509,12 +579,68 @@
         if (fa.missao) linha.appendChild(el("p", "cad-missao", fa.missao));
         var ta = el("textarea", "cad-nota-area"); ta.rows = 2; ta.maxLength = 4000;
         ta.placeholder = "Minhas anotações desta fase…"; ta.value = notas[fa.id] || "";
-        var avisoNota = criaAviso(function (k) { return salvaNotaNuvem(fa.id, ta.value, { keepalive: k }); });
+        var imagemAtual = null, removida = false;
+        var avisoNota = criaAviso(function (k) {
+          var op = { keepalive: k };
+          if (imagemAtual) op.imagem = imagemAtual; else if (removida) op.imagem = null;
+          return salvaNotaNuvem(fa.id, ta.value, op).then(function (r) { if (r === "ok") removida = false; return r; });
+        });
+        var areaImg = el("div", "cad-img");
+        var botoesImg = el("div", "cad-img-botoes");
+        var addImg = el("button", "btn", "🖼 Adicionar imagem"); addImg.type = "button";
+        var rmImg = el("button", "btn", "Remover imagem"); rmImg.type = "button"; rmImg.hidden = true;
+        var vista = el("img", "cad-img-vista"); vista.alt = "Imagem anexada à anotação"; vista.hidden = true;
+        vista.title = "Clique para ampliar ou reduzir";
+        vista.addEventListener("click", function () { vista.classList.toggle("grande"); });
+        var pintaImg = function () {
+          if (imagemAtual) {
+            vista.src = imagemAtual; vista.hidden = false; rmImg.hidden = false; addImg.textContent = "🖼 Trocar imagem";
+          } else {
+            vista.hidden = true; vista.removeAttribute("src"); rmImg.hidden = true; addImg.textContent = "🖼 Adicionar imagem";
+          }
+        };
+        var defineImg = function (d) {
+          imagemAtual = d; removida = false;
+          idbPut(fa.id, d);
+          pintaImg();
+          avisoNota.alterou();
+        };
+        idbGet(fa.id).then(function (d) { if (imagemValida(d)) { imagemAtual = d; pintaImg(); } });
+        addImg.addEventListener("click", function () {
+          escolherArquivoImagem(function (arq) { processaImagem(arq, defineImg); });
+        });
+        rmImg.addEventListener("click", function () {
+          imagemAtual = null; removida = true;
+          idbDel(fa.id);
+          pintaImg();
+          avisoNota.alterou();
+        });
+        // colar um print (Ctrl+V) direto na anotação
+        ta.addEventListener("paste", function (e) {
+          var itens = (e.clipboardData && e.clipboardData.items) || [];
+          for (var i = 0; i < itens.length; i++) {
+            if (itens[i].type && itens[i].type.indexOf("image/") === 0) {
+              var arq = itens[i].getAsFile();
+              if (arq) { e.preventDefault(); processaImagem(arq, defineImg); return; }
+            }
+          }
+        });
+        // arrastar uma imagem para cima da anotação
+        linha.addEventListener("dragover", function (e) {
+          if (e.dataTransfer && [].indexOf.call(e.dataTransfer.types || [], "Files") > -1) e.preventDefault();
+        });
+        linha.addEventListener("drop", function (e) {
+          var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+          if (f && /^image[/]/.test(f.type || "")) { e.preventDefault(); processaImagem(f, defineImg); }
+        });
+        botoesImg.appendChild(addImg); botoesImg.appendChild(rmImg);
+        areaImg.appendChild(botoesImg); areaImg.appendChild(vista);
         ta.addEventListener("input", function () {
           notas[fa.id] = ta.value; gravar(K_NOTAS, notas);
           avisoNota.alterou();
         });
         linha.appendChild(ta);
+        linha.appendChild(areaImg);
         linha.appendChild(avisoNota.no);
         lista.appendChild(linha);
       });
