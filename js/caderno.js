@@ -1537,7 +1537,112 @@
     window.addEventListener("resize", agendaMural);
     atualizaMural();
   }
-  function agendaMural(ms) { clearTimeout(muralTimer); muralTimer = setTimeout(atualizaMural, typeof ms === "number" ? ms : 140); }
+  var muralModoHome = false;
+  function agendaMural(ms) {
+    clearTimeout(muralTimer);
+    muralTimer = setTimeout(function () { if (muralModoHome) atualizaMuralHome(); else atualizaMural(); }, typeof ms === "number" ? ms : 140);
+  }
+  // tela principal: galeria dos culpados (quem já foi pego e quem ainda é um "?") e o andamento em post-its
+  function svgSilhueta() {
+    return '<svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Culpado ainda desconhecido">' +
+      '<path d="M6 112 C8 88 28 80 50 80 C72 80 92 88 94 112 Z" fill="#69767e"/>' +
+      '<rect x="43" y="62" width="14" height="24" rx="6" fill="#7b8890"/>' +
+      '<ellipse cx="50" cy="48" rx="19.5" ry="23" fill="#7b8890"/>' +
+      '<text x="50" y="60" font-size="34" font-weight="800" fill="#2b3a41" text-anchor="middle" font-family="Arial,sans-serif">?</text></svg>';
+  }
+  function muralHomeIniciar() {
+    if (mural || !document.querySelector(".casos")) return;
+    muralModoHome = true;
+    mural = el("div", "mural"); mural.setAttribute("aria-hidden", "true");
+    muralEsq = el("div", "mural-lado esq"); muralDir = el("div", "mural-lado dir");
+    mural.appendChild(muralEsq); mural.appendChild(muralDir);
+    document.body.appendChild(mural);
+    window.addEventListener("resize", function () { agendaMural(); });
+    window.addEventListener("load", function () { agendaMural(0); });
+    atualizaMuralHome();
+  }
+  function atualizaMuralHome() {
+    if (!mural || !muralModoHome) return;
+    muralEsq.textContent = ""; muralDir.textContent = "";
+    muralEsq.classList.remove("grade", "duplo"); muralDir.classList.remove("grade", "duplo");
+    muralEsq.classList.add("home"); muralDir.classList.add("home");
+    if (window.innerWidth < MURAL_LARGURA_MIN) { muralEsq.hidden = muralDir.hidden = true; return; }
+    var r = resumo();
+    var pinos = ["vermelho", "azul", "amarelo", "verde"];
+    var quadro = document.querySelector(".quadro-home") || document.querySelector(".wrap");
+    var rq = quadro ? quadro.getBoundingClientRect() : { left: 0, right: window.innerWidth };
+    var sobraEsq = rq.left - 28, sobraDir = window.innerWidth - rq.right - 28;
+    var sobraFotos = Math.min(sobraEsq, sobraDir);
+    // casos 1 a 5 na esquerda, 6 a 10 na direita; o tamanho acompanha a altura da tela para caberem todos
+    var linhas = Math.ceil(CAT.length / 2);
+    var altura = window.innerHeight - 120;
+    var wAltura = (altura - 15 * (linhas - 1) - 42 * linhas) / (0.94 * linhas);
+    var w = Math.floor(Math.max(56, Math.min(140, wAltura, sobraFotos - 30)));
+    // post-its de andamento: ficam do lado de fora das fotos da esquerda, se couber
+    var larguraNota = 176;
+    var comNotas = sobraEsq >= w + 60 + larguraNota + 16;
+    var giros = [-4.6, 3.4, -2.8, 4.2, -3.6, 2.8, -4.2, 3.6, -3, 4.4];
+    var desloc = [-1, 0.7, -0.4, 1, -0.75];
+    var dxEsq = Math.max(0, Math.min(48, (Math.min(sobraEsq - (comNotas ? larguraNota + 14 : 0), 300) - w) / 2 - 8));
+    var dxDir = Math.max(0, Math.min(48, (Math.min(sobraDir, 300) - w) / 2 - 8));
+    muralEsq.style.setProperty("--foto-w", w + "px"); muralDir.style.setProperty("--foto-w", w + "px");
+    var colEsq = el("div", "mural-col fotos"), colDir = el("div", "mural-col fotos");
+    // a folga do "tortinho" fica dentro da coluna: as fotos não invadem os post-its
+    colEsq.style.padding = "0 " + Math.round(dxEsq) + "px"; colDir.style.padding = "0 " + Math.round(dxDir) + "px";
+    CAT.forEach(function (cs, i) {
+      var cul = CULPADOS[cs.arq];
+      var feito = casoCompleto(cs, r.st);
+      var esq = i < linhas;
+      var fig = el("figure", "mural-item mural-foto mini");
+      fig.style.setProperty("--giro", giros[i % giros.length] + "deg");
+      fig.style.setProperty("--dx", Math.round(desloc[i % linhas] * (esq ? dxEsq : dxDir)) + "px");
+      fig.appendChild(el("span", "pino pino-" + pinos[i % 4]));
+      fig.appendChild(el("span", "mural-num", String(cs.n)));
+      var ret = el("div", "ficha-retrato");
+      ret.innerHTML = feito && cul ? retratoMarkup(cul.nome, cul.tipo === "aparelho") : svgSilhueta();
+      // o carimbo fica dentro da foto, na parte de baixo do retrato (não cobre o nome)
+      if (feito && cul) ret.appendChild(el("span", "mural-selo", "Concluído"));
+      fig.appendChild(ret);
+      var leg = el("figcaption");
+      var nomeCompleto = feito && cul ? cul.nome : "?";
+      // o nome inteiro quando cabe numa linha; senão, só o primeiro nome
+      var cabem = Math.floor((w - 10) / 6.6);
+      var nb = el("b", null, nomeCompleto.length <= cabem ? nomeCompleto : nomeCompleto.split(" ")[0]);
+      nb.title = nomeCompleto;
+      leg.appendChild(nb);
+      leg.appendChild(el("small", null, feito && cul ? "Caso " + cs.n + " · " + cs.titulo : "Culpado do Caso " + cs.n));
+      fig.appendChild(leg);
+      (esq ? colEsq : colDir).appendChild(fig);
+    });
+    if (comNotas) {
+      muralEsq.classList.add("duplo");
+      var colNotas = el("div", "mural-col notas");
+      var cores = ["#fff1a0", "#ffd9e2", "#d6f0c5", "#cfe6fb"];
+      var encerrados = CAT.filter(function (cs) { return casoCompleto(cs, r.st); });
+      var prox = proximaFase(r.st);
+      var notas = [
+        { t: "Nível " + (r.nivel + 1) + " · " + NIVEIS[r.nivel].nome, x: r.feitas + " de " + r.total + " fases concluídas." },
+        { t: "Casos encerrados", x: encerrados.length + " de " + CAT.length + (encerrados.length ? ". O último foi o Caso " + encerrados[encerrados.length - 1].n + "." : ". Falta pegar o primeiro culpado!") },
+        prox ? { t: "Próxima pista", x: "Caso " + prox.caso.n + " · " + (prox.fase.titulo || prox.fase.nome) }
+             : { t: "Parabéns, detetive!", x: "Você encerrou todos os casos." }
+      ];
+      if (r.qtdNotas) notas.push({ t: "Suas anotações", x: r.qtdNotas + (r.qtdNotas === 1 ? " fase com anotação." : " fases com anotação.") });
+      notas.forEach(function (nt, i) {
+        var no = el("div", "mural-item mural-nota");
+        no.style.setProperty("--cor", cores[i % 4]);
+        no.style.setProperty("--giro", (i % 2 ? -2.4 : 2.2) + "deg");
+        no.appendChild(el("span", "pino pino-" + pinos[(i + 2) % 4]));
+        no.appendChild(el("small", null, nt.t));
+        no.appendChild(el("p", null, nt.x));
+        colNotas.appendChild(no);
+      });
+      muralEsq.appendChild(colNotas);
+    }
+    muralEsq.appendChild(colEsq);
+    muralDir.appendChild(colDir);
+    medeMural();
+  }
+
   var muralChaves = null;   // o que já estava no mural (para animar só o que acabou de chegar)
   function pessoasDoCaso(cs, st) {
     var lista = [];   // ordem de descoberta; quem reaparece vai para o fim, com o papel novo
@@ -1603,12 +1708,12 @@
   }
   // encaixa cada coluna na sobra da lateral; tira os itens que não cabem na altura e traça os fios
   function medeMural() {
-    var wrap = document.querySelector(".wrap");
+    var wrap = document.querySelector(".quadro-home") || document.querySelector(".wrap");
     if (!mural || !wrap) return;
     var r = wrap.getBoundingClientRect();
     var larguraEsq = r.left - 28;
     // limite da direita: a abinha das anotações (64px) ou, com a gaveta aberta, a borda dela
-    var limiteDir = window.innerWidth - 64;
+    var limiteDir = window.innerWidth - (muralModoHome ? 12 : 64);
     if (gaveta && gaveta.classList.contains("aberta")) {
       var gp = gaveta.querySelector(".gaveta-painel");
       var gb = gp && gp.getBoundingClientRect();
@@ -1616,8 +1721,8 @@
     }
     var larguraDir = limiteDir - r.right - 28;
     var lados = [
-      { no: muralEsq, w: Math.min(larguraEsq, 250), x0: 0, sobra: larguraEsq, min: 190, ref: 0 },
-      { no: muralDir, w: Math.min(larguraDir, 250), x0: r.right, sobra: larguraDir, min: 200, ref: r.right }
+      { no: muralEsq, w: Math.min(larguraEsq, muralModoHome ? (muralEsq.classList.contains("duplo") ? 470 : 300) : 250), x0: 0, sobra: larguraEsq, min: 190, ref: 0 },
+      { no: muralDir, w: Math.min(larguraDir, muralModoHome ? 300 : 250), x0: r.right, sobra: larguraDir, min: 200, ref: r.right }
     ];
     lados.forEach(function (l, k) {
       var tem = l.no.childElementCount > 0 && l.sobra >= l.min;
@@ -1635,8 +1740,11 @@
     });
   }
   function desenhaFios(lado) {
-    var itens = [].slice.call(lado.querySelectorAll(".mural-item"));
-    if (itens.length < 2) return;
+    var colunas = [].slice.call(lado.querySelectorAll(".mural-col"));
+    var grupos = colunas.length
+      ? colunas.map(function (col) { return [].slice.call(col.querySelectorAll(".mural-item")); })
+      : [[].slice.call(lado.querySelectorAll(".mural-item"))];
+    if (!grupos.some(function (g) { return g.length >= 2; })) return;
     var NS = "http://www.w3.org/2000/svg";
     var box = lado.getBoundingClientRect();
     var svg = document.createElementNS(NS, "svg");
@@ -1646,17 +1754,19 @@
       var p = item.querySelector(".pino").getBoundingClientRect();
       return [p.left + p.width / 2 - box.left, p.top + p.height / 2 - box.top];
     };
-    for (var i = 0; i < itens.length - 1; i++) {
-      var a = ponto(itens[i]), b = ponto(itens[i + 1]);
-      var cx = (a[0] + b[0]) / 2 + (i % 2 ? 34 : -34), cy = (a[1] + b[1]) / 2 + 26;
-      var d = "M" + a[0].toFixed(1) + " " + a[1].toFixed(1) + " Q" + cx.toFixed(1) + " " + cy.toFixed(1) + " " + b[0].toFixed(1) + " " + b[1].toFixed(1);
-      var sombra = document.createElementNS(NS, "path");
-      sombra.setAttribute("d", d); sombra.setAttribute("fill", "none"); sombra.setAttribute("stroke", "rgba(0,0,0,.35)"); sombra.setAttribute("stroke-width", "3.4");
-      sombra.setAttribute("transform", "translate(1.5 2.5)");
-      var fio = document.createElementNS(NS, "path");
-      fio.setAttribute("d", d); fio.setAttribute("fill", "none"); fio.setAttribute("stroke", "#c0281c"); fio.setAttribute("stroke-width", "2.2"); fio.setAttribute("stroke-linecap", "round");
-      svg.appendChild(sombra); svg.appendChild(fio);
-    }
+    grupos.forEach(function (itens) {
+      for (var i = 0; i < itens.length - 1; i++) {
+        var a = ponto(itens[i]), b = ponto(itens[i + 1]);
+        var cx = (a[0] + b[0]) / 2 + (i % 2 ? 34 : -34), cy = (a[1] + b[1]) / 2 + 26;
+        var d = "M" + a[0].toFixed(1) + " " + a[1].toFixed(1) + " Q" + cx.toFixed(1) + " " + cy.toFixed(1) + " " + b[0].toFixed(1) + " " + b[1].toFixed(1);
+        var sombra = document.createElementNS(NS, "path");
+        sombra.setAttribute("d", d); sombra.setAttribute("fill", "none"); sombra.setAttribute("stroke", "rgba(0,0,0,.35)"); sombra.setAttribute("stroke-width", "3.4");
+        sombra.setAttribute("transform", "translate(1.5 2.5)");
+        var fio = document.createElementNS(NS, "path");
+        fio.setAttribute("d", d); fio.setAttribute("fill", "none"); fio.setAttribute("stroke", "#c0281c"); fio.setAttribute("stroke-width", "2.2"); fio.setAttribute("stroke-linecap", "round");
+        svg.appendChild(sombra); svg.appendChild(fio);
+      }
+    });
     lado.insertBefore(svg, lado.firstChild);
   }
 
@@ -1977,6 +2087,7 @@
     encerradoIniciar();
     muralIniciar();
     homeExtras();
+    muralHomeIniciar();
     document.addEventListener("misterio:login", function () { puxaNuvem(function () { homeRefaz(); talvezBoasVindas(); }); });
     document.addEventListener("misterio:sessao", function () { atualizaSair(); atualizaBotao(); });
     var tela = document.getElementById("telaLogin");
@@ -1992,6 +2103,7 @@
   function homeRefaz() {
     var b = document.getElementById("cadBoasVindas");
     if (b) { b.remove(); homeExtras(); }
+    if (muralModoHome) agendaMural(0);
   }
   window.MisterioCaderno = { abrir: abrir, anotar: abreGaveta, guardar: fechaGaveta, retrato: svgBusto, aparelho: svgAparelho, retratoMarkup: retratoMarkup, slug: slugRetrato };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar);
