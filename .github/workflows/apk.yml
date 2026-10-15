@@ -57,6 +57,9 @@ jobs:
       - name: Criar o projeto Android
         run: npx cap add android
 
+      - name: Limpar o cache do WebView quando o app for atualizado
+        run: node scripts/limpar-cache-atualizacao.js
+
       - name: Gerar ícones e tela de abertura
         run: >
           npx capacitor-assets generate --android
