@@ -604,7 +604,7 @@
     livro.appendChild(folha);
     livro.appendChild(el("div", "cad-etiqueta"));
     var abas = el("nav", "cad-abas"); abas.setAttribute("aria-label", "Seções do caderno");
-    [["detetive", "Detetive", "amarela"], ["missoes", "Missões", "coral"], ["comandos", "Comandos", "verde"]].forEach(function (a) {
+    [["detetive", "Detetive", "amarela"], ["missoes", "Missões", "coral"], ["achados", "Achados", "azul"], ["comandos", "Comandos", "verde"]].forEach(function (a) {
       var bt = el("button", "cad-aba " + a[2], a[1]); bt.type = "button"; bt.setAttribute("data-aba", a[0]);
       bt.addEventListener("click", function () { abrir(a[0]); });
       abas.appendChild(bt);
@@ -627,6 +627,7 @@
     corpo.textContent = "";
     if (abaAtual === "detetive") paginaDetetive(r);
     else if (abaAtual === "missoes") paginaMissoes(r);
+    else if (abaAtual === "achados") paginaAchados(r);
     else paginaComandos(r);
     if (!dlg.open) { if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", ""); }
     corpo.scrollTop = 0;
@@ -1092,6 +1093,135 @@
     atualizaEncerrado(false);
   }
 
+  // ------------------------------------------------------------------ achados: o que cada fase descobre
+  // texto mostrado só depois que a fase é concluída (nada de spoiler antes)
+  var MONTADO = "Banco do caso instalado: agora é só investigar.";
+  var DESCOBERTAS = {
+    fase0: "O laboratório está de pé: o banco do caso foi instalado e já dá para investigar.",
+    fase1: "A tabela pessoa tem 655 registros.",
+    fase2: "Relatório nº 57, de 10/03/2026: sabotagem na Sala de Vacinas. Às 3h a geladeira foi desligada da tomada e todo o estoque se perdeu. Há duas testemunhas.",
+    fase3: "Testemunha 1: Otávio Brandão (id 22074), Rua das Acácias, 4919. Testemunha 2: Lorena Bittencourt (id 22092), Avenida dos Ipês, 103.",
+    fase4: "O suspeito é sócio do plano ouro da academia Corpo em Movimento (número começa com 48Z), fugiu num carro com H42W na placa e a Lorena o viu na academia em 09/03/2026.",
+    fase5: "Três sócios batem com as pistas: Rogério Valadares (48Z55), Jeremias Paiva (48Z7A) e Lorena Bittencourt (48Z90).",
+    fase6: "A placa 0H42W2L aponta para uma pessoa só: Rogério Valadares, sócio 48Z55. Ele desligou a geladeira.",
+    fase7: "Rogério Valadares agiu a mando de Vitória Albuquerque, a mandante: a maior renda da cidade (R$ 980.000 por ano).",
+    fase8: "Você montou o seu próprio caderno de detetive em SQL, com uma tabela de pistas.",
+    fase9: "Os relatórios citam 11 setores diferentes. A renda anual vai de R$ 18.317 a R$ 980.000, com média de cerca de R$ 134.334.",
+    fase10: "328 pessoas ganham acima da média. A maior renda é de Vitória Albuquerque. 11 donos de Tesla foram ao Show no Parque.",
+    fase11: "Por renda: 82 pessoas na faixa baixa, 445 na média e 128 na alta. Das ocorrências, 536 são graves e 369 leves.",
+    fase12: "28 sócios nunca entraram na academia: 8 do plano bronze, 9 do prata e 11 do ouro.",
+    "c2-f0": MONTADO,
+    "c2-f1": "Na madrugada de 14/08/2026, entre 02h00 e 03h59, houve 4 alterações de prontuário.",
+    "c2-f2": "Na UTI Adulto, as alterações usaram a senha de 2 pessoas: Márcia Albuquerque e Renata Figueiredo.",
+    "c2-f3": "Só uma delas não estava de plantão: a Márcia Albuquerque estava de folga. Alguém usou a senha dela.",
+    "c2-f4": "Entre 01h50 e 02h20 entraram na porta da UTI 3 pessoas sem plantão noturno: Rogério Mendonça, Fábio Bittencourt e Cláudia Lourenço.",
+    "c2-f5": "Em agosto, o Rogério Mendonça entrou de madrugada, sem plantão, em 5 noites diferentes. Esse é o culpado.",
+    "c3-f0": MONTADO,
+    "c3-f1": "A morfina 10 mg/mL tem a maior diferença: saíram 254 unidades e só 207 foram prescritas, 47 a mais.",
+    "c3-f2": "9 unidades saíram sem receita (urgências). Isso explica só 9 dos 47: ainda sobram 38 sem explicação.",
+    "c3-f3": "4 pessoas retiraram mais do que o prescrito e a soma fecha os 38: Edson Carvalhaes (28 a mais), Marta Figueiredo (6), Lúcia Bittencourt (2) e Sônia Lourenço (2).",
+    "c3-f4": "Sem justificativa: Edson Carvalhaes (28 a mais) e Lúcia Bittencourt (2). Marta Figueiredo (6) e Sônia Lourenço (2) justificaram por quebra de ampola.",
+    "c3-f5": "Edson Carvalhaes retirou a mais, sem justificativa e de madrugada, em 8 noites diferentes. Esse é o culpado.",
+    "c4-f0": MONTADO,
+    "c4-f1": "7 pacientes têm a cultura positiva que define o surto, com coletas de 05/08 a 22/08/2026.",
+    "c4-f2": "6 dos 7 casos estavam na UTI Adulto no dia da coleta. O sétimo estava na Enfermaria.",
+    "c4-f3": "Três aparelhos foram usados pelos 7 casos: as bombas de infusão BI-02 e BI-07 e o ventilador VT-03.",
+    "c4-f4": "Taxa de ataque: BI-07 com 87,5% (7 de 8 pacientes), VT-03 com 70% (7 de 10) e BI-02 com 24,1% (7 de 29).",
+    "c4-f5": "Só o BI-07 não tem nenhuma limpeza registrada em agosto. Esse é o culpado: a bomba de infusão da UTI Adulto.",
+    "c5-f0": MONTADO,
+    "c5-f1": "27 cobranças estão acima do valor de tabela, com R$ 9.897,86 a mais no total.",
+    "c5-f2": "31 cobranças são cópias: o mesmo procedimento foi cobrado mais de uma vez para o mesmo atendimento.",
+    "c5-f3": "30 cobranças não têm procedimento realizado: R$ 25.462,00 cobrados por serviços que não aconteceram.",
+    "c5-f4": "O lote L-0830-C foge do padrão: 34 erros, enquanto os outros lotes têm 4 ou menos.",
+    "c5-f5": "O lote L-0830-C foi assinado por Bianca Furtado: 100 linhas e R$ 88.045,91 cobrados.",
+    "c6-f0": MONTADO,
+    "c6-f1": "4 geladeiras saíram da faixa de 2 a 8 °C. A G-03, do Banco de Sangue, foi a pior: 10 leituras fora.",
+    "c6-f2": "4 excursões de temperatura começaram em setembro, uma em cada geladeira com problema. A da G-03 começou em 14/09, às 02h30.",
+    "c6-f3": "A excursão mais longa foi a da G-03, de 02h30 às 07h00 de 14/09/2026: 4h30 fora da faixa.",
+    "c6-f4": "Antes da excursão, duas pessoas abriram a porta da G-03: Dulce Albuquerque (02h10) e Valéria Montenegro (02h21).",
+    "c6-f5": "Valéria Montenegro abriu a G-03 às 02h21 e a porta só foi fechada às 06h48, por outra pessoa. Esse é o culpado.",
+    "c7-f0": MONTADO,
+    "c7-f1": "36 cadastros têm espaço sobrando no nome. São 225 nomes do jeito que estão gravados e 216 depois de arrumar.",
+    "c7-f2": "10 CPFs têm cadastro em duplicidade. Já 3 nomes repetidos têm CPFs diferentes: são homônimos, não cópias.",
+    "c7-f3": "Saúde Vida lidera os convênios (91 cadastros), seguida de Particular (89, contando os vazios) e MedPlus (49). Em outubro, o Cláudio Menezes fez 13 cadastros, o maior número.",
+    "c7-f4": "Por convênio, a Saúde Vida somou R$ 73.630,00. Por especialidade, a Ressonância rendeu mais: R$ 41.250,00 em 33 consultas.",
+    "c7-f5": "Cláudio Menezes criou 7 cadastros em dobro e lançou 7 consultas neles: R$ 5.370,00. Esse é o responsável.",
+    "c8-f0": MONTADO,
+    "c8-f1": "Em setembro de 2026, 21 pessoas diferentes fizeram hora extra.",
+    "c8-f2": "Em setembro, 18 plantões caíram num domingo e 49 começaram às 19h.",
+    "c8-f3": "Quem mais fez hora extra em setembro: Leonel Guedes, 120 h (R$ 6.156,00), seguido de Irene Castilho, 114 h (R$ 8.310,60).",
+    "c8-f4": "No ranking de setembro, Leonel Guedes é o 1º, com 20,1% das horas do mês, e Irene Castilho a 2ª, com 19,1%.",
+    "c8-f5": "Leonel Guedes lançou 14 plantões em setembro sem nenhuma entrada na catraca: 112 horas sem presença. Esse é o culpado.",
+    "c9-f0": MONTADO,
+    "c9-f1": "O prontuário da Lia Moraes teve 78 acessos de 13 pessoas na semana, com 4 impressões ou exportações.",
+    "c9-f2": "6 pessoas abriram o prontuário sem ser da equipe de cuidado. Quem mais abriu foi a Daniela Couto, da Recepção: 3 acessos.",
+    "c9-f3": "3 acessos foram feitos fora do turno. O mais grave: a Jaqueline Prado, do turno da manhã, exportou o prontuário às 23h47 de 23/10.",
+    "c9-f4": "O login jaqueline.prado teve 20 senhas erradas e 1 acerto na estação FAT-PC07, na noite de 23/10: força bruta.",
+    "c9-f5": "Antes da rajada de senhas, quem entrou no FAT-PC07 foi o Sérgio Paixão (login às 19h05 de 23/10). Esse é o culpado.",
+    "c10-f0": MONTADO,
+    "c10-f1": "59 requisições suspeitas de injeção de SQL: 50 vieram do IP 198.51.100.23 e 9 do IP 203.0.113.59.",
+    "c10-f2": "O IP 198.51.100.23 começou a testar em 08/10. O 203.0.113.59 atacou em 11/10 e conseguiu 3 respostas com sucesso.",
+    "c10-f3": "O ataque escalou com UNION SELECT até vazar dados: 112 pacientes diferentes tiveram resultados expostos.",
+    "c10-f4": "O papel portal_web tem 12 privilégios, inclusive de escrita, e as 3 políticas de RLS usam a condição true: nada filtra.",
+    "c10-f5": "O ataque partiu do IP 203.0.113.59, que antes tinha um login confirmado: renan.duarte (Renan Duarte). Esse é o culpado."
+  };
+  // aba "Achados": uma linha vermelha por caso, com um cartão para cada fase
+  function paginaAchados(r) {
+    var c = corpo;
+    var total = 0, achados = 0;
+    CAT.forEach(function (cs) { cs.fases.forEach(function (fa) { total++; if (r.st[fa.id]) achados++; }); });
+    c.appendChild(el("p", "cad-nota", "O que você já encontrou em cada caso. Cada achado aparece quando a fase é concluída. " + achados + " de " + total + " fases."));
+    var algumAberto = false, primeiro = null;
+    CAT.forEach(function (cs) {
+      var feitas = cs.fases.filter(function (fa) { return r.st[fa.id]; }).length;
+      var completo = casoCompleto(cs, r.st);
+      var d = el("details", "cad-caso ach-caso" + (completo ? " completo" : ""));
+      if (feitas > 0 && !completo) { d.open = true; algumAberto = true; }
+      if (!primeiro) primeiro = d;
+      d.appendChild(el("summary", null, "Caso " + cs.n + " · " + cs.titulo + "  (" + feitas + "/" + cs.fases.length + ")" + (completo ? "  ✓" : "")));
+      var linha = el("ol", "ach-linha");
+      cs.fases.forEach(function (fa, i) {
+        var feita = !!r.st[fa.id], lib = liberada(cs.fases, i, r.st);
+        var li = el("li", "ach-card " + (feita ? "feito" : lib ? "atual" : "trava"));
+        li.appendChild(el("span", "ach-pino"));
+        var cab = el("div", "ach-t");
+        cab.appendChild(el("b", null, fa.num + " · " + (fa.titulo || fa.nome)));
+        if (fa.sub) cab.appendChild(el("small", null, fa.sub));
+        li.appendChild(cab);
+        if (feita) li.appendChild(el("p", "ach-achado", DESCOBERTAS[fa.id] || "Fase concluída."));
+        else li.appendChild(el("p", "ach-achado vazio", lib ? "? Ainda por descobrir" : "🔒 Conclua a fase anterior"));
+        var nota = (notas[fa.id] || "").trim();
+        if (nota) {
+          var pn = el("p", "ach-nota", "📓 " + (nota.length > 140 ? nota.slice(0, 140) + "…" : nota));
+          li.appendChild(pn);
+        }
+        var fotos = el("div", "ach-fotos"); fotos.hidden = true;
+        li.appendChild(fotos);
+        idbGet(fa.id).then(function (v) {
+          var l = listaImagens(v);
+          if (!l.length) return;
+          fotos.hidden = false;
+          l.slice(0, 4).forEach(function (src, k) {
+            var im = el("img", "ach-mini"); im.src = src; im.alt = "Imagem " + (k + 1) + " da anotação";
+            fotos.appendChild(im);
+          });
+          if (l.length > 4) fotos.appendChild(el("span", "ach-mais", "+" + (l.length - 4)));
+        });
+        linha.appendChild(li);
+      });
+      var cul = CULPADOS[cs.arq];
+      if (completo) {
+        var fim = el("li", "ach-fim");
+        fim.appendChild(carimboConcluido());
+        if (cul) fim.appendChild(fichaCulpado(cul, false));
+        linha.appendChild(fim);
+      }
+      d.appendChild(linha);
+      c.appendChild(d);
+    });
+    if (!algumAberto && primeiro) primeiro.open = true;
+  }
+
   // ------------------------------------------------------------------ navegação entre casos
   function arqAtual() {
     var p = location.pathname.split("/").pop() || "index.html";
@@ -1163,6 +1293,11 @@
     cad.appendChild(ic2); cad.appendChild(document.createTextNode("Meu caderno"));
     cad.addEventListener("click", function () { abrir("detetive"); });
     acoes.appendChild(cad);
+    var ach = el("button", "bt-secundario"); ach.type = "button";
+    var ic3 = el("span", "ic"); ic3.setAttribute("aria-hidden", "true"); ic3.innerHTML = ICONES.caderno;
+    ach.appendChild(ic3); ach.appendChild(document.createTextNode("Meus achados"));
+    ach.addEventListener("click", function () { abrir("achados"); });
+    acoes.appendChild(ach);
     box.appendChild(acoes);
     if (!jog.nome) {
       var def = el("button", "bt-link", "Definir meu nome"); def.type = "button";

@@ -982,3 +982,26 @@ body{transition:padding-right .26s ease,padding-bottom .26s ease}
   .ficha-culpado.grande .ficha-texto{align-items:center;text-align:center}
   .enc-painel .carimbo-concluido{position:static;margin-bottom:6px;transform:rotate(-6deg)}
 }
+
+/* aba Achados: a linha vermelha do detetive ligando o que foi descoberto em cada fase */
+.cad-aba.azul{background:#8cc4ec}
+.ach-linha{position:relative;margin:10px 0 4px 10px;padding:0 0 0 22px;list-style:none;border-left:3px solid #c0281c}
+.ach-card{position:relative;margin:0 0 12px;padding:9px 12px 10px;border:1px solid var(--line,#ddd5bd);border-radius:6px;background:rgba(255,253,243,.9);box-shadow:0 2px 5px rgba(0,0,0,.12)}
+.ach-card.trava{opacity:.62}
+.ach-pino{position:absolute;top:13px;left:-33px;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff9a8a,#c0281c 60%,#7a1209);box-shadow:0 2px 3px rgba(0,0,0,.4)}
+.ach-card.atual .ach-pino,.ach-card.trava .ach-pino{background:radial-gradient(circle at 35% 30%,#e9e4d3,#b9b29a 60%,#8a846f)}
+.ach-t{display:flex;flex-direction:column;gap:1px}
+.ach-t b{font-size:.95rem}
+.ach-t small{color:#6f6a5c;font:600 11px var(--f-mono)}
+.ach-achado{margin:6px 0 0;font:700 1.15rem/1.25 var(--f-mao);color:#1f6b5b}
+.ach-achado.vazio{color:#8a846f;font-weight:600;font-size:1rem}
+.ach-nota{margin:6px 0 0;padding:4px 8px;border-left:3px solid #f3d64e;background:rgba(243,214,78,.18);color:#2b2a26;font:.8rem/1.4 var(--f-body)}
+.ach-fotos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.ach-fotos[hidden]{display:none}
+.ach-mini{width:64px;height:48px;object-fit:cover;border:3px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.35);transform:rotate(-2deg)}
+.ach-mini:nth-child(even){transform:rotate(2deg)}
+.ach-mais{align-self:center;color:#6f6a5c;font:700 .8rem var(--f-mono)}
+.ach-fim{position:relative;margin:0 0 6px;padding:14px 4px 4px;list-style:none}
+.ach-fim .carimbo-concluido{position:absolute;top:2px;right:6px;bottom:auto;font-size:17px}
+.ach-fim .ficha-culpado{margin-top:10px}
+.ach-caso.completo>summary{color:#b3261e}
