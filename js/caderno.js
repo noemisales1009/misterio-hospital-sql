@@ -588,15 +588,19 @@
         var areaImg = el("div", "cad-img");
         var botoesImg = el("div", "cad-img-botoes");
         var addImg = el("button", "btn", "🖼 Adicionar imagem"); addImg.type = "button";
+        var colImg = el("button", "btn", "📋 Colar imagem"); colImg.type = "button";
+        colImg.title = "Cola o print ou a imagem que você copiou";
+        var cpImg = el("button", "btn", "Copiar imagem"); cpImg.type = "button"; cpImg.hidden = true;
+        cpImg.title = "Copia esta imagem para colar em outro lugar";
         var rmImg = el("button", "btn", "Remover imagem"); rmImg.type = "button"; rmImg.hidden = true;
         var vista = el("img", "cad-img-vista"); vista.alt = "Imagem anexada à anotação"; vista.hidden = true;
         vista.title = "Clique para ampliar ou reduzir";
         vista.addEventListener("click", function () { vista.classList.toggle("grande"); });
         var pintaImg = function () {
           if (imagemAtual) {
-            vista.src = imagemAtual; vista.hidden = false; moldura.hidden = false; rmImg.hidden = false; addImg.textContent = "🖼 Trocar imagem";
+            vista.src = imagemAtual; vista.hidden = false; moldura.hidden = false; rmImg.hidden = false; cpImg.hidden = false; addImg.textContent = "🖼 Trocar imagem";
           } else {
-            vista.hidden = true; moldura.hidden = true; vista.removeAttribute("src"); rmImg.hidden = true; addImg.textContent = "🖼 Adicionar imagem";
+            vista.hidden = true; moldura.hidden = true; vista.removeAttribute("src"); rmImg.hidden = true; cpImg.hidden = true; addImg.textContent = "🖼 Adicionar imagem";
           }
         };
         var defineImg = function (d) {
@@ -615,8 +619,59 @@
           pintaImg();
           avisoNota.alterou();
         });
-        // colar um print (Ctrl+V) direto na anotação
-        ta.addEventListener("paste", function (e) {
+        // feedback no próprio botão: o texto muda por um instante
+        var avisaBtn = function (b, t) {
+          var antes = b.getAttribute("data-rot") || b.textContent;
+          b.setAttribute("data-rot", antes);
+          b.textContent = t;
+          clearTimeout(b._t);
+          b._t = setTimeout(function () { b.textContent = antes; }, 1800);
+        };
+        // botão "Colar imagem": lê a imagem que está na área de transferência
+        colImg.addEventListener("click", function () {
+          var pedeAtalho = function () {
+            ta.focus();
+            avisaBtn(colImg, "Aperte Ctrl+V");
+            toast("Clique no texto da anotação e aperte Ctrl+V");
+          };
+          if (!(navigator.clipboard && navigator.clipboard.read)) { pedeAtalho(); return; }
+          navigator.clipboard.read().then(function (itens) {
+            for (var i = 0; i < itens.length; i++) {
+              for (var j = 0; j < itens[i].types.length; j++) {
+                if (itens[i].types[j].indexOf("image/") === 0) {
+                  return itens[i].getType(itens[i].types[j]).then(function (blob) {
+                    processaImagem(blob, defineImg);
+                    avisaBtn(colImg, "Colada!");
+                  });
+                }
+              }
+            }
+            avisaBtn(colImg, "Nenhuma imagem copiada");
+          }, pedeAtalho);
+        });
+        // botão "Copiar imagem": põe a imagem da anotação na área de transferência (como PNG)
+        cpImg.addEventListener("click", function () {
+          if (!imagemAtual) return;
+          if (!(navigator.clipboard && navigator.clipboard.write && window.ClipboardItem)) {
+            avisaBtn(cpImg, "Seu navegador não deixa"); return;
+          }
+          var png = new Promise(function (ok, no) {
+            var im = new Image();
+            im.onload = function () {
+              var cv = document.createElement("canvas");
+              cv.width = im.width; cv.height = im.height;
+              cv.getContext("2d").drawImage(im, 0, 0);
+              cv.toBlob(function (b) { b ? ok(b) : no(new Error("png")); }, "image/png");
+            };
+            im.onerror = no;
+            im.src = imagemAtual;
+          });
+          navigator.clipboard.write([new ClipboardItem({ "image/png": png })]).then(
+            function () { avisaBtn(cpImg, "Copiada!"); },
+            function () { avisaBtn(cpImg, "Não consegui copiar"); });
+        });
+        // colar um print (Ctrl+V) em qualquer ponto da anotação
+        linha.addEventListener("paste", function (e) {
           var itens = (e.clipboardData && e.clipboardData.items) || [];
           for (var i = 0; i < itens.length; i++) {
             if (itens[i].type && itens[i].type.indexOf("image/") === 0) {
@@ -633,7 +688,7 @@
           var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
           if (f && /^image[/]/.test(f.type || "")) { e.preventDefault(); processaImagem(f, defineImg); }
         });
-        botoesImg.appendChild(addImg); botoesImg.appendChild(rmImg);
+        botoesImg.appendChild(addImg); botoesImg.appendChild(colImg); botoesImg.appendChild(cpImg); botoesImg.appendChild(rmImg);
         // a imagem aparece como uma foto presa no quadro: moldura branca, alfinete e barbante vermelho
         var moldura = el("figure", "cad-evidencia"); moldura.hidden = true;
         moldura.appendChild(vista);

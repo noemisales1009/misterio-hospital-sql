@@ -1,6 +1,6 @@
 // Gerado por scripts/gerar-sw.js. Não edite à mão.
 // Guarda o jogo no aparelho para funcionar sem internet.
-var VERSAO = "3ab547a9c4";
+var VERSAO = "1e39eb80a2";
 var CACHE = "misterio-sql-" + VERSAO;
 var ARQUIVOS = [
   "./",
@@ -34,7 +34,7 @@ var ARQUIVOS = [
   "icons/icon-maskable-512.png",
   "index.html",
   "js/app.js?v=5417c6c0",
-  "js/caderno.js?v=458c15ea",
+  "js/caderno.js?v=594db98f",
   "js/catalogo.js?v=cd3ff46d",
   "js/computador.js?v=8b659794",
   "js/config.js?v=58dc78bb",
