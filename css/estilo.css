@@ -854,7 +854,22 @@ html{padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
 
 /* com foto, os botões da imagem abrem ao clicar nela */
 .cad-img-botoes[hidden]{display:none}
-.cad-evidencia{cursor:pointer}
+.cad-evidencia{cursor:zoom-in}
 .cad-evidencia:focus-visible{outline:3px solid #1f6b5b;outline-offset:3px}
-.cad-evidencia .cad-img-vista,.cad-evidencia .cad-img-vista.grande{cursor:pointer}
-.cad-evidencia[aria-expanded="true"]{box-shadow:0 9px 18px rgba(0,0,0,.42)}
+.cad-evidencia .cad-img-vista,.cad-evidencia .cad-img-vista.grande{cursor:zoom-in}
+
+/* popup para ver a imagem da anotação em detalhe */
+dialog.cad-visor{border:0;padding:0;background:transparent;color:#2b2a26;width:max-content;max-width:min(96vw,980px);max-height:96vh;overflow:visible}
+dialog.cad-visor::backdrop{background:rgba(8,10,12,.84)}
+.cad-visor-painel{display:flex;flex-direction:column;gap:10px;max-height:96vh;padding:12px 14px 12px;border-radius:8px;background:#fbf7e8;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.cad-visor-topo{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cad-visor-legenda{font:700 24px/1.1 var(--f-mao);color:#1f6b5b}
+.cad-visor-x{flex:none;width:36px;height:36px;border:0;border-radius:50%;background:#c0281c;color:#fff;font:700 17px/1 var(--f-body);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.cad-visor-x:hover,.cad-visor-x:focus-visible{background:#a31f15}
+.cad-visor-foto{min-height:0;margin:0;padding:10px;overflow:auto;border-radius:2px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.3);text-align:center}
+.cad-visor-foto img{display:block;max-width:100%;max-height:calc(96vh - 210px);max-height:calc(96dvh - 210px);margin:0 auto;object-fit:contain;cursor:zoom-in}
+.cad-visor-foto.real img{max-width:none;max-height:none;cursor:zoom-out}
+.cad-visor-acoes .cad-img-botoes{justify-content:center}
+.cad-visor .btn{padding:8px 14px;border:1.5px solid #bdb48f;border-radius:10px;background:rgba(255,253,243,.9);color:#2b2a26;font:700 .85rem var(--f-body);cursor:pointer;transition:border-color .12s,color .12s,background .12s}
+.cad-visor .btn:hover,.cad-visor .btn:focus-visible{border-color:#1f6b5b;color:#1f6b5b;background:#fff}
+.cad-visor-dica{margin:0;color:#6f6a5c;font:.75rem var(--f-body);text-align:center}

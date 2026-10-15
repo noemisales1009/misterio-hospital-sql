@@ -176,6 +176,55 @@
     document.body.appendChild(f);
     f.click();
   }
+  // popup para ver a imagem da anotação em detalhe; os botões da anotação vêm para dentro dele
+  var visorEl = null, visorFoto = null, visorImg = null, visorLegenda = null, visorAcoes = null, visorAtual = null;
+  function criaVisor() {
+    if (visorEl) return visorEl;
+    var d = el("dialog", "cad-visor"); d.tabIndex = -1;
+    d.setAttribute("aria-label", "Imagem da anotação");
+    var painel = el("div", "cad-visor-painel");
+    var topo = el("div", "cad-visor-topo");
+    visorLegenda = el("span", "cad-visor-legenda");
+    var x = el("button", "cad-visor-x", "✕"); x.type = "button"; x.setAttribute("aria-label", "Fechar imagem");
+    topo.appendChild(visorLegenda); topo.appendChild(x);
+    visorFoto = el("figure", "cad-visor-foto");
+    visorImg = el("img"); visorImg.alt = "Imagem da anotação, ampliada";
+    visorImg.title = "Clique para ver no tamanho real";
+    visorFoto.appendChild(visorImg);
+    visorAcoes = el("div", "cad-visor-acoes");
+    var dica = el("p", "cad-visor-dica", "Clique na imagem para ver no tamanho real · Esc fecha");
+    painel.appendChild(topo); painel.appendChild(visorFoto); painel.appendChild(visorAcoes); painel.appendChild(dica);
+    d.appendChild(painel);
+    x.addEventListener("click", fechaVisor);
+    visorImg.addEventListener("click", function () {
+      var real = visorFoto.classList.toggle("real");
+      visorImg.title = real ? "Clique para caber na tela" : "Clique para ver no tamanho real";
+    });
+    // clicar no fundo escuro fecha
+    d.addEventListener("click", function (e) { if (e.target === d) fechaVisor(); });
+    d.addEventListener("close", function () {
+      var a = visorAtual; visorAtual = null;
+      if (a && a.aoFechar) a.aoFechar();
+    });
+    // Ctrl+V com o popup aberto troca a imagem da anotação
+    d.addEventListener("paste", function (e) { if (visorAtual && visorAtual.aoColar) visorAtual.aoColar(e); });
+    document.body.appendChild(d);
+    visorEl = d;
+    return d;
+  }
+  function abreVisor(src, legenda, acoes, aoFechar, aoColar) {
+    var d = criaVisor();
+    visorAtual = { aoFechar: aoFechar, aoColar: aoColar };
+    visorFoto.classList.remove("real");
+    visorImg.title = "Clique para ver no tamanho real";
+    visorImg.src = src; visorLegenda.textContent = legenda;
+    visorAcoes.appendChild(acoes);
+    if (!d.open) { if (d.showModal) d.showModal(); else d.setAttribute("open", ""); }
+  }
+  function atualizaVisor(src) {
+    if (visorEl && visorEl.open) { visorImg.src = src; visorFoto.classList.remove("real"); }
+  }
+  function fechaVisor() { if (visorEl && visorEl.open) visorEl.close(); }
   // as imagens ficam no IndexedDB do navegador (cabem mais do que no localStorage)
   function abreIDB() {
     return new Promise(function (res, rej) {
@@ -220,7 +269,11 @@
     var n = window.MisterioNuvem;
     return n && n.logado() ? n : null;
   }
-  function toast(m) { if (window.MisterioNuvem) window.MisterioNuvem.toast(m); }
+  function toast(m) {
+    if (window.MisterioNuvem) window.MisterioNuvem.toast(m);
+    // com o popup da imagem aberto, o aviso precisa nascer dentro dele (ele fica acima de tudo)
+    if (visorEl && visorEl.open) { var t = document.querySelector(".toast"); if (t) visorEl.appendChild(t); }
+  }
 
   var jog = ler(K_JOG, { nome: "" });
   if (!fotoValida(jog.foto)) delete jog.foto;
@@ -592,30 +645,27 @@
         colImg.title = "Cola o print ou a imagem que você copiou";
         var cpImg = el("button", "btn", "Copiar imagem"); cpImg.type = "button"; cpImg.hidden = true;
         cpImg.title = "Copia esta imagem para colar em outro lugar";
-        var zoomImg = el("button", "btn", "🔍 Ampliar"); zoomImg.type = "button"; zoomImg.hidden = true;
         var rmImg = el("button", "btn", "Remover imagem"); rmImg.type = "button"; rmImg.hidden = true;
         var vista = el("img", "cad-img-vista"); vista.alt = "Imagem anexada à anotação"; vista.hidden = true;
-        // com foto, os botões ficam escondidos e abrem ao clicar nela
-        var menuAberto = false;
+        // com foto, os botões ficam escondidos: aparecem dentro do popup que abre ao clicar na foto
+        var noVisor = false;
         var pintaImg = function () {
           if (imagemAtual) {
             vista.src = imagemAtual; vista.hidden = false; moldura.hidden = false;
-            rmImg.hidden = false; cpImg.hidden = false; zoomImg.hidden = false;
+            rmImg.hidden = false; cpImg.hidden = false;
             addImg.textContent = "🖼 Trocar imagem";
-            botoesImg.hidden = !menuAberto;
+            botoesImg.hidden = !noVisor;
+            if (noVisor) atualizaVisor(imagemAtual);
           } else {
-            menuAberto = false; vista.classList.remove("grande");
+            if (noVisor) fechaVisor();
             vista.hidden = true; moldura.hidden = true; vista.removeAttribute("src");
-            rmImg.hidden = true; cpImg.hidden = true; zoomImg.hidden = true;
+            rmImg.hidden = true; cpImg.hidden = true;
             addImg.textContent = "🖼 Adicionar imagem";
             botoesImg.hidden = false;
           }
-          moldura.setAttribute("aria-expanded", menuAberto ? "true" : "false");
-          zoomImg.textContent = vista.classList.contains("grande") ? "🔍 Reduzir" : "🔍 Ampliar";
         };
-        var alternaMenu = function () { menuAberto = !menuAberto; pintaImg(); };
         var defineImg = function (d) {
-          imagemAtual = d; removida = false; menuAberto = false;
+          imagemAtual = d; removida = false;
           idbPut(fa.id, d);
           pintaImg();
           avisoNota.alterou();
@@ -624,7 +674,6 @@
         addImg.addEventListener("click", function () {
           escolherArquivoImagem(function (arq) { processaImagem(arq, defineImg); });
         });
-        zoomImg.addEventListener("click", function () { vista.classList.toggle("grande"); pintaImg(); });
         rmImg.addEventListener("click", function () {
           imagemAtual = null; removida = true;
           idbDel(fa.id);
@@ -642,7 +691,7 @@
         // botão "Colar imagem": lê a imagem que está na área de transferência
         colImg.addEventListener("click", function () {
           var pedeAtalho = function () {
-            ta.focus();
+            (noVisor && visorEl ? visorEl : ta).focus();
             avisaBtn(colImg, "Aperte Ctrl+V");
             toast("Clique no texto da anotação e aperte Ctrl+V");
           };
@@ -683,7 +732,7 @@
             function () { avisaBtn(cpImg, "Não consegui copiar"); });
         });
         // colar um print (Ctrl+V) em qualquer ponto da anotação
-        linha.addEventListener("paste", function (e) {
+        var colaDoEvento = function (e) {
           var itens = (e.clipboardData && e.clipboardData.items) || [];
           for (var i = 0; i < itens.length; i++) {
             if (itens[i].type && itens[i].type.indexOf("image/") === 0) {
@@ -691,7 +740,8 @@
               if (arq) { e.preventDefault(); processaImagem(arq, defineImg); return; }
             }
           }
-        });
+        };
+        linha.addEventListener("paste", colaDoEvento);
         // arrastar uma imagem para cima da anotação
         linha.addEventListener("dragover", function (e) {
           if (e.dataTransfer && [].indexOf.call(e.dataTransfer.types || [], "Files") > -1) e.preventDefault();
@@ -700,15 +750,26 @@
           var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
           if (f && /^image[/]/.test(f.type || "")) { e.preventDefault(); processaImagem(f, defineImg); }
         });
-        botoesImg.appendChild(addImg); botoesImg.appendChild(colImg); botoesImg.appendChild(cpImg);
-        botoesImg.appendChild(zoomImg); botoesImg.appendChild(rmImg);
+        botoesImg.appendChild(addImg); botoesImg.appendChild(colImg); botoesImg.appendChild(cpImg); botoesImg.appendChild(rmImg);
         // a imagem aparece como uma foto presa no quadro: moldura branca, alfinete e barbante vermelho
         var moldura = el("figure", "cad-evidencia"); moldura.hidden = true;
         moldura.tabIndex = 0; moldura.setAttribute("role", "button");
-        moldura.title = "Clique na foto para ver as opções (trocar, copiar, ampliar, remover)";
-        moldura.addEventListener("click", alternaMenu);
+        moldura.title = "Clique na foto para ver em detalhe (e trocar, copiar ou remover)";
+        moldura.setAttribute("aria-haspopup", "dialog");
+        var abreFoto = function () {
+          if (!imagemAtual || noVisor) return;
+          noVisor = true;
+          botoesImg.hidden = false;
+          abreVisor(imagemAtual, "Evidência · " + (fa.titulo || fa.nome), botoesImg, function () {
+            // popup fechado: os botões voltam para a anotação
+            noVisor = false;
+            areaImg.insertBefore(botoesImg, moldura);
+            pintaImg();
+          }, colaDoEvento);
+        };
+        moldura.addEventListener("click", abreFoto);
         moldura.addEventListener("keydown", function (e) {
-          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); alternaMenu(); }
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abreFoto(); }
         });
         moldura.appendChild(vista);
         moldura.appendChild(el("figcaption", null, "Evidência · " + (fa.titulo || fa.nome)));
