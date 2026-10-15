@@ -918,14 +918,25 @@ dialog.cad-visor::backdrop{background:rgba(8,10,12,.84)}
 .gaveta .btn:hover,.gaveta .btn:focus-visible{border-color:#1f6b5b;color:#1f6b5b;background:#fff}
 .gaveta .btn:disabled{opacity:.5;cursor:not-allowed}
 body{transition:padding-right .26s ease,padding-bottom .26s ease}
-@media (min-width:1000px){body.com-gaveta{padding-right:min(420px,92vw)}}
-@media (max-width:640px){
-  .gaveta{top:auto;left:0;right:0;width:auto;height:min(72dvh,560px);transform:translateY(100%)}
+/* computador e tablet deitado: a gaveta fica na lateral e a página encolhe */
+@media (min-width:900px),(min-width:600px) and (max-height:520px){body.com-gaveta{padding-right:min(420px,92vw)}}
+/* celular deitado (pouca altura): lateral mais estreita, sem o lembrete da missão, caixa de escrever menor */
+@media (min-width:600px) and (max-height:520px){
+  .gaveta{width:min(380px,48vw)}
+  body.com-gaveta{padding-right:min(380px,48vw)}
+}
+@media (max-height:520px){
+  .gaveta-missao{display:none}
+  .gaveta-corpo .cad-nota-area{min-height:5em}
+}
+/* celular e tablet em pé: a gaveta sobe de baixo */
+@media (max-width:899px) and (min-height:521px),(max-width:599px){
+  .gaveta{top:auto;left:0;right:0;width:auto;height:min(70dvh,560px);transform:translateY(100%)}
   .gaveta.aberta{transform:none}
   .gaveta-painel{border-left:0;border-top:6px solid var(--scrub);box-shadow:0 -10px 26px rgba(0,0,0,.32)}
   .gaveta-aba{left:auto;right:14px;top:-46px;flex-direction:row;width:auto;height:42px;padding:0 14px;border-radius:12px 12px 0 0;box-shadow:0 -3px 8px rgba(0,0,0,.25)}
   .gaveta-aba-t{writing-mode:horizontal-tb;font-size:19px}
-  body.com-gaveta{padding-bottom:min(72dvh,560px)}
+  body.com-gaveta{padding-bottom:min(70dvh,560px)}
 }
 /* botão dentro de cada fase */
 .fase-notas{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border:1.5px dashed var(--scrub);border-radius:10px;background:var(--scrub-soft);color:var(--scrub);font:700 .88rem var(--f-body);cursor:pointer;transition:background .12s,color .12s}
