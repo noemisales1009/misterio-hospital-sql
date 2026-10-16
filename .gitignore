@@ -5,3 +5,6 @@ node_modules/
 apk/keystore/
 *.p12
 *.jks
+# APK gerado no PC (fica em Downloads, nunca no repositorio)
+*.apk
+*.idsig
