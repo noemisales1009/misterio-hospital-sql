@@ -405,7 +405,7 @@ HAVING COUNT(*) = 3;</pre></div><p>Repare no <code>JOIN renda ON r.cpf = p.cpf</
     <li><code>NOT NULL</code>: a pista é obrigatória, não dá para salvar em branco.</li>
     <li><code>DEFAULT</code>: valor automático quando você não preenche. A data e hora entram sozinhas com <code>now()</code>.</li>
   </ul>
-  <p>Depois de rodar, abra o <strong>Table Editor</strong>: a tabela <code>caderno</code> aparece lá, vazia.</p>
+  <p>Clique em <strong>Levar para o computador</strong> e depois em <strong>▶ Rodar</strong>. Olhe o painel <strong>TABELAS</strong>, à esquerda da tela: a tabela <code>caderno</code> aparece lá, vazia. (Se você pratica no Supabase de verdade, ela aparece no <strong>Table Editor</strong>.)</p>
 
   <div class="lbl">Passo 2 · Anotar pistas com INSERT</div>
   <div class="code"><pre data-sql>INSERT INTO caderno (fase, pista)
@@ -453,7 +453,7 @@ WHERE p.rua_endereco = 'Rua das Acácias'
   AND p.numero_endereco = (SELECT MAX(numero_endereco)
                            FROM pessoa
                            WHERE rua_endereco = 'Rua das Acácias');</pre></div></div></details>
-  <div class="box"><b class="l">Bom saber</b><p>Se você rodar o banco do jogo de novo para recomeçar, seu <code>caderno</code> <strong>não é apagado</strong>: o script só recria as tabelas do mistério. Para apagar o caderno de propósito: <code>DROP TABLE caderno;</code></p></div>
+  <div class="box"><b class="l">Bom saber</b><p>No computador do jogo, seu <code>caderno</code> fica guardado neste navegador: continua lá se você fechar a página ou apertar <strong>Reiniciar banco</strong>, que só devolve as tabelas do mistério ao começo. (No Supabase também: rodar o banco do jogo de novo não apaga o caderno.) Para apagar o caderno de propósito: <code>DROP TABLE caderno;</code></p></div>
   <div class="done-row"><input type="checkbox" id="ok8"><label for="ok8">Meu caderno está funcionando</label></div>
 </section>
 
@@ -5143,9 +5143,9 @@ SELECT '✅ Jogo instalado! Volte para o guia e comece a Fase 1.' AS status;
 <script src="js/app.js?v=5417c6c0"></script>
 <script src="js/pwa.js?v=e304ae22"></script>
 <script src="js/catalogo.js?v=addf162f"></script>
-<script src="js/caderno.js?v=0a95d86e"></script>
+<script src="js/caderno.js?v=6377d699"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=8b659794"></script>
+<script src="js/computador.js?v=f06025ad"></script>
 
 <script src="vendor/mermaid/mermaid.min.js"></script>
 <script src="js/mermaid-init.js?v=9cf16683"></script>

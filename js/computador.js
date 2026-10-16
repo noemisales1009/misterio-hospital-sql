@@ -8,7 +8,9 @@
   var CDN = new URL("vendor/pglite/index.js", document.baseURI).href;
   var K_CODIGO = "misterio-sql-codigo";
   var K_CONF = "misterio-sql-conferido";
+  var K_MINHAS = "misterio-sql-minhas-tabelas";
   var MAX_LINHAS = 100;
+  var MAX_MINHAS = 300;
   var SEM_ANIMACAO = false;
   try { SEM_ANIMACAO = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
 
@@ -71,12 +73,45 @@
       motor.tabelas = ordem.map(function (n) { return { nome: n, colunas: mapa[n] }; });
     });
   }
+  // ------------------------------------------------------------------ o caderno do detetive
+  // A tabela "caderno" (fase Extra) é da pessoa, não do caso. O banco nasce de novo a cada visita,
+  // então guardamos no navegador os comandos que mexem SÓ no caderno e os refazemos ao ligar.
+  var ALVO_ESCRITA = /\b(?:insert\s+into|update|delete\s+from|drop\s+table(?:\s+if\s+exists)?|alter\s+table(?:\s+if\s+exists)?|truncate(?:\s+table)?|create\s+table(?:\s+if\s+not\s+exists)?)\s+"?([a-z_][a-z0-9_]*)"?/gi;
+  var MUDA_ESQUEMA = /\b(create|drop|alter)\s+table\b/i;
+  function paginaAtual() { return location.pathname.split("/").pop().replace(/\.html$/, "") || "index"; }
+  function soMexeNoCaderno(sql) {
+    var limpo = sql.replace(/--[^\n]*/g, "");
+    var alvos = [], m;
+    ALVO_ESCRITA.lastIndex = 0;
+    while ((m = ALVO_ESCRITA.exec(limpo))) alvos.push(m[1].toLowerCase());
+    return alvos.length > 0 && alvos.every(function (a) { return a === "caderno"; });
+  }
+  function guardaMinhas(sql) {
+    if (!soMexeNoCaderno(sql)) return;
+    var todas = ler(K_MINHAS, {});
+    var lista = todas[paginaAtual()] || [];
+    if (lista.length >= MAX_MINHAS) return;
+    lista.push(sql);
+    todas[paginaAtual()] = lista;
+    gravar(K_MINHAS, todas);
+  }
+  function temMinhas() { return (ler(K_MINHAS, {})[paginaAtual()] || []).length > 0; }
+  function refazMinhas(db) {
+    return (ler(K_MINHAS, {})[paginaAtual()] || []).reduce(function (p, sql) {
+      return p.then(function () { return db.exec(sql); }).catch(function () {});
+    }, Promise.resolve());
+  }
+  // depois de CREATE/DROP/ALTER TABLE, o painel TABELAS precisa mostrar a mudança
+  function atualizaTabelas() {
+    return carregaTabelas().then(function () { document.dispatchEvent(new Event("misterio:banco")); });
+  }
+
   function ligar() {
     if (motor.pronto) return Promise.resolve();
     if (motor.carregando) return motor.carregando;
     motor.carregando = novoBanco().then(function (db) {
       motor.db = db;
-      return db.exec(sqlDoCaso());
+      return db.exec(sqlDoCaso()).then(function () { return refazMinhas(db); });
     }).then(carregaTabelas).then(function () {
       motor.pronto = true;
     }).catch(function (e) {
@@ -206,7 +241,7 @@
     colar.title = "Cola o que você copiou, no ponto onde está o cursor";
     var limpar = el("button", "pc-botao", "Limpar"); limpar.type = "button";
     var reset = el("button", "pc-botao", "Reiniciar banco"); reset.type = "button";
-    reset.title = "Volta o banco ao começo, desfazendo qualquer alteração que você fez";
+    reset.title = "Volta as tabelas do mistério ao começo, desfazendo o que você alterou nelas. Seu caderno é mantido (para apagá-lo: DROP TABLE caderno;)";
     acoes.appendChild(ligarBtn); acoes.appendChild(rodar); acoes.appendChild(copiar); acoes.appendChild(colar);
     acoes.appendChild(limpar); acoes.appendChild(reset);
     acoes.appendChild(el("span", "pc-dica", "Ctrl+Enter roda"));
@@ -310,7 +345,7 @@
       }).catch(function (e) {
         clearInterval(relogio);
         marca("erro", "sem conexão");
-        mensagem("Não consegui ligar o computador.\nÉ preciso internet na primeira vez, para baixar o banco de dados.\n(" + (e && e.message ? e.message : e) + ")", "erro");
+        mensagem("Não consegui ligar o computador.\nTente recarregar a página (Ctrl+F5). Se você abriu o arquivo direto da pasta, abra pelo endereço do site.\n(" + (e && e.message ? e.message : e) + ")", "erro");
         throw e;
       });
     }
@@ -327,17 +362,7 @@
       gravar(K_CONF, c);
       return lista2;
     }
-    function relatorio(res) {
-      limpaSaida();
-      var topo = el("div", "pc-resumo");
-      if (res.semTabela) {
-        topo.textContent = "Comando executado" + (res.afetadas ? " · " + res.afetadas + " linha(s) afetada(s)" : "") + ".";
-        saida.appendChild(topo);
-        return;
-      }
-      var n = res.linhas.length;
-      topo.textContent = n + (n === 1 ? " linha" : " linhas") + (n > MAX_LINHAS ? " (mostrando as " + MAX_LINHAS + " primeiras)" : "");
-      saida.appendChild(topo);
+    function tabelaDe(res) {
       var moldura2 = el("div", "pc-tabela-rolagem");
       var tb = el("table", "pc-tabela");
       var th = el("thead"), trh = el("tr");
@@ -355,7 +380,30 @@
         tbody.appendChild(tr);
       });
       tb.appendChild(tbody); moldura2.appendChild(tb);
-      saida.appendChild(moldura2);
+      return moldura2;
+    }
+    function resumoDe(n) {
+      return n + (n === 1 ? " linha" : " linhas") + (n > MAX_LINHAS ? " (mostrando as " + MAX_LINHAS + " primeiras)" : "");
+    }
+    function relatorio(res) {
+      limpaSaida();
+      var topo = el("div", "pc-resumo");
+      if (res.semTabela) {
+        topo.textContent = "Comando executado" + (res.afetadas ? " · " + res.afetadas + " linha(s) afetada(s)" : "") + ".";
+        saida.appendChild(topo);
+        return;
+      }
+      topo.textContent = resumoDe(res.linhas.length);
+      saida.appendChild(topo);
+      saida.appendChild(tabelaDe(res));
+    }
+    // CREATE/INSERT/UPDATE/DELETE não devolvem linhas: mostra como o caderno ficou depois do comando
+    function mostraCaderno(sql, res) {
+      if (!res.semTabela || !soMexeNoCaderno(sql) || /\bdrop\s+table\b/i.test(sql)) return Promise.resolve();
+      return executa("SELECT * FROM caderno ORDER BY id").then(function (c) {
+        saida.appendChild(el("div", "pc-resumo", "Como o caderno ficou: " + resumoDe(c.linhas.length) + "."));
+        saida.appendChild(tabelaDe(c));
+      }).catch(function () {});
     }
     function veredito(res) {
       var sols = solucoesDa(sec);
@@ -413,7 +461,13 @@
           var seg = ((performance.now() - t0) / 1000).toFixed(2);
           var rod = el("div", "pc-rodape", "executado em " + seg + " s");
           saida.appendChild(rod);
-          return veredito(res);
+          guardaMinhas(sql);
+          var fim = function () { return mostraCaderno(sql, res).then(function () { return veredito(res); }); };
+          if (!MUDA_ESQUEMA.test(sql)) return fim();
+          return atualizaTabelas().then(function () {
+            if (/\bcreate\s+table\b/i.test(sql)) saida.appendChild(el("div", "pc-rodape", "A tabela nova já aparece no painel TABELAS, à esquerda."));
+            return fim();
+          });
         });
       }).catch(function (e) {
         if (!motor.pronto) return;
@@ -490,7 +544,7 @@
       mensagem("> reiniciando o banco de dados…", "boot");
       reiniciar().then(function () {
         marca("ligado", "ligado");
-        mensagem("> banco reiniciado. Tudo voltou ao começo.", "boot");
+        mensagem(temMinhas() ? "> banco reiniciado. As tabelas do mistério voltaram ao começo; seu caderno foi mantido." : "> banco reiniciado. Tudo voltou ao começo.", "boot");
         document.dispatchEvent(new Event("misterio:banco"));
       }).catch(function () { marca("erro", "sem conexão"); });
     });

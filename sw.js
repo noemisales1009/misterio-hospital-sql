@@ -1,6 +1,6 @@
 // Gerado por scripts/gerar-sw.js. Não edite à mão.
 // Guarda o jogo no aparelho para funcionar sem internet.
-var VERSAO = "9266e8c0c9";
+var VERSAO = "d285ecd83f";
 var CACHE = "misterio-sql-" + VERSAO;
 var ARQUIVOS = [
   "./",
@@ -35,9 +35,9 @@ var ARQUIVOS = [
   "index.html",
   "js/achados-dados.json",
   "js/app.js?v=5417c6c0",
-  "js/caderno.js?v=0a95d86e",
+  "js/caderno.js?v=6377d699",
   "js/catalogo.js?v=addf162f",
-  "js/computador.js?v=8b659794",
+  "js/computador.js?v=f06025ad",
   "js/config.js?v=58dc78bb",
   "js/mermaid-init.js?v=9cf16683",
   "js/pwa.js?v=e304ae22",

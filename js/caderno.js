@@ -984,55 +984,57 @@
     return h >>> 0;
   }
   // ---- retratos: personagens desenhados em SVG
-  // Cada personagem tem seus traços definidos aqui (pele, cabelo, barba, óculos, roupa...).
+  // Cada personagem tem seus traços definidos aqui (pele, cabelo, barba, óculos, roupa, olhos...).
   // Quem não está na lista (casos novos) recebe traços estáveis calculados a partir do nome.
   var PELES = {
-    clara: ["#f7dcc4", "#e4b995"], media: ["#ebc095", "#d2a072"], morena: ["#c68e60", "#a87548"],
-    escura: ["#8a5836", "#724427"], negra: ["#5b3723", "#46291a"]
+    clara: ["#f8dfc9", "#e4bb98"], media: ["#edc59b", "#d3a275"], morena: ["#c98f62", "#a87448"],
+    escura: ["#8e5b38", "#724427"], negra: ["#5f3b26", "#46291a"]
   };
   var CABELOS = {
-    preto: "#1a1512", castanho: "#4a2c19", ruivo: "#9a4a22", loiro: "#b98a46", grisalho: "#8f8f8f", branco: "#d6d6d0"
+    preto: "#1b1613", castanho: "#4b2d1a", ruivo: "#a24b21", loiro: "#c19a52", grisalho: "#9a9a98", branco: "#dcdcd6"
   };
+  var OLHOS = { castanho: "#4a2c19", escuro: "#241710", verde: "#4d7a52", azul: "#4a7db0", mel: "#a2722c" };
   var ROUPA_COR = {
     "scrub-verde": "#2f8f7e", "scrub-azul": "#3b74b8", "scrub-bordo": "#8d3b52", "scrub-roxo": "#6a55a8",
     "polo-azul": "#2f4f86", "polo-cinza": "#5b6673", casual: "#6e8a5f", moletom: "#4b5563",
     macacao: "#d9822b", social: "#dbe4ee", blazer: "#2f3a4a", jaleco: "#f3f2ec"
   };
-  // p=pele  h=cabelo  c=cor do cabelo  b=barba  o=óculos  r=roupa  x=extra  s=sorriso  f=rosto
+  // p=pele h=cabelo c=cor do cabelo e=olhos b=barba o=óculos r=roupa x=extra s=sorriso f=rosto
+  // ci=cílios br=brincos pe=pérolas ru=marcas de expressão (mais velho)
   var RETRATOS = {
     "Otávio Brandão":      { p: "media",  h: "social",   c: "castanho", b: "bigode",  o: "redondo",    r: "casual",      s: "leve" },
-    "Lorena Bittencourt":  { p: "morena", h: "ondulado", c: "preto",                                   r: "casual",      s: "leve" },
+    "Lorena Bittencourt":  { p: "morena", h: "ondulado", c: "preto",    ci: 1, br: 1,                   r: "casual",      s: "leve" },
     "Rogério Valadares":   { p: "media",  h: "curto",    c: "castanho", b: "barba",                    r: "moletom",     s: "serio" },
     "Jeremias Paiva":      { p: "escura", h: "raspado",  c: "preto",                  o: "retangular", r: "polo-cinza",  s: "leve" },
-    "Vitória Albuquerque": { p: "clara",  h: "coque",    c: "loiro",                                   r: "blazer",      s: "serio", f: "fino" },
+    "Vitória Albuquerque": { p: "clara",  h: "coque",    c: "loiro",    e: "azul", ci: 1, br: 1, pe: 1,  r: "blazer",      s: "serio", f: "fino" },
     "Rogério Mendonça":    { p: "morena", h: "curto",    c: "preto",    b: "bigode",                   r: "scrub-verde", x: "cracha", s: "serio" },
-    "Márcia Albuquerque":  { p: "media",  h: "rabo",     c: "castanho",                               r: "scrub-azul",  x: "cracha", s: "leve" },
-    "Renata Figueiredo":   { p: "clara",  h: "ondulado", c: "ruivo",                                  r: "scrub-bordo", x: "cracha", s: "largo" },
+    "Márcia Albuquerque":  { p: "media",  h: "rabo",     c: "castanho", ci: 1,                         r: "scrub-azul",  x: "cracha", s: "leve" },
+    "Renata Figueiredo":   { p: "clara",  h: "ondulado", c: "ruivo",    e: "verde", ci: 1,             r: "scrub-bordo", x: "cracha", s: "largo" },
     "Fábio Bittencourt":   { p: "media",  h: "raspado",  c: "preto",                                  r: "scrub-verde", x: "cracha", s: "leve" },
-    "Cláudia Lourenço":    { p: "escura", h: "cacheado", c: "preto",                                  r: "jaleco",      x: "cracha", s: "largo" },
-    "Edson Carvalhaes":    { p: "media",  h: "social",   c: "grisalho", b: "bigode",  o: "retangular", r: "jaleco",      x: "cracha", s: "serio", f: "largo" },
-    "Marta Figueiredo":    { p: "clara",  h: "coque",    c: "castanho",                               r: "jaleco",      x: "cracha", s: "leve" },
-    "Lúcia Bittencourt":   { p: "morena", h: "ondulado", c: "preto",                  o: "redondo",    r: "jaleco",      x: "cracha", s: "leve" },
-    "Sônia Lourenço":      { p: "negra",  h: "volume",   c: "preto",                                   r: "jaleco",      x: "cracha", s: "largo" },
+    "Cláudia Lourenço":    { p: "escura", h: "cacheado", c: "preto",    ci: 1, br: 1,                   r: "jaleco",      x: "cracha", s: "largo" },
+    "Edson Carvalhaes":    { p: "media",  h: "social",   c: "grisalho", b: "bigode",  o: "retangular", ru: 1, r: "jaleco",   x: "cracha", s: "serio", f: "largo" },
+    "Marta Figueiredo":    { p: "clara",  h: "coque",    c: "castanho", ci: 1,                         r: "jaleco",      x: "cracha", s: "leve" },
+    "Lúcia Bittencourt":   { p: "morena", h: "ondulado", c: "preto",    ci: 1,        o: "redondo",    r: "jaleco",      x: "cracha", s: "leve" },
+    "Sônia Lourenço":      { p: "negra",  h: "volume",   c: "preto",    ci: 1, br: 1,                   r: "jaleco",      x: "cracha", s: "largo" },
     "Gilson Albuquerque":  { p: "escura", h: "careca",   c: "preto",    b: "cav",                      r: "jaleco",      x: "cracha", s: "leve" },
-    "Bianca Furtado":      { p: "media",  h: "comprido", c: "castanho",                               r: "social",      x: "cracha", s: "leve" },
-    "Valéria Montenegro":  { p: "morena", h: "rabo",     c: "preto",                                  r: "polo-azul",   x: "cracha", s: "serio" },
-    "Dulce Albuquerque":   { p: "clara",  h: "curto",    c: "branco",                 o: "redondo",    r: "polo-azul",   x: "cracha", s: "leve" },
-    "Cláudio Menezes":     { p: "media",  h: "social",   c: "castanho", b: "cav",                      r: "social",      x: "cracha", s: "serio" },
-    "Rosângela Freitas":   { p: "escura", h: "cacheado", c: "preto",                                  r: "polo-cinza",  x: "cracha", s: "largo" },
-    "Hugo Amaral":         { p: "clara",  h: "curto",    c: "loiro",                  o: "retangular", r: "polo-cinza",  x: "cracha", s: "leve" },
+    "Bianca Furtado":      { p: "media",  h: "comprido", c: "castanho", ci: 1, br: 1,                   r: "social",      x: "cracha", s: "leve" },
+    "Valéria Montenegro":  { p: "morena", h: "rabo",     c: "preto",    ci: 1,                         r: "polo-azul",   x: "cracha", s: "serio" },
+    "Dulce Albuquerque":   { p: "clara",  h: "curto",    c: "branco",                 o: "redondo",    ru: 1, r: "polo-azul",  x: "cracha", s: "leve" },
+    "Cláudio Menezes":     { p: "media",  h: "social",   c: "castanho", b: "cav",                      r: "social",      gr: 1, x: "cracha", s: "serio" },
+    "Rosângela Freitas":   { p: "escura", h: "cacheado", c: "preto",    ci: 1, br: 1,                   r: "polo-cinza",  x: "cracha", s: "largo" },
+    "Hugo Amaral":         { p: "clara",  h: "curto",    c: "loiro",    e: "azul", o: "retangular",    r: "polo-cinza",  x: "cracha", s: "leve" },
     "Leonel Guedes":       { p: "morena", h: "raspado",  c: "preto",    b: "barba",                    r: "macacao",     s: "serio", f: "largo" },
-    "Irene Castilho":      { p: "clara",  h: "curto",    c: "grisalho",                               r: "macacao",     s: "leve" },
-    "Marta Guimarães":     { p: "media",  h: "rabo",     c: "castanho",                               r: "macacao",     s: "leve" },
-    "Moacir Teles":        { p: "escura", h: "careca",   c: "preto",    b: "bigode",                   r: "macacao",     s: "serio" },
-    "Lia Moraes":          { p: "media",  h: "comprido", c: "castanho",                               r: "casual",      s: "leve" },
-    "Beatriz Falcão":      { p: "clara",  h: "ondulado", c: "loiro",                                  r: "social",      x: "cracha", s: "leve" },
-    "Jaqueline Prado":     { p: "escura", h: "cacheado", c: "preto",                                  r: "social",      x: "cracha", s: "leve" },
-    "Daniela Couto":       { p: "media",  h: "coque",    c: "preto",                                  r: "social",      x: "cracha", s: "largo" },
+    "Irene Castilho":      { p: "clara",  h: "curto",    c: "grisalho",                               ru: 1, r: "macacao",    s: "leve" },
+    "Marta Guimarães":     { p: "media",  h: "rabo",     c: "castanho", ci: 1,                         r: "macacao",     s: "leve" },
+    "Moacir Teles":        { p: "escura", h: "careca",   c: "preto",    b: "bigode",                   ru: 1, r: "macacao",    s: "serio" },
+    "Lia Moraes":          { p: "media",  h: "comprido", c: "castanho", ci: 1,                         r: "casual",      s: "leve" },
+    "Beatriz Falcão":      { p: "clara",  h: "ondulado", c: "loiro",    e: "azul", ci: 1,             r: "social",      x: "cracha", s: "leve" },
+    "Jaqueline Prado":     { p: "escura", h: "cacheado", c: "preto",    ci: 1, br: 1,                   r: "social",      x: "cracha", s: "leve" },
+    "Daniela Couto":       { p: "media",  h: "coque",    c: "preto",    ci: 1,                         r: "social",      x: "cracha", s: "largo" },
     "Caio Linhares":       { p: "clara",  h: "curto",    c: "castanho",               o: "redondo",    r: "scrub-azul",  x: "cracha", s: "leve" },
     "Fábio Rezende":       { p: "morena", h: "social",   c: "preto",    b: "barba",                    r: "scrub-verde", x: "cracha", s: "serio" },
-    "Renata Godoy":        { p: "clara",  h: "rabo",     c: "ruivo",                                  r: "social",      x: "cracha", s: "serio" },
-    "Sérgio Paixão":       { p: "media",  h: "raspado",  c: "castanho", b: "barba",   o: "retangular", r: "social",      x: "cracha", s: "serio", f: "largo" },
+    "Renata Godoy":        { p: "clara",  h: "rabo",     c: "ruivo",    e: "verde", ci: 1,             r: "social",      x: "cracha", s: "serio" },
+    "Sérgio Paixão":       { p: "media",  h: "raspado",  c: "castanho", b: "barba",   o: "retangular", r: "social",      gr: 1, x: "cracha", s: "serio", f: "largo" },
     "Renan Duarte":        { p: "morena", h: "cacheado", c: "preto",                  o: "redondo",    r: "moletom",     s: "serio" }
   };
   // traços estáveis para quem não está na lista
@@ -1045,53 +1047,78 @@
       b: pick(["", "", "", "bigode", "barba"], 11),
       o: pick(["", "", "redondo", "retangular"], 15),
       r: pick(["scrub-verde", "scrub-azul", "polo-azul", "social", "casual", "jaleco"], 19),
-      x: "cracha", s: pick(["leve", "serio", "largo"], 23)
+      e: pick(["castanho", "castanho", "escuro", "mel", "verde"], 27),
+      ci: pick([0, 1], 5),
+      gr: pick([0, 0, 1], 9), x: "cracha", s: pick(["leve", "serio", "largo"], 23)
     };
   }
-  function cabeloTras(h, cor) {
-    var f = ' fill="' + cor + '"';
-    if (h === "comprido") return '<path d="M27 52 C20 14 80 14 73 52 L78 94 C60 100 40 100 22 94 Z"' + f + '/>';
-    if (h === "ondulado") return '<path d="M27 50 C19 14 81 14 73 50 C80 62 74 72 79 86 C71 88 67 80 62 88 L38 88 C33 80 29 88 21 86 C26 72 20 62 27 50Z"' + f + '/>';
-    if (h === "cacheado") return '<circle cx="50" cy="38" r="26"' + f + '/><circle cx="27" cy="52" r="10"' + f + '/><circle cx="73" cy="52" r="10"' + f + '/><circle cx="32" cy="64" r="8"' + f + '/><circle cx="68" cy="64" r="8"' + f + '/>';
-    if (h === "volume") return '<circle cx="50" cy="35" r="30"' + f + '/><circle cx="24" cy="48" r="11"' + f + '/><circle cx="76" cy="48" r="11"' + f + '/><circle cx="30" cy="26" r="12"' + f + '/><circle cx="70" cy="26" r="12"' + f + '/>';
-    if (h === "coque") return '<circle cx="50" cy="13" r="10"' + f + '/><rect x="46" y="18" width="8" height="8"' + f + '/>';
-    if (h === "rabo") return '<path d="M66 34 C86 32 92 58 82 80 C80 66 74 56 66 50Z"' + f + '/>';
+  // mistura a cor com branco (f > 0) ou preto (f < 0)
+  function clareia(hex, f) {
+    var n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+    var alvo = f >= 0 ? 255 : 0, k = Math.abs(f);
+    return "rgb(" + Math.round(r + (alvo - r) * k) + "," + Math.round(g + (alvo - g) * k) + "," + Math.round(b + (alvo - b) * k) + ")";
+  }
+  var retratoSeq = 0;
+  var CABECAS = {
+    oval:  { d: "M50 23.5 C64 23.5 70.5 34 70 46 C69.6 58 63 70.5 50 72.5 C37 70.5 30.4 58 30 46 C29.5 34 36 23.5 50 23.5Z", ex: 20 },
+    largo: { d: "M50 24 C65 24 72 35 71.5 47 C71 60 64.5 72.5 50 73.5 C35.5 72.5 29 60 28.5 47 C28 35 35 24 50 24Z", ex: 21.5 },
+    fino:  { d: "M50 22 C63 22 69 33 68.5 46 C68 59 62.5 72.5 50 75 C37.5 72.5 32 59 31.5 46 C31 33 37 22 50 22Z", ex: 18.5 }
+  };
+  function cabeloTras(h, F, luz) {
+    var f = ' fill="' + F + '"';
+    if (h === "comprido") return '<path d="M27 52 C19 12 81 12 73 52 L79 97 C60 104 40 104 21 97 Z"' + f + '/><path d="M30 40 Q27 70 30 94 M70 40 Q73 70 70 94" stroke="' + luz + '" stroke-width="1.2" fill="none" opacity=".3"/>';
+    if (h === "ondulado") return '<path d="M27.5 50 C19 13 81 13 72.5 50 C80 62 74 74 80 88 C72 91 68 82 62 90 L38 90 C32 82 28 91 20 88 C26 74 20 62 27.5 50Z"' + f + '/><path d="M27 58 Q24 72 26 84 M73 58 Q76 72 74 84" stroke="' + luz + '" stroke-width="1.2" fill="none" opacity=".3"/>';
+    if (h === "cacheado") return '<circle cx="50" cy="38" r="26"' + f + '/><circle cx="27" cy="52" r="10"' + f + '/><circle cx="73" cy="52" r="10"' + f + '/><circle cx="32" cy="65" r="8"' + f + '/><circle cx="68" cy="65" r="8"' + f + '/><circle cx="33" cy="30" r="9"' + f + '/><circle cx="67" cy="30" r="9"' + f + '/>';
+    if (h === "volume") return '<circle cx="50" cy="35" r="30"' + f + '/><circle cx="24" cy="48" r="11"' + f + '/><circle cx="76" cy="48" r="11"' + f + '/><circle cx="30" cy="26" r="12"' + f + '/><circle cx="70" cy="26" r="12"' + f + '/><circle cx="50" cy="12" r="12"' + f + '/>';
+    if (h === "coque") return '<circle cx="50" cy="12.5" r="10.5"' + f + '/><path d="M44 9 Q50 5.5 56 9 M43 13 Q50 10 57 13 M44.5 17 Q50 15 55.5 17" stroke="' + luz + '" stroke-width="1.1" fill="none" opacity=".4" stroke-linecap="round"/>';
+    if (h === "rabo") return '<path d="M66 33 C87 29 96 57 86 86 C84 72 78 62 67 54Z"' + f + '/><path d="M76 42 Q85 56 82 76" stroke="' + luz + '" stroke-width="1.3" fill="none" opacity=".35" stroke-linecap="round"/>';
     return "";
   }
-  function cabeloFrente(h, cor) {
-    var f = ' fill="' + cor + '"';
-    if (h === "careca") return '<path d="M31 52 C29 45 31 40 34 38 L34 54Z"' + f + '/><path d="M69 52 C71 45 69 40 66 38 L66 54Z"' + f + '/><ellipse cx="50" cy="31" rx="9" ry="3" fill="#fff" opacity=".2"/>';
-    if (h === "raspado") return '<path d="M30.5 45 C29 27 71 27 69.5 45 C66.5 38 58 35.5 50 35.5 C42 35.5 33.5 38 30.5 45Z"' + f + ' opacity=".9"/>';
-    if (h === "social") return '<path d="M30 47 C27 20 73 18 70 47 C68 36 61 31 52 30 C45 29 37 33 34 39 C32 41 31 44 30 47Z"' + f + '/><path d="M43 30 C47 32 52 33 56 32" stroke="rgba(255,255,255,.22)" stroke-width="1.4" fill="none"/>';
-    if (h === "comprido") return '<path d="M30 47 C27 22 50 19 50 31 C50 19 73 22 70 47 C66 38 58 34 50 34 C42 34 34 38 30 47Z"' + f + '/>';
-    if (h === "ondulado") return '<path d="M30 48 C26 20 74 17 70 48 C68 37 62 31 52 30 C44 30 36 33 33 40 C31.5 42 30.5 45 30 48Z"' + f + '/>';
-    if (h === "cacheado") return '<path d="M30 45 C29 27 71 27 70 45 C66 37 58 34 50 34 C42 34 34 37 30 45Z"' + f + '/><circle cx="35" cy="31" r="6"' + f + '/><circle cx="44" cy="26" r="6.5"' + f + '/><circle cx="54" cy="25" r="6.5"' + f + '/><circle cx="63" cy="29" r="6"' + f + '/><circle cx="68" cy="37" r="5"' + f + '/><circle cx="32" cy="39" r="5"' + f + '/>';
-    if (h === "volume") return '<path d="M29 46 C27 24 73 24 71 46 C66 36 58 33 50 33 C42 33 34 36 29 46Z"' + f + '/><circle cx="36" cy="28" r="8"' + f + '/><circle cx="50" cy="24" r="9"' + f + '/><circle cx="64" cy="28" r="8"' + f + '/>';
-    if (h === "coque" || h === "rabo") return '<path d="M30 47 C27 21 73 21 70 47 C68 36 60 31 50 31 C40 31 32 36 30 47Z"' + f + '/><path d="M50 31 L50 36" stroke="rgba(0,0,0,.25)" stroke-width="1.2"/>';
+  function cabeloFrente(h, F, luz, sombra) {
+    var f = ' fill="' + F + '"';
+    var fios = function (d) { return '<path d="' + d + '" stroke="' + luz + '" stroke-width="1.2" fill="none" opacity=".42" stroke-linecap="round"/>'; };
+    if (h === "careca") return '<path d="M30.4 49 C29.4 35 40 26.5 50 26.5 C60 26.5 70.6 35 69.6 49 C66.6 39.5 59.5 33 50 33 C40.5 33 33.4 39.5 30.4 49Z"' + f + ' opacity=".2"/><ellipse cx="50" cy="29.5" rx="10" ry="3.2" fill="#fff" opacity=".24"/>';
+    if (h === "raspado") return '<path d="M30.6 46 C29 28 40 20.5 50 20.5 C60 20.5 71 28 69.4 46 C67 37 59.5 31.5 50 31.5 C40.5 31.5 33 37 30.6 46Z"' + f + ' opacity=".5"/>' +
+      '<path d="M31.4 42 C30.4 28 40.5 21.2 50 21.2 C59.5 21.2 69.6 28 68.6 42 C65.5 34.5 59 28.5 50 28.5 C41 28.5 34.5 34.5 31.4 42Z"' + f + ' opacity=".96"/>' + fios("M39 25.5 Q50 21.8 61 25.5");
+    if (h === "social") return '<path d="M29.5 49 C26 21 48 13 62 18 C71.5 22.5 74 36 70.5 49 C68.5 38.5 64 33 57.5 31 C48.5 35 38 31.5 33.5 39 C31.5 42 30.5 45.5 29.5 49Z"' + f + '/>' +
+      '<path d="M43 31.5 C48 34.5 55 35 60 32" stroke="' + sombra + '" stroke-width="1.1" fill="none" opacity=".6"/>' + fios("M36 26 Q46 18.5 60 21 M52 24 Q64 24 69 32");
+    if (h === "comprido") return '<path d="M30 50 C25 14 50 8 50 29 C50 8 75 14 70 50 C67 40 60 34 50 32.5 C40 34 33 40 30 50Z"' + f + '/>' + fios("M34 38 Q40 24 49 24 M66 38 Q60 24 51 24");
+    if (h === "ondulado") return '<path d="M29 50 C24 8 76 8 71 50 C69 37 62 30 51 29.5 C43 30 36 34 33 42 C31 45 30 47.5 29 50Z"' + f + '/>' + fios("M34 36 Q44 22 62 25 M60 28 Q68 31 69 40");
+    if (h === "cacheado") return '<path d="M30 46 C29 27 71 27 70 46 C66 37 58 34 50 34 C42 34 34 37 30 46Z"' + f + '/><circle cx="35" cy="31" r="6.5"' + f + '/><circle cx="44" cy="26" r="7"' + f + '/><circle cx="54" cy="25" r="7"' + f + '/><circle cx="63" cy="29" r="6.5"' + f + '/><circle cx="68.5" cy="38" r="5"' + f + '/><circle cx="31.5" cy="39" r="5"' + f + '/>' +
+      '<path d="M40 24 Q44 21 48 23 M55 22 Q60 21 63 25" stroke="' + luz + '" stroke-width="1.2" fill="none" opacity=".4" stroke-linecap="round"/>';
+    if (h === "volume") return '<path d="M29 47 C27 24 73 24 71 47 C66 37 58 33 50 33 C42 33 34 37 29 47Z"' + f + '/><circle cx="36" cy="28" r="8.5"' + f + '/><circle cx="50" cy="24" r="9.5"' + f + '/><circle cx="64" cy="28" r="8.5"' + f + '/>' +
+      '<path d="M44 21 Q50 18 56 21" stroke="' + luz + '" stroke-width="1.2" fill="none" opacity=".4" stroke-linecap="round"/>';
+    if (h === "coque") return '<path d="M30 48 C26 12 74 12 70 48 C68 37 60 31.5 50 31.5 C40 31.5 32 37 30 48Z"' + f + '/><path d="M50 21.5 L50 32" stroke="' + sombra + '" stroke-width="1" opacity=".45"/>' + fios("M36 30 Q42 24 49 24 M64 30 Q58 24 51 24") +
+      '<rect x="44" y="20" width="12" height="3.2" rx="1.6" fill="#7a2f2f"/>';
+    if (h === "rabo") return '<path d="M30 48 C26 12 74 12 70 48 C68 37 60 31.5 50 31.5 C40 31.5 32 37 30 48Z"' + f + '/><path d="M50 22 L50 32" stroke="' + sombra + '" stroke-width="1" opacity=".4"/>' + fios("M36 30 Q42 24 49 24 M64 30 Q58 24 51 24") +
+      '<rect x="64.8" y="33" width="3.6" height="10" rx="1.8" fill="#7a2f2f" transform="rotate(-18 66.6 38)"/>';
     // curto
-    return '<path d="M30.5 46 C28 22 72 22 69.5 46 C67 34 59 30 50 30 C41 30 33 34 30.5 46Z"' + f + '/>';
+    return '<path d="M30 47 C28 24 41 17 50 17 C60 17 72 24 70 47 C68.5 38 64.5 31.5 58.5 29.5 C52.5 33 42 33 36 35.5 C32.5 38 31 42 30 47Z"' + f + '/>' + fios("M37 26 Q44 21.5 52 22.5 M56 22 Q63 23 67 29");
   }
-  function barbaSVG(b, cor) {
-    var f = ' fill="' + cor + '"';
-    if (b === "barba") return '<path d="M30.5 51 C30 70 41 77 50 77 C59 77 70 70 69.5 51 C67 58 63 60.5 58 61 C54.5 59 45.5 59 42 61 C37 60.5 33 58 30.5 51Z"' + f + '/>';
-    if (b === "bigode") return '<path d="M41.5 62 Q46 58.5 50 61 Q54 58.5 58.5 62 Q54 65.5 50 63.5 Q46 65.5 41.5 62Z"' + f + '/>';
-    if (b === "cav") return '<path d="M41.5 62 Q46 58.5 50 61 Q54 58.5 58.5 62 Q54 65.5 50 63.5 Q46 65.5 41.5 62Z"' + f + '/><path d="M44.5 70 Q50 77 55.5 70 Q50 73 44.5 70Z"' + f + '/>';
+  function barbaSVG(b, F, luz) {
+    var f = ' fill="' + F + '"';
+    if (b === "barba") return '<path d="M30 51 C29.5 71 40 79.5 50 79.5 C60 79.5 70.5 71 70 51 C68 58 64 61.5 58.5 62.3 C55 60.5 45 60.5 41.5 62.3 C36 61.5 32 58 30 51Z"' + f + '/>' +
+      '<path d="M33 60 Q36 70 44 74 M67 60 Q64 70 56 74 M46 74.5 Q50 76 54 74.5" stroke="' + luz + '" stroke-width="1" fill="none" opacity=".28"/>';
+    if (b === "bigode") return '<path d="M41 62.2 Q45.5 58 50 60.8 Q54.5 58 59 62.2 Q54.5 65.6 50 63.4 Q45.5 65.6 41 62.2Z"' + f + '/>';
+    if (b === "cav") return '<path d="M41 62.2 Q45.5 58 50 60.8 Q54.5 58 59 62.2 Q54.5 65.6 50 63.4 Q45.5 65.6 41 62.2Z"' + f + '/><path d="M44 70 Q50 78 56 70 Q50 73.5 44 70Z"' + f + '/>';
     return "";
   }
   function oculosSVG(o) {
     if (!o) return "";
-    var arm = '<path d="M35.4 48 L30.5 47 M64.6 48 L69.5 47" stroke="#23201c" stroke-width="1.4" fill="none"/>';
-    var ponte = '<path d="M48.4 48.5 Q50 46.8 51.6 48.5" stroke="#23201c" stroke-width="1.5" fill="none"/>';
+    var arm = '<path d="M35.2 47.6 L30.2 46.6 M64.8 47.6 L69.8 46.6" stroke="#23201c" stroke-width="1.4" fill="none" stroke-linecap="round"/>';
+    var ponte = '<path d="M48.6 47.8 Q50 46 51.4 47.8" stroke="#23201c" stroke-width="1.5" fill="none"/>';
+    var brilho = '<path d="M37.2 45.4 L40.6 43.6 M53 45.4 L56.4 43.6" stroke="#fff" stroke-width="1" opacity=".55" stroke-linecap="round"/>';
     if (o === "retangular") {
-      return '<rect x="35.6" y="44.6" width="12.8" height="9" rx="2.2" fill="rgba(255,255,255,.16)" stroke="#23201c" stroke-width="1.6"/>' +
-        '<rect x="51.6" y="44.6" width="12.8" height="9" rx="2.2" fill="rgba(255,255,255,.16)" stroke="#23201c" stroke-width="1.6"/>' + ponte + arm;
+      return '<rect x="35.4" y="43.6" width="13" height="9.4" rx="2.4" fill="#cfe6f2" fill-opacity=".18" stroke="#23201c" stroke-width="1.7"/>' +
+        '<rect x="51.6" y="43.6" width="13" height="9.4" rx="2.4" fill="#cfe6f2" fill-opacity=".18" stroke="#23201c" stroke-width="1.7"/>' + ponte + arm + brilho;
     }
-    return '<circle cx="42" cy="49" r="6.6" fill="rgba(255,255,255,.16)" stroke="#23201c" stroke-width="1.6"/>' +
-      '<circle cx="58" cy="49" r="6.6" fill="rgba(255,255,255,.16)" stroke="#23201c" stroke-width="1.6"/>' + ponte + arm;
+    return '<circle cx="41.5" cy="48" r="6.8" fill="#cfe6f2" fill-opacity=".18" stroke="#23201c" stroke-width="1.7"/>' +
+      '<circle cx="58.5" cy="48" r="6.8" fill="#cfe6f2" fill-opacity=".18" stroke="#23201c" stroke-width="1.7"/>' + ponte + arm + brilho;
   }
-  function roupaSVG(r, x, pele) {
-    var cor = ROUPA_COR[r] || "#5b6673", s = '<path d="M3 112 C5 90 26 81 50 81 C74 81 95 90 97 112 Z" fill="' + cor + '"/>';
-    s += '<path d="M9 112 C12 94 28 86 40 84" stroke="rgba(0,0,0,.12)" stroke-width="1.2" fill="none"/>';
+  function roupaSVG(r, x, pele, sombraId, pe, clipId, gr) {
+    var cor = ROUPA_COR[r] || "#5b6673";
+    var torso = "M3 112 C5 90 26 81 50 81 C74 81 95 90 97 112 Z";
+    var s = '<path d="' + torso + '" fill="' + cor + '"/><g clip-path="url(#' + clipId + ')">';
     if (r.indexOf("scrub") === 0) {
       s += '<path d="M39 81 L50 99 L61 81 Z" fill="' + pele[0] + '"/><path d="M39 81 L50 99 L61 81" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="1.8" stroke-linejoin="round"/>' +
         '<rect x="65" y="98" width="15" height="12" rx="2" fill="none" stroke="rgba(0,0,0,.28)" stroke-width="1.2"/>';
@@ -1099,14 +1126,26 @@
       s += '<path d="M42 81 L50 96 L58 81 Z" fill="#6fa8cf"/><path d="M37 82 L47 102 L41 112 M63 82 L53 102 L59 112" fill="none" stroke="#cfccbf" stroke-width="1.4"/>' +
         '<path d="M37 82 L44 84 M63 82 L56 84" stroke="#cfccbf" stroke-width="1.4"/><rect x="66" y="97" width="16" height="13" rx="2" fill="none" stroke="#cfccbf" stroke-width="1.2"/><path d="M71 97 V92" stroke="#2f6db0" stroke-width="2"/>';
     } else if (r === "social") {
-      s += '<path d="M41 80 L50 94 L59 80 L56.5 77.5 L50 86 L43.5 77.5 Z" fill="#fff"/><path d="M48.4 89 L51.6 89 L53.6 112 L50 107.5 L46.4 112 Z" fill="#7a2230"/>';
+      if (gr) s += '<path d="M41 80 L50 94 L59 80 L56.5 77.5 L50 86 L43.5 77.5 Z" fill="#fff"/><path d="M48.4 89 L51.6 89 L53.6 112 L50 107.5 L46.4 112 Z" fill="#7a2230"/>';
+      else s += '<path d="M42 81 L50 93 L58 81 Z" fill="' + pele[0] + '"/><path d="M40.5 79 L50 93 L43 99 L35 85 Z" fill="#fff" stroke="rgba(0,0,0,.18)" stroke-width=".8" stroke-linejoin="round"/><path d="M59.5 79 L50 93 L57 99 L65 85 Z" fill="#fff" stroke="rgba(0,0,0,.18)" stroke-width=".8" stroke-linejoin="round"/><path d="M50 93 V112" stroke="rgba(0,0,0,.15)" stroke-width="1"/>';
     } else if (r === "blazer") {
-      s += '<path d="M40 81 L50 102 L60 81 Z" fill="#f6f1e7"/><path d="M36 82 L48 106 L42 112 M64 82 L52 106 L58 112" fill="none" stroke="#1f2833" stroke-width="2"/>' +
-        '<path d="M44 84 Q50 90 56 84" stroke="#f1e3c6" stroke-width="1.6" fill="none" stroke-dasharray="1.2 2.2" stroke-linecap="round"/>';
+      s += '<path d="M40 81 L50 102 L60 81 Z" fill="#f6f1e7"/><path d="M36 82 L48 106 L42 112 M64 82 L52 106 L58 112" fill="none" stroke="#1f2833" stroke-width="2"/>';
+      if (pe) {
+        // fio de pérolas acompanhando o decote
+        for (var i = 0; i <= 8; i++) {
+          var t = i / 8, px = (1 - t) * (1 - t) * 40.5 + 2 * (1 - t) * t * 50 + t * t * 59.5, py = (1 - t) * (1 - t) * 83 + 2 * (1 - t) * t * 99 + t * t * 83;
+          s += '<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="1.55" fill="#f8f4ea" stroke="#cdc5b3" stroke-width=".5"/>';
+        }
+      }
     } else if (r.indexOf("polo") === 0) {
-      s += '<path d="M40 80 L50 91 L60 80 L65 84 L50 99 L35 84 Z" fill="rgba(255,255,255,.2)"/><path d="M50 91 V102" stroke="rgba(255,255,255,.5)" stroke-width="1.4"/>';
+      var gola = clareia(cor, .24);
+      s += '<path d="M42 81 L50 92 L58 81 Z" fill="' + pele[0] + '"/>' +
+        '<path d="M40.5 80 L50 92 L43 99 L34 86 Z" fill="' + gola + '" stroke="rgba(0,0,0,.25)" stroke-width=".8" stroke-linejoin="round"/>' +
+        '<path d="M59.5 80 L50 92 L57 99 L66 86 Z" fill="' + gola + '" stroke="rgba(0,0,0,.25)" stroke-width=".8" stroke-linejoin="round"/>' +
+        '<path d="M50 92 V104" stroke="rgba(255,255,255,.55)" stroke-width="1.3"/><circle cx="50" cy="97" r=".9" fill="rgba(255,255,255,.7)"/><circle cx="50" cy="102" r=".9" fill="rgba(255,255,255,.7)"/>';
     } else if (r === "moletom") {
-      s += '<path d="M32 85 C35 75 65 75 68 85 C63 92 37 92 32 85 Z" fill="rgba(0,0,0,.22)"/><path d="M45 90 L44 102 M55 90 L56 102" stroke="rgba(255,255,255,.55)" stroke-width="1.3"/>';
+      s += '<path d="M37 81 C41 90 59 90 63 81 L68 83 C64 94 36 94 32 83 Z" fill="' + clareia(cor, -.28) + '"/><path d="M38 83 C42 91 58 91 62 83" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="1"/>' +
+        '<path d="M45.5 91 L44.5 103 M54.5 91 L55.5 103" stroke="rgba(255,255,255,.6)" stroke-width="1.3" stroke-linecap="round"/><circle cx="44.5" cy="103.6" r="1" fill="rgba(255,255,255,.7)"/><circle cx="55.5" cy="103.6" r="1" fill="rgba(255,255,255,.7)"/>';
     } else if (r === "macacao") {
       s += '<path d="M40 80 L50 92 L60 80 L66 85 L50 100 L34 85 Z" fill="rgba(0,0,0,.18)"/><path d="M50 92 V112" stroke="rgba(0,0,0,.3)" stroke-width="1.4"/>' +
         '<path d="M8 100 H92" stroke="#f1ec7a" stroke-width="2.2" opacity=".85"/>';
@@ -1118,37 +1157,69 @@
         '<rect x="43.5" y="102" width="13" height="9.5" rx="1.6" fill="#fff" stroke="#4a5560" stroke-width="1"/><rect x="43.5" y="102" width="13" height="2.6" fill="#2c6fb7"/>' +
         '<path d="M46 107 H54" stroke="#9aa3ab" stroke-width="1"/>';
     }
+    // volume e dobras: sombra lateral
+    s += '<path d="' + torso + '" fill="url(#' + sombraId + ')"/></g>';
     return s;
   }
   // retrato desenhado (ficha de investigação)
   function svgBusto(nome) {
     var t = RETRATOS[nome] || retratoPeloNome(nome);
+    var id = "r" + (++retratoSeq);
     var pele = PELES[t.p] || PELES.media, cab = CABELOS[t.c] || CABELOS.castanho;
-    var rx = t.f === "largo" ? 21 : t.f === "fino" ? 18 : 19.5, ry = t.f === "fino" ? 24 : t.f === "largo" ? 22 : 23;
+    var olho = OLHOS[t.e] || OLHOS.castanho;
+    var luz = clareia(cab, .38), sombra = clareia(cab, -.35);
+    var F = "url(#" + id + "h)";
+    var cabeca = CABECAS[t.f] || CABECAS.oval;
+    var ex = cabeca.ex;
     var s = '<svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Retrato de ' + nome + '">';
-    s += cabeloTras(t.h, cab);
-    s += '<rect x="43" y="62" width="14" height="24" rx="6" fill="' + pele[0] + '"/><rect x="43" y="71" width="14" height="9" rx="4" fill="' + pele[1] + '" opacity=".7"/>';
-    s += roupaSVG(t.r || "casual", t.x, pele);
-    // orelhas e cabeça
-    s += '<ellipse cx="' + (50 - rx - 0.4) + '" cy="51" rx="3.4" ry="5.2" fill="' + pele[0] + '"/><ellipse cx="' + (50 + rx + 0.4) + '" cy="51" rx="3.4" ry="5.2" fill="' + pele[0] + '"/>';
-    s += '<ellipse cx="50" cy="48" rx="' + rx + '" ry="' + ry + '" fill="' + pele[0] + '"/>';
-    s += '<path d="M31.5 57 C34 73 66 73 68.5 57 C64 67 36 67 31.5 57Z" fill="' + pele[1] + '" opacity=".22"/>';
-    s += '<ellipse cx="37.5" cy="58" rx="4.2" ry="2.8" fill="#e0675c" opacity=".16"/><ellipse cx="62.5" cy="58" rx="4.2" ry="2.8" fill="#e0675c" opacity=".16"/>';
-    // sobrancelhas, olhos, nariz
-    var espessa = t.b || t.s === "serio" ? 2.3 : 1.7;
-    s += '<path d="M36 44.2 Q42 40.8 47.6 43.6 M52.4 43.6 Q58 40.8 64 44.2" stroke="' + cab + '" stroke-width="' + espessa + '" fill="none" stroke-linecap="round"/>';
-    s += '<ellipse cx="42" cy="49" rx="3.7" ry="2.6" fill="#fff"/><ellipse cx="58" cy="49" rx="3.7" ry="2.6" fill="#fff"/>';
-    s += '<circle cx="42.3" cy="49.2" r="2" fill="#3a2a1d"/><circle cx="58.3" cy="49.2" r="2" fill="#3a2a1d"/>';
-    s += '<circle cx="42.4" cy="49.2" r="1" fill="#0d0b0a"/><circle cx="58.4" cy="49.2" r="1" fill="#0d0b0a"/>';
-    s += '<circle cx="43.1" cy="48.4" r=".6" fill="#fff"/><circle cx="59.1" cy="48.4" r=".6" fill="#fff"/>';
-    s += '<path d="M38.2 47.6 Q42 45.6 45.8 47.6 M54.2 47.6 Q58 45.6 61.8 47.6" stroke="' + pele[1] + '" stroke-width="1" fill="none"/>';
-    s += '<path d="M50 50 C49 55 47.4 58.6 48.8 60.4 Q50 61.4 51.2 60.4 C52.6 58.6 51 55 50 50" stroke="' + pele[1] + '" stroke-width="1.3" fill="none" stroke-linejoin="round"/>';
-    s += cabeloFrente(t.h, cab);
+    s += '<defs>' +
+      '<radialGradient id="' + id + 'p" cx=".4" cy=".3" r=".85"><stop offset="0" stop-color="' + clareia(pele[0], .14) + '"/><stop offset=".55" stop-color="' + pele[0] + '"/><stop offset="1" stop-color="' + pele[1] + '"/></radialGradient>' +
+      '<linearGradient id="' + id + 'h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + clareia(cab, .16) + '"/><stop offset=".5" stop-color="' + cab + '"/><stop offset="1" stop-color="' + clareia(cab, -.3) + '"/></linearGradient>' +
+      '<linearGradient id="' + id + 's" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".34"/><stop offset=".26" stop-color="#000" stop-opacity="0"/><stop offset=".74" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".34"/></linearGradient>' +
+      '<linearGradient id="' + id + 'n" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + clareia(pele[1], -.12) + '"/><stop offset=".4" stop-color="' + pele[1] + '"/><stop offset=".75" stop-color="' + pele[0] + '"/></linearGradient>' +
+      '<clipPath id="' + id + 't"><path d="M3 112 C5 90 26 81 50 81 C74 81 95 90 97 112 Z"/></clipPath>' +
+      '</defs>';
+    s += cabeloTras(t.h, F, luz);
+    // pescoço, com a sombra do queixo
+    s += '<path d="M42.5 62 L42.5 84 C42.5 89 57.5 89 57.5 84 L57.5 62Z" fill="url(#' + id + 'n)"/>';
+    s += roupaSVG(t.r || "casual", t.x, pele, id + "s", t.pe, id + "t", t.gr);
+    // orelhas (com brinco, se tiver)
+    [50 - ex - 0.7, 50 + ex + 0.7].forEach(function (cx) {
+      s += '<ellipse cx="' + cx.toFixed(1) + '" cy="49.5" rx="3.3" ry="5.4" fill="' + pele[0] + '"/><ellipse cx="' + (cx + (cx < 50 ? 0.5 : -0.5)).toFixed(1) + '" cy="50" rx="1.5" ry="3.2" fill="' + pele[1] + '" opacity=".6"/>';
+      if (t.br) s += '<circle cx="' + (cx + (cx < 50 ? 0.4 : -0.4)).toFixed(1) + '" cy="55.6" r="1.5" fill="#e3b94f" stroke="#a88428" stroke-width=".5"/>';
+    });
+    // rosto
+    s += '<path d="' + cabeca.d + '" fill="url(#' + id + 'p)"/>';
+    s += '<path d="M31.4 56 C34 73 66 73 68.6 56 C64 67 36 67 31.4 56Z" fill="' + pele[1] + '" opacity=".24"/>';
+    s += '<ellipse cx="37.6" cy="57.4" rx="4.6" ry="3" fill="#e0675c" opacity=".17"/><ellipse cx="62.4" cy="57.4" rx="4.6" ry="3" fill="#e0675c" opacity=".17"/>';
+    if (t.ru) {
+      s += '<path d="M42 33.6 Q50 32 58 33.6 M43.5 36.4 Q50 35 56.5 36.4" stroke="' + pele[1] + '" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/>' +
+        '<path d="M38.4 56 Q36.8 60 38.8 64 M61.6 56 Q63.2 60 61.2 64 M34.6 47 L32.6 46 M65.4 47 L67.4 46" stroke="' + pele[1] + '" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/>';
+    }
+    // sobrancelhas
+    var g = t.s === "serio" || t.b ? 0.9 : 0.25;
+    s += '<path d="M35.4 43.8 Q41 39.6 47.4 42.4 L47.2 44.1 Q41.6 41.9 36 45.6Z" fill="' + cab + '" stroke="' + cab + '" stroke-width="' + g + '" stroke-linejoin="round"/>' +
+      '<path d="M64.6 43.8 Q59 39.6 52.6 42.4 L52.8 44.1 Q58.4 41.9 64 45.6Z" fill="' + cab + '" stroke="' + cab + '" stroke-width="' + g + '" stroke-linejoin="round"/>';
+    // olhos
+    [41.5, 58.5].forEach(function (cx, k) {
+      s += '<path d="M' + (cx - 4.8) + ' 47.8 Q' + cx + ' 44.2 ' + (cx + 4.8) + ' 47.8 Q' + cx + ' 50.8 ' + (cx - 4.8) + ' 47.8Z" fill="#fbf7f2"/>' +
+        '<circle cx="' + (cx + 0.2) + '" cy="47.8" r="2.25" fill="' + olho + '"/><circle cx="' + (cx + 0.2) + '" cy="47.8" r="1.1" fill="#0d0b0a"/>' +
+        '<circle cx="' + (cx + 1) + '" cy="47" r=".7" fill="#fff"/>' +
+        '<path d="M' + (cx - 5.1) + ' 48 Q' + cx + ' 43.8 ' + (cx + 5.1) + ' 48" fill="none" stroke="' + clareia(cab, -.15) + '" stroke-width="1.1" stroke-linecap="round"/>' +
+        '<path d="M' + (cx - 3.8) + ' 49.8 Q' + cx + ' 51.4 ' + (cx + 3.8) + ' 49.8" fill="none" stroke="' + pele[1] + '" stroke-width=".7" opacity=".6"/>';
+      if (t.ci) s += '<path d="M' + (k ? cx + 5 : cx - 5) + ' 47.2 l' + (k ? 1.5 : -1.5) + ' -1.3" stroke="' + clareia(cab, -.3) + '" stroke-width=".8" fill="none" stroke-linecap="round"/>';
+    });
+    // nariz
+    s += '<path d="M50.6 50 C51.4 54 52.4 57 51.2 59 Q50 60.2 48.8 59 C47.8 57.6 48.4 55.8 49 54" fill="none" stroke="' + pele[1] + '" stroke-width=".95" stroke-linecap="round" opacity=".7"/>' +
+      '<path d="M52.4 53 Q53.6 57 51.8 59" fill="none" stroke="#000" stroke-width="1.6" opacity=".05"/>' +
+      '<ellipse cx="48.6" cy="59.6" rx=".9" ry=".5" fill="' + pele[1] + '" opacity=".75"/><ellipse cx="51.4" cy="59.6" rx=".9" ry=".5" fill="' + pele[1] + '" opacity=".75"/>';
+    s += cabeloFrente(t.h, F, luz, sombra);
     // boca (por cima da barba)
-    var boca = t.s === "serio" ? '<path d="M44.5 67 Q50 68.4 55.5 67" stroke="#7a3b2e" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
-      : t.s === "largo" ? '<path d="M43 65.6 Q50 73 57 65.6 Q50 68 43 65.6Z" fill="#fff" stroke="#7a3b2e" stroke-width="1.4" stroke-linejoin="round"/>'
-      : '<path d="M43.8 66 Q50 70.6 56.2 66" stroke="#7a3b2e" stroke-width="1.9" fill="none" stroke-linecap="round"/>';
-    s += barbaSVG(t.b, cab) + boca + oculosSVG(t.o);
+    var labio = t.ci ? "#b5504a" : "#9b5146";
+    var boca = t.s === "serio" ? '<path d="M44.4 65.8 Q50 67.2 55.6 65.8" stroke="#7a3b2e" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M46.5 67.6 Q50 68.8 53.5 67.6" stroke="' + labio + '" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".75"/>'
+      : t.s === "largo" ? '<path d="M42.6 64 Q50 72.4 57.4 64 Q50 66.4 42.6 64Z" fill="#fff" stroke="#7a3b2e" stroke-width="1.3" stroke-linejoin="round"/><path d="M44.5 66 Q50 69 55.5 66" stroke="' + labio + '" stroke-width="1.4" fill="none" opacity=".7"/>'
+      : '<path d="M43.6 65 Q50 70.4 56.4 65" stroke="#7a3b2e" stroke-width="1.9" fill="none" stroke-linecap="round"/><path d="M46 67.4 Q50 69.4 54 67.4" stroke="' + labio + '" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".75"/>';
+    s += barbaSVG(t.b, F, luz) + boca + oculosSVG(t.o);
     return s + '</svg>';
   }
   // nome do arquivo da ilustração: minúsculas, sem acento, hífen no lugar dos espaços
