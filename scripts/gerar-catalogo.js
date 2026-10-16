@@ -19,6 +19,8 @@ const casos = [
   { arq: 'caso12.html', n: 12, titulo: 'O lote que sumiu', nivel: 'Avançado', resumo: '13 frascos de imunoglobulina sumiram no caminho do lote.' },
   { arq: 'caso13.html', n: 13, titulo: 'A dose reprogramada', nivel: 'Avançado', resumo: 'Bombas de infusão mandam eventos em JSON; quem burlou o limite?' },
   { arq: 'caso14.html', n: 14, titulo: 'O banco que se corrigia sozinho', nivel: 'Avançado', resumo: 'Um gatilho escondido dá 40% de desconto a amigos.' },
+  { arq: 'caso15.html', n: 15, titulo: 'A receita falsa', nivel: 'Avançado', resumo: 'Expressões regulares para achar receitas falsas de controlados.' },
+  { arq: 'caso16.html', n: 16, titulo: 'O relatório da diretoria', nivel: 'Avançado', resumo: 'Subtotais, tabela cruzada e dias seguidos num desvio de OPME.' },
 ];
 
 function limpa(s) {

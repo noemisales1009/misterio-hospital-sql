@@ -371,7 +371,7 @@
   // Comandos da aba "Comandos": vêm do subtítulo de cada fase. "fechar o caso" e "tudo junto" não são
   // comandos, e "subconsulta" é o mesmo que "SUBCONSULTA" (mantenha igual em scripts/gerar-comandos.mjs).
   var CMD_IGNORAR = { "fechar o caso": 1, "tudo junto": 1 };
-  var CMD_ALIAS = { "subconsulta": "SUBCONSULTA" };
+  var CMD_ALIAS = { "subconsulta": "SUBCONSULTA", "length": "LENGTH", "ROW_NUMBER()": "ROW_NUMBER", "SUM() FILTER": "SUM(…) FILTER" };
   function comandosDaFase(fa) {
     var lista = [];
     (fa.sub || "").split("·").forEach(function (h) {
@@ -1114,7 +1114,9 @@
     "caso11.html": { nome: "Patrícia Lacerda", papel: "Cargo: Supervisora de enfermagem · PS (noite)" },
     "caso12.html": { nome: "Wagner Bastos", papel: "Cargo: Auxiliar de farmácia · Satélite da Oncologia" },
     "caso13.html": { nome: "Heloísa Brandini", papel: "Cargo: Enfermeira · UTI Adulto (noite)" },
-    "caso14.html": { nome: "Douglas Pacheco", papel: "Analista terceirizado · criou o gatilho" }
+    "caso14.html": { nome: "Douglas Pacheco", papel: "Analista terceirizado · criou o gatilho" },
+    "caso15.html": { nome: "Gervásio Toledo", papel: "Cargo: Atendente de farmácia · Farmácia Central (noite)" },
+    "caso16.html": { nome: "Raquel Antunes", papel: "Cargo: Enfermeira coordenadora · Centro Cirúrgico (noite)" }
   };
   function casoCompleto(cs, st) {
     return !!cs && cs.fases.length > 0 && cs.fases.every(function (f) { return st[f.id]; });
@@ -1198,7 +1200,18 @@
     "Jussara Moura":       { p: "negra",  h: "afro",     c: "preto",    ci: 1, br: 1,                   r: "social",      x: "cracha", s: "leve" },
     "Regina Falcão":       { p: "morena", h: "cacheado", c: "castanho", ci: 1,                         r: "casual",      x: "cracha", s: "leve" },
     "Vinícius Bastos":     { p: "clara",  h: "social",   c: "castclaro", b: "barba",                   r: "moletom",     x: "cracha", s: "leve" },
-    "Marlene Pacheco":     { p: "morena", h: "curto",    c: "grisalho", ci: 1, br: 1,                   ru: 1, r: "casual",   s: "leve" }
+    "Marlene Pacheco":     { p: "morena", h: "curto",    c: "grisalho", ci: 1, br: 1,                   ru: 1, r: "casual",   s: "leve" },
+    "Gervásio Toledo":     { p: "media",  h: "social",   c: "grisalho", b: "bigode",  o: "retangular", ru: 1, r: "jaleco",   x: "cracha", s: "serio", f: "largo" },
+    "Lucimara Antunes":    { p: "morena", h: "coque",    c: "preto",    ci: 1, br: 1,                   r: "jaleco",      x: "cracha", s: "leve" },
+    "Iolanda Feitosa":     { p: "clara",  h: "curto",    c: "branco",   ci: 1,        o: "gatinho",    ru: 1, r: "jaleco",   x: "cracha", s: "leve", f: "fino" },
+    "Anselmo Vilaça":      { p: "clara",  h: "careca",   c: "branco",   b: "barba",                    ru: 1, r: "casual",   s: "leve" },
+    "Caio Prates":         { p: "negra",  h: "raspado",  c: "preto",                                  r: "jaleco",      x: "cracha", s: "largo" },
+    "Ivo Sarandi":         { p: "clara",  h: "topete",   c: "castanho", b: "cav",                      r: "jaleco",      x: "cracha", s: "leve" },
+    "Raquel Antunes":      { p: "media",  h: "coque",    c: "castanho", ci: 1, br: 1, o: "retangular", r: "scrub-azul",  x: "cracha", s: "serio", f: "fino" },
+    "Henrique Soutello":   { p: "clara",  h: "social",   c: "grisalho", b: "barba",                    ru: 1, r: "jaleco",   x: "cracha", s: "leve", f: "largo" },
+    "Jonas Pimentel":      { p: "negra",  h: "afro",     c: "preto",                  o: "retangular", r: "polo-azul",   x: "cracha", s: "leve" },
+    "Vinícius Campelo":    { p: "morena", h: "curto",    c: "preto",    b: "cav",                      r: "scrub-verde", x: "cracha", s: "serio" },
+    "Denise Arruda":       { p: "negra",  h: "afro",     c: "grisalho", ci: 1, br: 1,                   ru: 1, r: "scrub-bordo", x: "cracha", s: "leve" }
   };
   // traços estáveis para quem não está na lista
   function retratoPeloNome(nome) {
@@ -1652,7 +1665,19 @@
     "c14-f2": "A auditoria mostra exatamente 40% em 49 alterações, feitas por quatro logins diferentes, nenhum deles quem autoriza desconto. Começou em 19/09 às 02:00. É algo dentro do banco.",
     "c14-f3": "Na tabela ctp_conta há um segundo gatilho, BEFORE INSERT OR UPDATE, disfarçado de 'ajuste de centavos': ele força 40% de desconto para os pacientes 12, 27, 33, 48, 59, 71 e 84.",
     "c14-f4": "O gatilho foi criado em 18/09 às 23:41–23:43, sem chamado, pela conta compartilhada admin_sistemas, a partir da máquina NB-TERC-14. A auditoria da Regina tem chamado e foi criada em horário comercial.",
-    "c14-f5": "Três pacientes da lista são da família Pacheco, e quem estava na NB-TERC-14, por VPN, das 22:58 às 00:21 era Douglas Pacheco. Esse é o culpado."
+    "c14-f5": "Três pacientes da lista são da família Pacheco, e quem estava na NB-TERC-14, por VPN, das 22:58 às 00:21 era Douglas Pacheco. Esse é o culpado.",
+    "c15-f0": MONTADO,
+    "c15-f1": "Quase metade das receitas (204 de 483) tem o CRM fora do formato oficial. A Lucimara lidera (84), porque digita todo CRM como 126845-SP. Mas formato errado é bagunça, não fraude.",
+    "c15-f2": "Limpando o CRM com regexp_replace, todas as grafias da Dra. Iolanda (10 jeitos!) levam a uma médica ativa. O alarme: 7 receitas com o CRM de Anselmo Vilaça, aposentado desde 2024. E dois números não acham médico: 093417 e 45871.",
+    "c15-f3": "Os grupos do regexp_match devolvem o P que o regexp_replace tinha apagado: 45871-P é o Dr. Caio Prates, residente com registro provisório, tudo legítimo. Sobram 4 receitas com o CRM 093417, que não existe. São 11 receitas com CRM inválido.",
+    "c15-f4": "A palavra 'comprimdo' (sem o i) aparece em 13 receitas. Em 11 delas o carimbo é o mesmo, copiado do médico aposentado, com dois espaços em volta dos pontinhos. As outras 2 são erros isolados do Ivo, com médicos ativos.",
+    "c15-f5": "Só um atendente tem os três sinais juntos (CRM inválido, 'comprimdo' e carimbo de espaço duplo) nas mesmas 11 receitas: Gervásio Toledo, do turno da noite. Esse é o culpado.",
+    "c16-f0": MONTADO,
+    "c16-f1": "O relatório fecha: R$ 4.327.850,00 no trimestre, igual ao estoque. Mas dois subtotais saltam: a Ortopedia triplica em agosto, e a Cirurgia Vascular mais que dobra em agosto e setembro.",
+    "c16-f2": "O salto da Ortopedia está explicado: 77 cirurgias em agosto, 40 delas do mutirão de joelho. Já a Vascular operou menos (13 e 15 cirurgias contra 16 em julho) e gastou o dobro.",
+    "c16-f3": "A Vascular pagou 20 stents coronários (R$ 178.000,00), um material que só a Hemodinâmica usa. São 14 lançamentos de cirurgias da Hemodinâmica cobrados no centro de custo da Vascular.",
+    "c16-f4": "Os dias sem lançamento (11 a 14/08) foram a queda do sistema. Os lançamentos em centro de custo trocado formam duas ilhas: 15 a 17/07, explicada pela reforma da sala da Vascular, e 14 dias seguidos, de 24/08 a 06/09, sem ocorrência nenhuma.",
+    "c16-f5": "Raquel Antunes coordenou 14 noites seguidas, de 24/08 a 06/09, 9 delas por troca. No plantão dela foram lançados 29 stents coronários em cateterismos diagnósticos, que não usam stent: R$ 258.100,00. Essa é a culpada."
   };
   // popup só para ver (sem editar) as imagens de uma fase
   function ctrlSomenteLeitura(lista, titulo) {
@@ -1862,7 +1887,15 @@
     "c13-f5": [["Rosana Damasceno", "Baixou a dose"], ["Heloísa Brandini", "A culpada", "c"]],
     "c14-f2": [["Sílvia Damasceno", "Coordena o faturamento"], ["Jussara Moura", "Autoriza descontos"]],
     "c14-f4": [["Regina Falcão", "DBA oficial"], ["Vinícius Bastos", "Analista terceirizado"]],
-    "c14-f5": [["Marlene Pacheco", "Paciente da lista"], ["Douglas Pacheco", "O culpado", "c"]]
+    "c14-f5": [["Marlene Pacheco", "Paciente da lista"], ["Douglas Pacheco", "O culpado", "c"]],
+    "c15-f1": [["Lucimara Antunes", "CRM no formato errado"]],
+    "c15-f2": [["Iolanda Feitosa", "CRM de 10 jeitos"], ["Anselmo Vilaça", "Médico aposentado"]],
+    "c15-f3": [["Caio Prates", "Residente · CRM provisório"]],
+    "c15-f4": [["Ivo Sarandi", "2 erros de digitação"]],
+    "c15-f5": [["Gervásio Toledo", "O culpado", "c"]],
+    "c16-f2": [["Henrique Soutello", "Mutirão de joelho"]],
+    "c16-f4": [["Jonas Pimentel", "Queda do sistema"], ["Vinícius Campelo", "Reforma da sala 3"]],
+    "c16-f5": [["Vinícius Campelo", "3 plantões seguidos"], ["Denise Arruda", "Trocou plantões"], ["Raquel Antunes", "A culpada", "c"]]
   };
   var MURAL_LARGURA_MIN = 1500;      // abaixo disso a página não tem sobra nas laterais
   var mural = null, muralEsq = null, muralDir = null, muralTimer = null;
