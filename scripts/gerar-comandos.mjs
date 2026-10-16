@@ -736,7 +736,7 @@ EXECUTE busca('ana');`,
     `SET app.login = 'ana';
 SELECT current_setting('app.login');`),
 
-  // ---------- caso 1, fases E, F e G (criar o próprio banco: tabelas enf_*)
+  // ---------- Treino, fases 1, 2 e 3 (criar o próprio banco: tabelas enf_*)
   'PRIMARY KEY': c(
     'Marca a coluna que identifica cada linha: nunca fica vazia e nunca se repete. Toda tabela deve ter uma.',
     'O número do prontuário: duas fichas nunca têm o mesmo.',
@@ -744,7 +744,7 @@ SELECT current_setting('app.login');`),
   codigo  text PRIMARY KEY,
   setor   text NOT NULL
 );`,
-    { nota: 'Exemplo da fase E, onde você cria o banco da enfermaria.', semLinhas: true }),
+    { nota: 'Exemplo da fase 1 do Treino, onde você cria o banco da enfermaria.', semLinhas: true }),
   'NOT NULL': c(
     'Torna a coluna obrigatória: o banco recusa a linha se ela vier em branco.',
     'A ficha sem o nome do paciente não vale.',
@@ -781,21 +781,21 @@ ALTER TABLE enf_exemplo ALTER COLUMN nome SET NOT NULL;`,
   paciente_id  bigint NOT NULL,
   FOREIGN KEY (paciente_id) REFERENCES enf_paciente (id)
 );`,
-    { pre: 'CREATE TABLE enf_paciente (id bigint PRIMARY KEY);', nota: 'Exemplo da fase F: precisa da tabela enf_paciente.', semLinhas: true }),
+    { pre: 'CREATE TABLE enf_paciente (id bigint PRIMARY KEY);', nota: 'Exemplo da fase 2 do Treino: precisa da tabela enf_paciente.', semLinhas: true }),
   'REFERENCES': c(
     'Diz a qual tabela e coluna a chave estrangeira aponta. Dá para escrever direto na coluna, sem a palavra FOREIGN KEY.',
     '“Este número tem que existir na ficha do paciente.”',
     `CREATE TABLE enf_exemplo (
   paciente_id  bigint NOT NULL REFERENCES enf_paciente (id)
 );`,
-    { pre: 'CREATE TABLE enf_paciente (id bigint PRIMARY KEY);', nota: 'Exemplo da fase F: precisa da tabela enf_paciente.', semLinhas: true }),
+    { pre: 'CREATE TABLE enf_paciente (id bigint PRIMARY KEY);', nota: 'Exemplo da fase 2 do Treino: precisa da tabela enf_paciente.', semLinhas: true }),
   'ON DELETE': c(
     'Define o que acontece quando apagam a linha “pai”. O padrão é recusar. CASCADE apaga junto as linhas que dependem dela, e SET NULL só esvazia a ligação.',
     'O que fazer com as prescrições quando alguém apaga o paciente.',
     `CREATE TABLE enf_exemplo (
   paciente_id  bigint REFERENCES enf_paciente (id) ON DELETE CASCADE
 );`,
-    { pre: 'CREATE TABLE enf_paciente (id bigint PRIMARY KEY);', nota: 'Exemplo da fase F: precisa da tabela enf_paciente.', semLinhas: true }),
+    { pre: 'CREATE TABLE enf_paciente (id bigint PRIMARY KEY);', nota: 'Exemplo da fase 2 do Treino: precisa da tabela enf_paciente.', semLinhas: true }),
   'tabela de ligação': c(
     'Uma terceira tabela que liga duas coisas de muitos para muitos. Tem uma chave estrangeira para cada lado, e a chave primária é o par.',
     'Quais remédios cada paciente toma, e em quais pacientes cada remédio é usado.',
@@ -805,19 +805,19 @@ ALTER TABLE enf_exemplo ALTER COLUMN nome SET NOT NULL;`,
   PRIMARY KEY (paciente_id, medicamento_id)
 );`,
     { pre: `CREATE TABLE enf_paciente (id bigint PRIMARY KEY);
-CREATE TABLE enf_medicamento (id bigint PRIMARY KEY);`, nota: 'Exemplo da fase F: precisa das tabelas enf_paciente e enf_medicamento.', semLinhas: true }),
+CREATE TABLE enf_medicamento (id bigint PRIMARY KEY);`, nota: 'Exemplo da fase 2 do Treino: precisa das tabelas enf_paciente e enf_medicamento.', semLinhas: true }),
   'ALTER TABLE': c(
     'Muda a estrutura de uma tabela que já existe, sem perder os dados: acrescentar, renomear ou apagar colunas, ou criar regras novas.',
     'Incluir o telefone na ficha sem refazer todas as fichas.',
     `ALTER TABLE enf_paciente
   ADD COLUMN telefone text;`,
-    { pre: 'CREATE TABLE enf_paciente (id bigint PRIMARY KEY);', nota: 'Exemplo da fase G: precisa da tabela enf_paciente.', semLinhas: true }),
+    { pre: 'CREATE TABLE enf_paciente (id bigint PRIMARY KEY);', nota: 'Exemplo da fase 3 do Treino: precisa da tabela enf_paciente.', semLinhas: true }),
   'CREATE INDEX': c(
     'Cria um índice para a busca ficar rápida: o banco vai direto ao ponto, em vez de ler a tabela inteira. A chave primária e o UNIQUE já criam índice sozinhos.',
     'O índice remissivo, no fim de um livro.',
     `CREATE INDEX idx_enf_paciente_nome
   ON enf_paciente (nome);`,
-    { pre: 'CREATE TABLE enf_paciente (id bigint PRIMARY KEY, nome text);', nota: 'Exemplo da fase G: precisa da tabela enf_paciente.', semLinhas: true }),
+    { pre: 'CREATE TABLE enf_paciente (id bigint PRIMARY KEY, nome text);', nota: 'Exemplo da fase 3 do Treino: precisa da tabela enf_paciente.', semLinhas: true }),
   'CREATE VIEW': c(
     'Guarda uma consulta com um nome. A view não guarda dados: a cada uso, a consulta roda de novo com os dados de agora.',
     'O relatório “quem está internado agora”, pronto para pedir quando quiser.',
@@ -825,7 +825,7 @@ CREATE TABLE enf_medicamento (id bigint PRIMARY KEY);`, nota: 'Exemplo da fase F
 SELECT id, nome
 FROM enf_paciente
 WHERE nascimento <= CURRENT_DATE - INTERVAL '18 years';`,
-    { pre: 'CREATE TABLE enf_paciente (id bigint PRIMARY KEY, nome text, nascimento date);', nota: 'Exemplo da fase G: precisa da tabela enf_paciente.', semLinhas: true }),
+    { pre: 'CREATE TABLE enf_paciente (id bigint PRIMARY KEY, nome text, nascimento date);', nota: 'Exemplo da fase 3 do Treino: precisa da tabela enf_paciente.', semLinhas: true }),
   'DROP TABLE': c(
     'Apaga a tabela inteira, com os dados. Não pergunta nada e não tem desfazer. O banco recusa se outras tabelas dependem dela.',
     'Jogar fora a ficha de teste.',

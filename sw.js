@@ -1,6 +1,6 @@
 // Gerado por scripts/gerar-sw.js. Não edite à mão.
 // Guarda o jogo no aparelho para funcionar sem internet.
-var VERSAO = "70f5b035e4";
+var VERSAO = "da17f8d43a";
 var CACHE = "misterio-sql-" + VERSAO;
 var ARQUIVOS = [
   "./",
@@ -17,7 +17,7 @@ var ARQUIVOS = [
   "caso7.html",
   "caso8.html",
   "caso9.html",
-  "css/estilo.css?v=48cbdbad",
+  "css/estilo.css?v=108c8af2",
   "fonts/atkinson-hyperlegible-400-italic-latin-ext.woff2",
   "fonts/atkinson-hyperlegible-400-italic-latin.woff2",
   "fonts/atkinson-hyperlegible-400-normal-latin-ext.woff2",
@@ -38,17 +38,18 @@ var ARQUIVOS = [
   "icons/icon-maskable-512.png",
   "index.html",
   "js/achados-dados.json",
-  "js/app.js?v=f5b0d053",
-  "js/caderno.js?v=40f18c8b",
-  "js/catalogo.js?v=6652795a",
+  "js/app.js?v=65b9ae33",
+  "js/caderno.js?v=be7fc87a",
+  "js/catalogo.js?v=ff6c1734",
   "js/comandos-dados.json",
-  "js/computador.js?v=b08cf78a",
+  "js/computador.js?v=af7c5430",
   "js/config.js?v=58dc78bb",
   "js/mermaid-init.js?v=f13746f5",
   "js/pwa.js?v=10765b60",
   "js/quadro.js?v=4af9677b",
   "js/tema.js?v=45d4af28",
   "manifest.webmanifest",
+  "treino.html",
   "vendor/mermaid/mermaid.min.js",
   "vendor/pglite/chunk-A7RFOIQ7.js",
   "vendor/pglite/chunk-BTBUZ646.js",

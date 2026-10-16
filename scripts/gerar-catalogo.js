@@ -6,6 +6,7 @@ const path = require('path');
 const raiz = path.join(__dirname, '..');
 const casos = [
   { arq: 'guia.html', n: 1, titulo: 'A geladeira de vacinas', nivel: 'Iniciante', resumo: 'Alguém desligou a geladeira da Sala de Vacinas.' },
+  { arq: 'treino.html', n: 0, treino: true, titulo: 'Construir um banco do zero', nivel: 'Treino', resumo: 'Sem culpado: você desenha e monta o banco de uma enfermaria.' },
   { arq: 'caso2.html', n: 2, titulo: 'O prontuário adulterado', nivel: 'Intermediário', resumo: 'Uma dose alterada com a senha de quem estava de folga.' },
   { arq: 'caso3.html', n: 3, titulo: 'O sumiço da morfina', nivel: 'Intermediário', resumo: 'O cofre de controlados não fechou.' },
   { arq: 'caso4.html', n: 4, titulo: 'O surto na UTI', nivel: 'Intermediário', resumo: 'Sete pacientes, a mesma bactéria.' },

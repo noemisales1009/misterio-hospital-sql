@@ -1,0 +1,1 @@
+-- Treino: o banco começa vazio. As tabelas enf_* são criadas por você, fase a fase.

@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=48cbdbad">
+<link rel="stylesheet" href="css/estilo.css?v=108c8af2">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -36,7 +36,7 @@
     <p>Sua ferramenta de investigação é o <strong>SQL</strong>. Cada fase te ensina um comando novo e te deixa um passo mais perto de quem fez isso.</p>
   </div>
   <p class="lead">Faça uma fase por vez. Leia a explicação, rode o exemplo, depois tente a missão sozinha. Travou? Abra a dica. Travou de novo? A solução está lá embaixo de cada fase.</p>
-  <p class="foot">Quando terminar, tem mais: <a href="caso2.html">Caso 2, o prontuário adulterado</a> e <a href="caso3.html">Caso 3, o sumiço da morfina</a>.</p>
+  <p class="foot">Quando terminar, tem mais: <a href="caso2.html">Caso 2, o prontuário adulterado</a> e <a href="caso3.html">Caso 3, o sumiço da morfina</a>. Quer aprender a construir o seu próprio banco? Faça o <a href="treino.html">Treino</a>.</p>
 </header>
 <aside class="box aviso-data"><b class="l">Atenção: nas datas deste caso</b><p>Aqui a data é um <strong>número</strong> no formato <strong>AAAAMMDD</strong>, sem aspas. O dia 10/03/2026 vira <code>20260310</code>. A hora da academia também é número, no formato <strong>HHMM</strong>: 15h30 vira <code>1530</code>.</p><div class="tw"><table><tr><th>Neste caso</th><th>Escreva assim</th></tr><tr><td>✅ Certo</td><td><code>WHERE data = 20260310</code></td></tr><tr><td>✅ Certo</td><td><code>WHERE data BETWEEN 20260301 AND 20260331</code></td></tr><tr><td>❌ Errado</td><td><code>WHERE data = '2026-03-10'</code>, que dá erro, porque a coluna é número</td></tr></table></div><p class="cad-nota">Do Caso 4 em diante a data é uma data de verdade, entre aspas, como <code>'2026-03-10'</code>. Para saber qual é o caso de cada coluna, olhe o tipo no mapa das tabelas: <code>integer</code> é número, e <code>date</code> ou <code>timestamp</code> é data de verdade.</p></aside>
 
@@ -623,341 +623,6 @@ ORDER BY m.nome;</pre></div>
   <div class="done-row"><input type="checkbox" id="ok12"><label for="ok12">Fase D concluída</label></div>
 </section>
 
-<!-- PROJETO: CRIAR O PRÓPRIO BANCO (E–G). Tabelas com prefixo enf_, para não esbarrar nas dos casos. -->
-<section class="fase bonus" id="fase13" data-fase="13" data-nome="Desenhar">
-  <div class="fase-head"><div class="num">E</div><div class="t"><h2>Desenhar o banco antes de criar</h2><div class="sub">PRIMARY KEY · NOT NULL · UNIQUE · CHECK · DEFAULT</div></div></div>
-  <div class="box"><b class="l">Para que serve</b><p>Até aqui você consultou bancos que já vieram prontos. Agora quem projeta é você: nas fases E, F e G você monta, do zero, o bancozinho de uma <strong>enfermaria</strong> (pacientes, leitos, internações e remédios). Um banco bem desenhado não deixa entrar dado errado, repetido ou sem dono. Por isso a gente pensa no papel <em>antes</em> de digitar o <code>CREATE TABLE</code>.</p></div>
-  <div class="box passo"><b class="l">A regra de ouro do desenho</b><ol class="steps"><li><strong>Uma tabela para cada “coisa”</strong> do mundo real: paciente, leito, medicamento.</li><li><strong>Uma linha</strong> é um exemplar da coisa (um paciente). <strong>Uma coluna</strong> é uma característica dela (o nome).</li><li><strong>Não misture coisas diferentes na mesma tabela.</strong> O leito existe mesmo vazio e troca de paciente: por isso ele é outra tabela, e não uma coluna do paciente.</li></ol></div>
-  <div class="mapa">
-    <div class="lbl" style="margin-bottom:8px">Desenho do banco · por enquanto, duas tabelas</div>
-<pre class="mermaid">
-erDiagram
-  enf_paciente { bigint id PK
-    text nome
-    text cpf
-    date nascimento
-    numeric peso_kg
-    timestamptz criado_em }
-  enf_leito { text codigo PK
-    text setor
-    boolean ativo }
-</pre>
-  </div>
-  <div class="lbl">Passo 1 · Escolher o tipo de cada coluna</div>
-  <p>Cada coluna aceita só um <strong>tipo</strong> de informação. É o banco ajudando a não deixar escrever “abc” num campo de peso.</p>
-  <div class="tw tw-cmd"><table>
-    <tr><th>Tipo</th><th>Guarda</th><th>No hospital</th></tr>
-    <tr><td><code>text</code></td><td>texto de qualquer tamanho</td><td>nome do paciente</td></tr>
-    <tr><td><code>integer</code></td><td>número inteiro</td><td>andar do leito</td></tr>
-    <tr><td><code>numeric(5,2)</code></td><td>número com casas decimais exatas (5 dígitos, 2 depois da vírgula)</td><td>peso 68,50 kg</td></tr>
-    <tr><td><code>date</code></td><td>só a data</td><td>nascimento</td></tr>
-    <tr><td><code>timestamptz</code></td><td>data e hora</td><td>entrada na UTI</td></tr>
-    <tr><td><code>boolean</code></td><td>verdadeiro ou falso</td><td>leito ativo?</td></tr>
-    <tr><td><code>bigint … GENERATED ALWAYS AS IDENTITY</code></td><td>número que o próprio banco gera: 1, 2, 3…</td><td>número da ficha</td></tr>
-  </table></div>
-  <div class="lbl">Passo 2 · As regras que o banco guarda por você</div>
-  <div class="tw tw-cmd"><table>
-    <tr><th>Regra</th><th>O que faz</th><th>No hospital</th></tr>
-    <tr><td><code>PRIMARY KEY</code></td><td>identifica cada linha: nunca vazia, nunca repetida</td><td>número do prontuário</td></tr>
-    <tr><td><code>NOT NULL</code></td><td>a coluna é obrigatória</td><td>paciente sem nome não vale</td></tr>
-    <tr><td><code>UNIQUE</code></td><td>não aceita dois valores iguais</td><td>dois pacientes com o mesmo CPF</td></tr>
-    <tr><td><code>CHECK (condição)</code></td><td>o valor precisa passar num teste</td><td>peso maior que zero</td></tr>
-    <tr><td><code>DEFAULT valor</code></td><td>valor automático quando você não preenche</td><td>data e hora do cadastro</td></tr>
-  </table></div>
-  <div class="lbl">Passo 3 · Criar a tabela de pacientes</div>
-  <div class="code"><pre data-sql>CREATE TABLE enf_paciente (
-  id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  nome        text NOT NULL,
-  cpf         text UNIQUE,
-  nascimento  date NOT NULL,
-  peso_kg     numeric(5,2) CHECK (peso_kg &gt; 0),
-  criado_em   timestamptz DEFAULT now()
-);</pre></div>
-  <ul class="list">
-    <li><code>id</code>: o banco numera sozinho, e ninguém repete.</li>
-    <li><code>nome</code> e <code>nascimento</code> são obrigatórios. <code>cpf</code> pode ficar em branco, mas, se vier, não pode repetir.</li>
-    <li><code>peso_kg</code> só aceita valores maiores que zero.</li>
-    <li><code>criado_em</code> se preenche sozinho com a hora do cadastro.</li>
-  </ul>
-  <p>Agora cadastre três pacientes. Você não preenche <code>id</code> nem <code>criado_em</code>:</p>
-  <div class="code"><pre data-sql>INSERT INTO enf_paciente (nome, cpf, nascimento, peso_kg) VALUES
-  ('Aurora Nogueira', '111.222.333-44', '1958-03-12', 68.5),
-  ('Bento Carvalho',  '222.333.444-55', '1971-11-02', 82.0),
-  ('Cecília Duarte',  '333.444.555-66', '1990-07-25', 59.3);</pre></div>
-  <div class="lbl">Passo 4 · Deixe o banco recusar</div>
-  <p>A graça das regras é que elas funcionam sozinhas. Rode as três tentativas abaixo, uma de cada vez. <strong>Vão dar erro, e isso é bom</strong>: o banco protegeu você de dado ruim.</p>
-  <div class="code"><pre data-sql>-- ERRO de propósito: falta o nome (NOT NULL)
-INSERT INTO enf_paciente (cpf, nascimento)
-VALUES ('000.000.000-00', '2000-01-01');</pre></div>
-  <div class="code"><pre data-sql>-- ERRO de propósito: esse CPF já existe (UNIQUE)
-INSERT INTO enf_paciente (nome, cpf, nascimento)
-VALUES ('Cópia da Aurora', '111.222.333-44', '2000-01-01');</pre></div>
-  <div class="code"><pre data-sql>-- ERRO de propósito: peso negativo (CHECK)
-INSERT INTO enf_paciente (nome, nascimento, peso_kg)
-VALUES ('Teste', '2000-01-01', -5);</pre></div>
-  <div class="box"><b class="l">Bom saber</b><p>No Supabase, tabelas novas do schema <code>public</code> ficam acessíveis pela API pública do projeto. Aqui os dados são inventados, então tudo bem. Num banco de verdade, você protege cada tabela com o <strong>RLS</strong> (o Caso 10 ensina).</p></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list">
-    <li>Rode o <code>CREATE TABLE enf_paciente</code> e os 3 pacientes do passo 3.</li>
-    <li>Crie, por conta própria, a tabela <code>enf_leito</code> com: <code>codigo</code> (texto, chave primária), <code>setor</code> (texto, obrigatório) e <code>ativo</code> (verdadeiro/falso, obrigatório e <strong>verdadeiro por padrão</strong>).</li>
-    <li>Cadastre 3 leitos, sem preencher <code>ativo</code>: <code>UTI-01</code> (UTI), <code>UTI-02</code> (UTI) e <code>ENF-101</code> (Enfermaria).</li>
-    <li>Prove a regra: tente cadastrar outro leito com o código <code>UTI-01</code>. O banco precisa recusar.</li>
-    <li>Aperte <strong>Conferir meu banco</strong>, logo abaixo do computador.</li>
-  </ul></div>
-  <details><summary>Dica</summary><div><p>Copie o <code>CREATE TABLE</code> do paciente e adapte. Chave primária de texto: <code>codigo text PRIMARY KEY</code>. Obrigatório com valor padrão: <code>ativo boolean NOT NULL DEFAULT true</code>. Para cadastrar vários de uma vez, separe as linhas do <code>VALUES</code> por vírgula.</p></div></details>
-  <details class="sol"><summary>Ver solução</summary><div>
-    <div class="code"><pre data-sql>CREATE TABLE enf_leito (
-  codigo  text PRIMARY KEY,
-  setor   text NOT NULL,
-  ativo   boolean NOT NULL DEFAULT true
-);</pre></div>
-    <div class="code"><pre data-sql>INSERT INTO enf_leito (codigo, setor) VALUES
-  ('UTI-01',  'UTI'),
-  ('UTI-02',  'UTI'),
-  ('ENF-101', 'Enfermaria');</pre></div>
-    <p>Para provar a regra, rode <code>INSERT INTO enf_leito (codigo, setor) VALUES ('UTI-01', 'UTI');</code>: deve aparecer um erro de chave duplicada.</p></div></details>
-  <script type="application/json" class="confere">[
-    {"ok": "Tabela enf_paciente criada", "sql": "SELECT to_regclass('public.enf_paciente') IS NOT NULL"},
-    {"ok": "id é a chave primária de enf_paciente", "sql": "SELECT EXISTS (SELECT 1 FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) WHERE i.indrelid = to_regclass('public.enf_paciente') AND i.indisprimary AND a.attname = 'id')"},
-    {"ok": "nome é obrigatório (NOT NULL)", "sql": "SELECT COALESCE((SELECT is_nullable = 'NO' FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'enf_paciente' AND column_name = 'nome'), false)"},
-    {"ok": "cpf não aceita repetidos (UNIQUE)", "sql": "SELECT EXISTS (SELECT 1 FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) WHERE i.indrelid = to_regclass('public.enf_paciente') AND i.indisunique AND NOT i.indisprimary AND a.attname = 'cpf')"},
-    {"ok": "peso_kg tem uma regra CHECK", "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = to_regclass('public.enf_paciente') AND contype = 'c' AND pg_get_constraintdef(oid) ILIKE '%peso_kg%')"},
-    {"ok": "3 pacientes cadastrados", "sql": "SELECT (SELECT COUNT(*) FROM enf_paciente) >= 3"},
-    {"ok": "Tabela enf_leito: codigo é a chave primária", "sql": "SELECT EXISTS (SELECT 1 FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) WHERE i.indrelid = to_regclass('public.enf_leito') AND i.indisprimary AND a.attname = 'codigo')"},
-    {"ok": "setor é obrigatório em enf_leito", "sql": "SELECT COALESCE((SELECT is_nullable = 'NO' FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'enf_leito' AND column_name = 'setor'), false)"},
-    {"ok": "ativo é obrigatório e começa verdadeiro (DEFAULT true)", "sql": "SELECT COALESCE((SELECT is_nullable = 'NO' AND column_default ILIKE '%true%' FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'enf_leito' AND column_name = 'ativo'), false)"},
-    {"ok": "3 leitos cadastrados, todos ativos", "sql": "SELECT (SELECT COUNT(*) FROM enf_leito WHERE ativo) >= 3"}
-  ]</script>
-  <div class="done-row"><input type="checkbox" id="ok13"><label for="ok13">Fase E concluída</label></div>
-</section>
-
-<section class="fase bonus" id="fase14" data-fase="14" data-nome="Ligações">
-  <div class="fase-head"><div class="num">F</div><div class="t"><h2>Ligar as tabelas</h2><div class="sub">FOREIGN KEY · REFERENCES · ON DELETE · tabela de ligação</div></div></div>
-  <div class="box"><b class="l">Para que serve</b><p>No arquivo de papel, escrever o nome do paciente em toda internação dá erro de digitação: “Aurora N.”, “Aurora Nogueira”, “Aurora Nogeira”. No banco, cada tabela guarda uma coisa e <strong>aponta</strong> para as outras pelo número. Esse número que aponta para outra tabela é a <strong>chave estrangeira</strong> (<code>FOREIGN KEY</code>), e o banco confere: se o número não existe lá, ele recusa.</p></div>
-  <div class="mapa">
-    <div class="lbl" style="margin-bottom:8px">O banco da enfermaria completo · quem se liga com quem</div>
-<pre class="mermaid">
-erDiagram
-  enf_paciente ||--o{ enf_internacao : "tem"
-  enf_leito ||--o{ enf_internacao : "recebe"
-  enf_paciente ||--o{ enf_prescricao : "recebe"
-  enf_medicamento ||--o{ enf_prescricao : "é dado em"
-  enf_internacao { bigint id PK
-    bigint paciente_id FK
-    text leito FK
-    timestamptz entrada
-    timestamptz saida }
-  enf_prescricao { bigint paciente_id FK
-    bigint medicamento_id FK
-    numeric dose }
-</pre>
-  </div>
-  <div class="tw tw-cmd"><table>
-    <tr><th>Comando</th><th>O que faz</th><th>No hospital</th></tr>
-    <tr><td><code>REFERENCES tabela (coluna)</code></td><td>liga a coluna a outra tabela: o valor precisa existir lá</td><td>só internar paciente que existe</td></tr>
-    <tr><td><code>FOREIGN KEY</code></td><td>o nome da regra: chave estrangeira</td><td>o número do paciente dentro da internação</td></tr>
-    <tr><td><code>ON DELETE</code></td><td>o que acontece quando apagam a linha “pai”</td><td>apagar um paciente que tem internação</td></tr>
-    <tr><td>tabela de ligação</td><td>tabela só para ligar duas coisas que se relacionam de muitos para muitos</td><td>paciente × medicamento</td></tr>
-  </table></div>
-  <div class="lbl">Passo 1 · Um paciente, várias internações</div>
-  <p>Um paciente pode ter várias internações, mas cada internação é de um só paciente (<strong>um para muitos</strong>). A internação guarda o <code>id</code> do paciente e o <code>codigo</code> do leito:</p>
-  <div class="code"><pre data-sql>CREATE TABLE enf_internacao (
-  id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  paciente_id  bigint NOT NULL REFERENCES enf_paciente (id),
-  leito        text   NOT NULL REFERENCES enf_leito (codigo),
-  entrada      timestamptz NOT NULL DEFAULT now(),
-  saida        timestamptz,
-  CHECK (saida IS NULL OR saida &gt;= entrada)
-);</pre></div>
-  <p>Repare no <code>CHECK</code> do final: ele compara duas colunas e não deixa a saída vir antes da entrada. Agora internar os três pacientes (o <code>INSERT … SELECT</code> acha o <code>id</code> pelo nome, sem você decorar números):</p>
-  <div class="code"><pre data-sql>INSERT INTO enf_internacao (paciente_id, leito, entrada)
-SELECT id, 'UTI-01', '2026-10-10 08:00'
-FROM enf_paciente WHERE nome = 'Aurora Nogueira';
-
-INSERT INTO enf_internacao (paciente_id, leito, entrada, saida)
-SELECT id, 'UTI-02', '2026-10-08 14:30', '2026-10-12 09:00'
-FROM enf_paciente WHERE nome = 'Bento Carvalho';
-
-INSERT INTO enf_internacao (paciente_id, leito, entrada)
-SELECT id, 'ENF-101', '2026-10-14 19:10'
-FROM enf_paciente WHERE nome = 'Cecília Duarte';</pre></div>
-  <div class="lbl">Passo 2 · O banco confere as ligações</div>
-  <div class="code"><pre data-sql>-- ERRO de propósito: o paciente 9999 não existe
-INSERT INTO enf_internacao (paciente_id, leito)
-VALUES (9999, 'UTI-01');</pre></div>
-  <div class="code"><pre data-sql>-- ERRO de propósito: o leito UTI-99 não existe
-INSERT INTO enf_internacao (paciente_id, leito)
-SELECT id, 'UTI-99' FROM enf_paciente LIMIT 1;</pre></div>
-  <div class="code"><pre data-sql>-- ERRO de propósito: a Aurora ainda tem internação
-DELETE FROM enf_paciente WHERE nome = 'Aurora Nogueira';</pre></div>
-  <p>O último erro é o <code>ON DELETE</code> trabalhando: por padrão, o banco <strong>recusa</strong> apagar quem ainda é citado por outra tabela.</p>
-  <div class="lbl">Passo 3 · O que fazer quando o “pai” é apagado</div>
-  <div class="tw tw-cmd"><table>
-    <tr><th>Opção</th><th>O que acontece</th><th>Quando usar</th></tr>
-    <tr><td><code>ON DELETE RESTRICT</code> (padrão)</td><td>recusa apagar</td><td>dado importante, como internação</td></tr>
-    <tr><td><code>ON DELETE CASCADE</code></td><td>apaga junto as linhas que dependem dele</td><td>dado que não vale nada sozinho, como a prescrição de um paciente apagado</td></tr>
-    <tr><td><code>ON DELETE SET NULL</code></td><td>apaga só a ligação e deixa o campo vazio</td><td>quando a linha filha continua fazendo sentido</td></tr>
-  </table></div>
-  <div class="lbl">Passo 4 · Muitos para muitos: a tabela de ligação</div>
-  <p>Um paciente toma vários remédios, e um remédio é dado a vários pacientes. Nenhuma das duas tabelas guarda isso sozinha. A saída é uma terceira tabela, só com as duas chaves estrangeiras. A chave primária dela é o <strong>par</strong>, e assim o mesmo par não entra duas vezes:</p>
-  <div class="code"><pre>-- o molde (troque a e b pelas suas tabelas)
-CREATE TABLE a_b (
-  a_id  bigint NOT NULL REFERENCES a (id),
-  b_id  bigint NOT NULL REFERENCES b (id),
-  PRIMARY KEY (a_id, b_id)
-);</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list">
-    <li>Rode o <code>CREATE TABLE enf_internacao</code> e as 3 internações do passo 1.</li>
-    <li>Crie <code>enf_medicamento</code>: <code>id</code> gerado pelo banco (chave primária), <code>nome</code> (texto, obrigatório e <strong>único</strong>) e <code>unidade</code> (texto, obrigatório).</li>
-    <li>Crie a tabela de ligação <code>enf_prescricao</code>: <code>paciente_id</code> (aponta para <code>enf_paciente</code>, com <strong>ON DELETE CASCADE</strong>), <code>medicamento_id</code> (aponta para <code>enf_medicamento</code>) e <code>dose</code> (<code>numeric(7,2)</code>, obrigatória, maior que zero). A chave primária é o par <code>paciente_id, medicamento_id</code>.</li>
-    <li>Cadastre 2 medicamentos (por exemplo, Dipirona em mg e Heparina em UI) e prescreva pelo menos 2 (paciente, medicamento).</li>
-    <li>Liste quem <strong>ainda está internado</strong> (sem data de saída), com o setor do leito e o remédio prescrito. Quem não tem prescrição também precisa aparecer.</li>
-    <li>Aperte <strong>Conferir meu banco</strong>.</li>
-  </ul></div>
-  <details><summary>Dica</summary><div><p>Na consulta final, parta de <code>enf_internacao</code> com <code>WHERE saida IS NULL</code>, ligue paciente e leito com <code>JOIN</code> e use <code>LEFT JOIN</code> para a prescrição e o medicamento: assim quem não tem remédio não some (você viu isso na fase D).</p></div></details>
-  <details class="sol"><summary>Ver solução</summary><div>
-    <div class="code"><pre data-sql>CREATE TABLE enf_medicamento (
-  id       bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  nome     text NOT NULL UNIQUE,
-  unidade  text NOT NULL
-);
-
-CREATE TABLE enf_prescricao (
-  paciente_id     bigint NOT NULL REFERENCES enf_paciente (id) ON DELETE CASCADE,
-  medicamento_id  bigint NOT NULL REFERENCES enf_medicamento (id),
-  dose            numeric(7,2) NOT NULL CHECK (dose &gt; 0),
-  PRIMARY KEY (paciente_id, medicamento_id)
-);</pre></div>
-    <div class="code"><pre data-sql>INSERT INTO enf_medicamento (nome, unidade) VALUES
-  ('Dipirona', 'mg'),
-  ('Heparina', 'UI');
-
-INSERT INTO enf_prescricao (paciente_id, medicamento_id, dose)
-SELECT p.id, m.id, 500
-FROM enf_paciente p, enf_medicamento m
-WHERE p.nome = 'Aurora Nogueira' AND m.nome = 'Dipirona';
-
-INSERT INTO enf_prescricao (paciente_id, medicamento_id, dose)
-SELECT p.id, m.id, 5000
-FROM enf_paciente p, enf_medicamento m
-WHERE p.nome = 'Cecília Duarte' AND m.nome = 'Heparina';</pre></div>
-    <div class="code"><pre data-sql>SELECT p.nome, i.leito, l.setor, m.nome AS medicamento, r.dose
-FROM enf_internacao i
-JOIN enf_paciente p ON p.id = i.paciente_id
-JOIN enf_leito l ON l.codigo = i.leito
-LEFT JOIN enf_prescricao r ON r.paciente_id = p.id
-LEFT JOIN enf_medicamento m ON m.id = r.medicamento_id
-WHERE i.saida IS NULL
-ORDER BY p.nome;</pre></div>
-    <p>Para conferir, com as prescrições acima: <strong>2</strong> pacientes internados. A Aurora está no UTI-01 com Dipirona 500, e a Cecília no ENF-101 com Heparina 5000.</p></div></details>
-  <script type="application/json" class="confere">[
-    {"ok": "enf_internacao aponta para enf_paciente (chave estrangeira)", "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = to_regclass('public.enf_internacao') AND contype = 'f' AND confrelid = to_regclass('public.enf_paciente'))"},
-    {"ok": "enf_internacao aponta para enf_leito (chave estrangeira)", "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = to_regclass('public.enf_internacao') AND contype = 'f' AND confrelid = to_regclass('public.enf_leito'))"},
-    {"ok": "3 internações cadastradas", "sql": "SELECT (SELECT COUNT(*) FROM enf_internacao) >= 3"},
-    {"ok": "enf_medicamento: nome obrigatório e único", "sql": "SELECT EXISTS (SELECT 1 FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) WHERE i.indrelid = to_regclass('public.enf_medicamento') AND i.indisunique AND NOT i.indisprimary AND a.attname = 'nome' AND a.attnotnull)"},
-    {"ok": "enf_prescricao aponta para enf_paciente com ON DELETE CASCADE", "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = to_regclass('public.enf_prescricao') AND contype = 'f' AND confrelid = to_regclass('public.enf_paciente') AND confdeltype = 'c')"},
-    {"ok": "enf_prescricao aponta para enf_medicamento", "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = to_regclass('public.enf_prescricao') AND contype = 'f' AND confrelid = to_regclass('public.enf_medicamento'))"},
-    {"ok": "A chave primária de enf_prescricao é o par (paciente, medicamento)", "sql": "SELECT COALESCE((SELECT i.indnkeyatts = 2 FROM pg_index i WHERE i.indrelid = to_regclass('public.enf_prescricao') AND i.indisprimary), false)"},
-    {"ok": "dose só aceita valores maiores que zero (CHECK)", "sql": "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = to_regclass('public.enf_prescricao') AND contype = 'c' AND pg_get_constraintdef(oid) ILIKE '%dose%')"},
-    {"ok": "2 medicamentos cadastrados", "sql": "SELECT (SELECT COUNT(*) FROM enf_medicamento) >= 2"},
-    {"ok": "2 prescrições cadastradas", "sql": "SELECT (SELECT COUNT(*) FROM enf_prescricao) >= 2"}
-  ]</script>
-  <div class="done-row"><input type="checkbox" id="ok14"><label for="ok14">Fase F concluída</label></div>
-</section>
-
-<section class="fase bonus" id="fase15" data-fase="15" data-nome="Manutenção">
-  <div class="fase-head"><div class="num">G</div><div class="t"><h2>Manter a casa em ordem</h2><div class="sub">ALTER TABLE · CREATE INDEX · CREATE VIEW · DROP TABLE</div></div></div>
-  <div class="box"><b class="l">Para que serve</b><p>Banco de verdade muda o tempo todo: faltou uma coluna, a busca ficou lenta, todo dia alguém repete a mesma consulta, sobrou uma tabela de teste. Esta fase é a manutenção da casa: <code>ALTER TABLE</code> muda a estrutura <strong>sem perder os dados</strong>, o <strong>índice</strong> acelera a busca, a <strong>view</strong> guarda uma consulta com nome, e o <code>DROP</code> apaga o que não serve mais.</p></div>
-  <div class="tw tw-cmd"><table>
-    <tr><th>Comando</th><th>O que faz</th><th>No hospital</th></tr>
-    <tr><td><code>ALTER TABLE … ADD COLUMN</code></td><td>acrescenta uma coluna</td><td>incluir o telefone na ficha</td></tr>
-    <tr><td><code>ALTER TABLE … RENAME COLUMN</code></td><td>troca o nome de uma coluna</td><td>“apelido” vira “nome social”</td></tr>
-    <tr><td><code>ALTER TABLE … DROP COLUMN</code></td><td>apaga uma coluna e o que havia nela</td><td>tirar um campo que ninguém usa</td></tr>
-    <tr><td><code>CREATE INDEX</code></td><td>cria um “índice remissivo” para a busca ficar rápida</td><td>achar o paciente pelo nome sem folhear tudo</td></tr>
-    <tr><td><code>CREATE VIEW</code></td><td>guarda uma consulta com um nome, para usar como tabela</td><td>o relatório “quem está internado agora”</td></tr>
-    <tr><td><code>DROP TABLE</code></td><td>apaga a tabela inteira</td><td>jogar fora a ficha de teste</td></tr>
-  </table></div>
-  <div class="lbl">Passo 1 · Mudar a estrutura com ALTER TABLE</div>
-  <p>Vamos treinar numa tabela de <strong>rascunho</strong>, para não mexer nas suas tabelas de verdade. Rode o bloco inteiro:</p>
-  <div class="code"><pre data-sql>CREATE TABLE enf_rascunho (id integer, apelido text);
-ALTER TABLE enf_rascunho ADD COLUMN setor text;
-ALTER TABLE enf_rascunho RENAME COLUMN apelido TO nome_social;
-ALTER TABLE enf_rascunho DROP COLUMN setor;
-
-SELECT column_name, data_type
-FROM information_schema.columns
-WHERE table_name = 'enf_rascunho'
-ORDER BY ordinal_position;</pre></div>
-  <p>Também dá para <strong>acrescentar uma regra</strong> a uma tabela que já existe. Os dados que já estão lá precisam obedecer a ela:</p>
-  <div class="code"><pre data-sql>ALTER TABLE enf_leito
-  ADD CONSTRAINT enf_leito_codigo_maiusculo CHECK (codigo = upper(codigo));</pre></div>
-  <div class="code"><pre data-sql>-- ERRO de propósito: código em minúsculas agora é recusado
-INSERT INTO enf_leito (codigo, setor) VALUES ('uti-09', 'UTI');</pre></div>
-  <div class="lbl">Passo 2 · Não repita dados</div>
-  <p>Uma tabela só com tudo misturado parece mais fácil, mas repete a mesma informação em muitas linhas:</p>
-  <div class="tw"><table>
-    <tr><th colspan="4">Tudo numa tabela só (evite)</th></tr>
-    <tr><th>paciente</th><th>cpf</th><th>telefone</th><th>leito</th></tr>
-    <tr><td>Aurora Nogueira</td><td>111.222.333-44</td><td>(11) 90000-0001</td><td>UTI-01</td></tr>
-    <tr><td>Aurora Nogueira</td><td>111.222.333-44</td><td>(11) 90000-0001</td><td>ENF-101</td></tr>
-  </table></div>
-  <p>Se o telefone da Aurora mudar, você precisa corrigir em todas as linhas, e basta esquecer uma para o banco se contradizer. Separando em <code>enf_paciente</code> e <code>enf_internacao</code>, <strong>cada dado mora em um só lugar</strong>: corrige uma vez, e todas as consultas já enxergam o valor novo. Foi isso que você fez nas fases E e F.</p>
-  <div class="lbl">Passo 3 · Índice: o índice remissivo do banco</div>
-  <p>Sem índice, para achar um nome o banco lê a tabela inteira. Com índice, vai direto ao ponto, como no fim de um livro. Em tabelas grandes isso faz muita diferença. O custo é um pouco de espaço e uma gravação levemente mais lenta. A chave primária e o <code>UNIQUE</code> já criam índice sozinhos.</p>
-  <div class="code"><pre data-sql>CREATE INDEX idx_enf_paciente_nome ON enf_paciente (nome);
-
-SELECT indexname, indexdef
-FROM pg_indexes
-WHERE tablename = 'enf_paciente';</pre></div>
-  <div class="lbl">Passo 4 · View: uma consulta com nome</div>
-  <p>Uma <code>VIEW</code> não guarda dados: guarda a <strong>consulta</strong>. Cada vez que você pergunta, ela roda de novo com os dados de agora.</p>
-  <div class="code"><pre data-sql>CREATE VIEW enf_leitos_livres AS
-SELECT l.codigo, l.setor
-FROM enf_leito l
-WHERE l.ativo
-  AND NOT EXISTS (
-    SELECT 1 FROM enf_internacao i
-    WHERE i.leito = l.codigo AND i.saida IS NULL
-  );
-
-SELECT * FROM enf_leitos_livres;</pre></div>
-  <div class="lbl">Passo 5 · Apagar com cuidado</div>
-  <div class="code"><pre data-sql>DROP TABLE enf_rascunho;</pre></div>
-  <p><code>DROP</code> não pergunta “tem certeza?” e não tem desfazer. O banco ainda ajuda: ele não deixa apagar uma tabela de que outras dependem.</p>
-  <div class="code"><pre data-sql>-- ERRO de propósito: outras tabelas dependem da enf_paciente
-DROP TABLE enf_paciente;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list">
-    <li>Acrescente a <code>enf_paciente</code> a coluna <code>telefone</code> (texto) e preencha o telefone de um paciente.</li>
-    <li>Crie um índice chamado <code>idx_enf_internacao_paciente</code> na coluna <code>paciente_id</code> da tabela <code>enf_internacao</code> (é por ela que o JOIN procura).</li>
-    <li>Crie a view <code>enf_internados</code> com <code>nome</code>, <code>leito</code>, <code>setor</code> e <code>entrada</code> de quem <strong>ainda está internado</strong>, e consulte com <code>SELECT * FROM enf_internados</code>.</li>
-    <li>Aperte <strong>Conferir meu banco</strong>.</li>
-  </ul></div>
-  <details><summary>Dica</summary><div><p>A view é o <code>SELECT</code> da fase F (internação + paciente + leito, com <code>saida IS NULL</code>), só que escrito depois de <code>CREATE VIEW enf_internados AS</code>. O índice é <code>CREATE INDEX nome ON tabela (coluna)</code>.</p></div></details>
-  <details class="sol"><summary>Ver solução</summary><div>
-    <div class="code"><pre data-sql>ALTER TABLE enf_paciente ADD COLUMN telefone text;
-
-UPDATE enf_paciente
-SET telefone = '(11) 90000-0001'
-WHERE nome = 'Aurora Nogueira';</pre></div>
-    <div class="code"><pre data-sql>CREATE INDEX idx_enf_internacao_paciente ON enf_internacao (paciente_id);</pre></div>
-    <div class="code"><pre data-sql>CREATE VIEW enf_internados AS
-SELECT p.nome, i.leito, l.setor, i.entrada
-FROM enf_internacao i
-JOIN enf_paciente p ON p.id = i.paciente_id
-JOIN enf_leito l ON l.codigo = i.leito
-WHERE i.saida IS NULL;
-
-SELECT * FROM enf_internados;</pre></div>
-    <p>Para conferir: a view mostra <strong>2</strong> pacientes (Aurora no UTI-01 e Cecília no ENF-101). O Bento já teve alta.</p></div></details>
-  <script type="application/json" class="confere">[
-    {"ok": "Coluna telefone criada em enf_paciente", "sql": "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'enf_paciente' AND column_name = 'telefone')"},
-    {"ok": "Algum paciente tem telefone preenchido", "sql": "SELECT EXISTS (SELECT 1 FROM enf_paciente WHERE telefone IS NOT NULL)"},
-    {"ok": "Índice idx_enf_internacao_paciente criado em paciente_id", "sql": "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'enf_internacao' AND indexname = 'idx_enf_internacao_paciente' AND indexdef ILIKE '%(paciente_id)%')"},
-    {"ok": "View enf_internados criada", "sql": "SELECT EXISTS (SELECT 1 FROM pg_views WHERE schemaname = 'public' AND viewname = 'enf_internados')"},
-    {"ok": "A view mostra só quem ainda está internado", "sql": "SELECT (SELECT COUNT(*) FROM enf_internados) = (SELECT COUNT(*) FROM enf_internacao WHERE saida IS NULL)"}
-  ]</script>
-  <div class="done-row"><input type="checkbox" id="ok15"><label for="ok15">Fase G concluída</label></div>
-</section>
-
 <section class="fase" id="cola" style="gap:12px">
   <h2 style="font-size:32px">Cola do detetive</h2>
   <div class="tw"><table>
@@ -974,11 +639,6 @@ SELECT * FROM enf_internados;</pre></div>
     <tr><td><code>WHERE x = (SELECT …)</code></td><td>subconsulta: uma consulta dentro de outra</td></tr>
     <tr><td><code>CASE WHEN … THEN … ELSE … END</code></td><td>criar uma etiqueta a partir de condições</td></tr>
     <tr><td><code>LEFT JOIN</code> + <code>IS NULL</code></td><td>achar quem não tem par na outra tabela</td></tr>
-    <tr><td><code>CREATE TABLE</code></td><td>criar tabela nova</td></tr>
-    <tr><td><code>PRIMARY KEY</code>, <code>NOT NULL</code>, <code>UNIQUE</code>, <code>CHECK</code>, <code>DEFAULT</code></td><td>regras que o banco faz valer em cada coluna</td></tr>
-    <tr><td><code>REFERENCES outra (id)</code></td><td>chave estrangeira: liga a coluna a outra tabela</td></tr>
-    <tr><td><code>ALTER TABLE … ADD COLUMN</code></td><td>mudar a tabela sem perder os dados</td></tr>
-    <tr><td><code>CREATE INDEX</code> / <code>CREATE VIEW</code></td><td>busca rápida / consulta com nome</td></tr>
     <tr><td><code>INSERT INTO … VALUES</code></td><td>guardar linha nova</td></tr>
     <tr><td><code>UPDATE … SET … WHERE</code></td><td>corrigir (sempre com WHERE!)</td></tr>
     <tr><td><code>DELETE FROM … WHERE</code></td><td>apagar (sempre com WHERE!)</td></tr>
@@ -5484,12 +5144,12 @@ SELECT '✅ Jogo instalado! Volte para o guia e comece a Fase 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=f5b0d053"></script>
+<script src="js/app.js?v=65b9ae33"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=6652795a"></script>
-<script src="js/caderno.js?v=40f18c8b"></script>
+<script src="js/catalogo.js?v=ff6c1734"></script>
+<script src="js/caderno.js?v=be7fc87a"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b08cf78a"></script>
+<script src="js/computador.js?v=af7c5430"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

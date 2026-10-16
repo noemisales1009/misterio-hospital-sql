@@ -74,7 +74,7 @@
     });
   }
   // ------------------------------------------------------------------ as tabelas da pessoa
-  // O "caderno" (fase Extra) e as tabelas enf_* (fases E, F e G) são da pessoa, não do caso. O banco
+  // O "caderno" (fase Extra) e as tabelas enf_* (as fases do Treino) são da pessoa, não do caso. O banco
   // nasce de novo a cada visita, então guardamos no navegador os comandos que mexem SÓ nelas e os
   // refazemos ao ligar. Também vale para views (enf_...) e índices (idx_enf_...).
   var ALVO_ESCRITA = /\b(?:insert\s+into|update|delete\s+from|drop\s+(?:table|view|index)(?:\s+if\s+exists)?|alter\s+table(?:\s+if\s+exists)?(?:\s+only)?|truncate(?:\s+table)?|create\s+(?:or\s+replace\s+)?(?:table|view)(?:\s+if\s+not\s+exists)?|create\s+(?:unique\s+)?index(?:\s+if\s+not\s+exists)?(?:\s+"?[a-z_][a-z0-9_]*"?)?\s+on(?:\s+only)?)\s+"?([a-z_][a-z0-9_]*)"?/gi;
@@ -108,6 +108,18 @@
     todas[paginaAtual()] = lista;
     gravar(K_MINHAS, todas);
   }
+  // As tabelas enf_* nasceram no Caso 1 e agora são do Treino: quem já as criou no guia não perde nada.
+  function migraMinhasDoGuia() {
+    if (paginaAtual() !== "treino") return;
+    var todas = ler(K_MINHAS, {});
+    var doGuia = todas.guia || [];
+    var mover = doGuia.filter(function (sql) { return /enf_/i.test(sql); });
+    if (!mover.length || (todas.treino || []).length) return;
+    todas.treino = mover;
+    todas.guia = doGuia.filter(function (sql) { return !/enf_/i.test(sql); });
+    gravar(K_MINHAS, todas);
+  }
+  migraMinhasDoGuia();
   function temMinhas() { return (ler(K_MINHAS, {})[paginaAtual()] || []).length > 0; }
   function refazMinhas(db) {
     return (ler(K_MINHAS, {})[paginaAtual()] || []).reduce(function (p, sql) {
@@ -591,7 +603,7 @@
   }
 
   // ------------------------------------------------------------------ conferir o banco que a pessoa montou
-  // As fases de criar tabelas (E, F e G) trazem <script type="application/json" class="confere"> com uma
+  // As fases de criar tabelas (as do Treino) trazem <script type="application/json" class="confere"> com uma
   // lista de {ok, sql}: cada sql devolve verdadeiro quando aquele pedaço da missão está certo.
   function criaConfere(sec, pc, itens) {
     var caixa = el("div", "pc-confere");

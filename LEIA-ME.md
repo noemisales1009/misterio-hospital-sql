@@ -8,7 +8,8 @@ Aplicativo criado por Noemi Sales.
 
 | Caso | História | Nível | O que você pratica | Arquivos |
 |---|---|---|---|---|
-| 1 | A geladeira de vacinas | Iniciante, ensina do zero (16 fases) | `SELECT`, `WHERE`, `LIKE`, `JOIN`, `GROUP BY`, `CASE`, `LEFT JOIN`; nas fases E a G, criar e organizar um banco do zero: `CREATE TABLE`, `PRIMARY KEY`, `FOREIGN KEY`, `ALTER TABLE`, índice e view | `guia.html` e `banco_do_jogo.sql` |
+| 1 | A geladeira de vacinas | Iniciante, ensina do zero (13 fases) | `SELECT`, `WHERE`, `LIKE`, `JOIN`, `GROUP BY`, `CASE`, `LEFT JOIN` | `guia.html` e `banco_do_jogo.sql` |
+| Treino | Construir um banco do zero (sem culpado, opcional depois do Caso 1) | Iniciante, 3 fases | criar e organizar um banco: `CREATE TABLE`, `PRIMARY KEY`, `FOREIGN KEY`, `ALTER TABLE`, índice e view | `treino.html` e `treino.sql` |
 | 2 | O prontuário adulterado | Intermediário | `JOIN` de várias tabelas, `LEFT JOIN`, `HAVING` | `caso2.html` e `caso2.sql` |
 | 3 | O sumiço da morfina | Intermediário | `SUM`, `IS NULL`, `CASE`, `HAVING` | `caso3.html` e `caso3.sql` |
 | 4 | O surto na UTI | Intermediário | datas, `WITH`, taxa de ataque | `caso4.html` e `caso4.sql` |
@@ -32,7 +33,7 @@ Os casos 9 e 10 são sobre **segurança**: investigar quem acessou dado sensíve
 | Arquivo | Para que serve |
 |---|---|
 | `index.html` | Página inicial: escolha do caso, nome e botão "continuar de onde parei". |
-| `guia.html`, `caso2.html` … `caso14.html` | Os casos: explicações, missões, dicas e soluções. |
+| `guia.html`, `treino.html`, `caso2.html` … `caso14.html` | Os casos e o Treino: explicações, missões, dicas e soluções. |
 | `banco_do_jogo.sql`, `caso2.sql` … `caso14.sql` | Os bancos de dados de cada caso. Vão no SQL Editor do Supabase. |
 | `progresso.sql` | Só as tabelas da conta: progresso, perfil e anotações. Já está dentro do `banco_do_jogo.sql`. |
 | `css/estilo.css` | Visual. |

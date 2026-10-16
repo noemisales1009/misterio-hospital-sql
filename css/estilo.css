@@ -1184,3 +1184,9 @@ body.gav-desliza .wrap{transform:translateX(calc(var(--gav-shift,0px) * -1))}
 @keyframes vt-sai{to{opacity:0}}
 @keyframes vt-entra{from{opacity:0}}
 @media (prefers-reduced-motion:reduce){@view-transition{navigation:none}}
+
+/* Treino (módulo sem culpado): cartão em "planta", azulado, com contorno tracejado */
+.caso-card.treino .caso-n{color:var(--scrub)}
+.quadro .caso-card.treino{background:#e8f1f5;outline:2px dashed rgba(31,107,91,.5);outline-offset:-8px}
+.quadro .caso-card.treino .caso-n{color:#1f6b5b}
+.quadro .caso-card.treino.resolvido,.quadro .caso-card.treino.encerrado{background:#e8f1f5}

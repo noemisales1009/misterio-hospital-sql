@@ -2,6 +2,9 @@
 // Funciona sem conta (tudo no navegador). Com login, perfil e anotações vão para o Supabase.
 (function () {
   var CAT = window.MISTERIO_CATALOGO || [];
+  // "treino" = módulo sem culpado (construir um banco): conta nas fases, mas fica fora dos casos encerrados e da galeria
+  var CASOS = CAT.filter(function (c) { return !c.treino; });
+  function nomeCaso(cs) { return cs.treino ? "Treino" : "Caso " + cs.n; }
   var K_PROG = "misterio-sql-progresso", K_JOG = "misterio-sql-jogador", K_NOTAS = "misterio-sql-notas";
   // foto do jogador: reduzida a 256x256 e guardada como JPEG pequeno (data URL)
   var FOTO_MAX = 150000;
@@ -398,7 +401,7 @@
           comandosDaFase(fa).forEach(function (h) { habil[h] = true; });
         }
       });
-      if (c.fases.length && f === c.fases.length) casosOk++;
+      if (!c.treino && c.fases.length && f === c.fases.length) casosOk++;
     });
     var pct = total ? Math.round(feitas / total * 100) : 0;
     var nivel = 0;
@@ -412,6 +415,7 @@
     for (var pass = 0; pass < 2 && !melhor; pass++) {
       CAT.forEach(function (c) {
         if (melhor) return;
+        if (pass === 1 && c.treino) return;
         var comecou = c.fases.some(function (fa) { return st[fa.id]; });
         if (pass === 0 && !comecou) return;
         for (var i = 0; i < c.fases.length; i++) {
@@ -704,7 +708,7 @@
     c.appendChild(nv);
 
     var grade = el("div", "cad-stats");
-    [[r.feitas + "/" + r.total, "fases concluídas"], [r.casosOk + "/" + CAT.length, "casos encerrados"],
+    [[r.feitas + "/" + r.total, "fases concluídas"], [r.casosOk + "/" + CASOS.length, "casos encerrados"],
      [Object.keys(r.habil).length, "comandos aprendidos"], [r.qtdNotas, "anotações"]].forEach(function (s) {
       var d = el("div", "cad-stat"); d.appendChild(el("b", null, String(s[0]))); d.appendChild(el("span", null, s[1])); grade.appendChild(d);
     });
@@ -716,10 +720,10 @@
       var f = cs.fases.filter(function (fa) { return r.st[fa.id]; }).length;
       var ok = cs.fases.length && f === cs.fases.length;
       var s = el("div", "cad-selo" + (ok ? " ok" : ""));
-      s.title = "Caso " + cs.n + ": " + cs.titulo;
+      s.title = nomeCaso(cs) + ": " + cs.titulo;
       s.style.setProperty("--r", ((cs.n * 7) % 11 - 5) + "deg");
       s.appendChild(el("div", "cad-selo-i", ok ? "🏅" : "○"));
-      s.appendChild(el("div", "cad-selo-n", "Caso " + cs.n));
+      s.appendChild(el("div", "cad-selo-n", nomeCaso(cs)));
       s.appendChild(el("div", "cad-selo-t", cs.titulo));
       s.appendChild(el("div", "cad-nota", f + "/" + cs.fases.length));
       selos.appendChild(s);
@@ -925,7 +929,7 @@
       var feitas = cs.fases.filter(function (fa) { return r.st[fa.id]; }).length;
       var d = el("details", "cad-caso");
       if (ci === 0 || feitas > 0 && feitas < cs.fases.length) d.open = true;
-      var sm = el("summary", null, "Caso " + cs.n + " · " + cs.titulo + "  (" + feitas + "/" + cs.fases.length + ")");
+      var sm = el("summary", null, nomeCaso(cs) + " · " + cs.titulo + "  (" + feitas + "/" + cs.fases.length + ")");
       d.appendChild(sm);
       d.appendChild(barra(cs.fases.length ? Math.round(feitas / cs.fases.length * 100) : 0));
       var lista = el("div", "cad-fases");
@@ -1018,7 +1022,7 @@
     b.appendChild(el("p", null, texto));
     return b;
   }
-  function rotuloFase(x) { return "Caso " + x.caso.n + " · fase " + x.fase.num + " · " + (x.fase.titulo || x.fase.nome); }
+  function rotuloFase(x) { return nomeCaso(x.caso) + " · fase " + x.fase.num + " · " + (x.fase.titulo || x.fase.nome); }
   function copiaCmd(txt, btn) {
     var antes = btn.textContent;
     var ok = function () { btn.textContent = "Copiado!"; setTimeout(function () { btn.textContent = antes; }, 1500); };
@@ -1527,13 +1531,16 @@
     if (atual) { jaEncerrado = true; return; }
     var cul = CULPADOS[cs.arq];
     var p = el("section", "enc-painel"); p.id = "casoEncerrado";
-    p.setAttribute("aria-label", "Caso encerrado");
+    var fim = cs.treino ? "Treino concluído" : "Caso encerrado";
+    p.setAttribute("aria-label", fim);
     p.appendChild(carimboConcluido());
-    p.appendChild(el("p", "enc-caso", "Caso " + cs.n + " · " + cs.titulo));
-    p.appendChild(el("h2", null, jog.nome ? "Caso encerrado, " + jog.nome.split(" ")[0] + "!" : "Caso encerrado!"));
+    p.appendChild(el("p", "enc-caso", nomeCaso(cs) + " · " + cs.titulo));
+    p.appendChild(el("h2", null, jog.nome ? fim + ", " + jog.nome.split(" ")[0] + "!" : fim + "!"));
     if (cul) p.appendChild(fichaCulpado(cul, true));
-    var prox = CAT[CAT.indexOf(cs) + 1];
+    var prox = cs.treino ? CASOS[1] : CASOS[CASOS.indexOf(cs) + 1];
+    var treinoDepois = CAT[CAT.indexOf(cs) + 1];
     var acoes = el("div", "enc-acoes");
+    if (treinoDepois && treinoDepois.treino) { var t = el("a", "btn", "Treino opcional: " + treinoDepois.titulo + " →"); t.href = treinoDepois.arq; acoes.appendChild(t); }
     if (prox) { var a = el("a", "btn", "Próximo: Caso " + prox.n + " · " + prox.titulo + " →"); a.href = prox.arq; acoes.appendChild(a); }
     var home = el("a", "btn ghost", "Todos os casos"); home.href = "index.html"; acoes.appendChild(home);
     p.appendChild(acoes);
@@ -1545,7 +1552,7 @@
     if (aoVivo && !jaEncerrado) {
       p.classList.add("novo");
       try { p.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) {}
-      toast("🏆 Caso encerrado!" + (cul ? " Culpado: " + cul.nome : ""));
+      toast(cs.treino ? "🏆 Treino concluído!" : "🏆 Caso encerrado!" + (cul ? " Culpado: " + cul.nome : ""));
     }
     jaEncerrado = true;
   }
@@ -1758,7 +1765,7 @@
       var d = el("details", "cad-caso ach-caso" + (completo ? " completo" : ""));
       if (feitas > 0 && !completo) { d.open = true; algumAberto = true; }
       if (!primeiro) primeiro = d;
-      d.appendChild(el("summary", null, "Caso " + cs.n + " · " + cs.titulo + "  (" + feitas + "/" + cs.fases.length + ")" + (completo ? "  ✓" : "")));
+      d.appendChild(el("summary", null, nomeCaso(cs) + " · " + cs.titulo + "  (" + feitas + "/" + cs.fases.length + ")" + (completo ? "  ✓" : "")));
       var linha = el("ol", "ach-linha");
       cs.fases.forEach(function (fa, i) {
         var feita = !!r.st[fa.id], lib = liberada(cs.fases, i, r.st);
@@ -1912,7 +1919,7 @@
     sec.appendChild(el("h3", null, "Galeria dos culpados"));
     var fita = el("div", "galeria-fita");
     var giros = [-3.6, 2.8, -2.4, 3.8, -3, 2.4, -3.8, 3.2, -2.6, 3.6];
-    CAT.forEach(function (cs, i) {
+    CASOS.forEach(function (cs, i) {
       var cul = CULPADOS[cs.arq];
       var feito = casoCompleto(cs, r.st);
       var fig = el("figure", "galeria-foto");
@@ -1946,7 +1953,7 @@
     var rq = quadro ? quadro.getBoundingClientRect() : { left: 0, right: window.innerWidth };
     var sobraEsq = rq.left - 28;
     // as 10 fotos ficam na esquerda, em duas colunas (casos 1 a 5 e 6 a 10); o tamanho acompanha a altura da tela
-    var linhas = Math.ceil(CAT.length / 2);
+    var linhas = Math.ceil(CASOS.length / 2);
     var altura = window.innerHeight - 120;
     // com muitas fotos por coluna, o vão entre elas diminui para as fotos não ficarem minúsculas
     var vao = linhas > 5 ? 6 : 15;
@@ -1963,7 +1970,7 @@
     // a folga do "tortinho" fica dentro de cada coluna: as fotos não invadem a vizinha
     colA.style.padding = "0 " + Math.round(dxMax) + "px"; colB.style.padding = "0 " + Math.round(dxMax) + "px";
     colA.style.gap = colB.style.gap = vao + "px";
-    CAT.forEach(function (cs, i) {
+    CASOS.forEach(function (cs, i) {
       var cul = CULPADOS[cs.arq];
       var feito = casoCompleto(cs, r.st);
       var fig = el("figure", "mural-item mural-foto mini");
@@ -1992,12 +1999,12 @@
     // à direita: o andamento, em post-its
     var colNotas = el("div", "mural-col notas");
     var cores = ["#fff1a0", "#ffd9e2", "#d6f0c5", "#cfe6fb"];
-    var encerrados = CAT.filter(function (cs) { return casoCompleto(cs, r.st); });
+    var encerrados = CASOS.filter(function (cs) { return casoCompleto(cs, r.st); });
     var prox = proximaFase(r.st);
     var notas = [
       { t: "Nível " + (r.nivel + 1) + " · " + NIVEIS[r.nivel].nome, x: r.feitas + " de " + r.total + " fases concluídas." },
-      { t: "Casos encerrados", x: encerrados.length + " de " + CAT.length + (encerrados.length ? ". O último foi o Caso " + encerrados[encerrados.length - 1].n + "." : ". Falta pegar o primeiro culpado!") },
-      prox ? { t: "Próxima pista", x: "Caso " + prox.caso.n + " · " + (prox.fase.titulo || prox.fase.nome) }
+      { t: "Casos encerrados", x: encerrados.length + " de " + CASOS.length + (encerrados.length ? ". O último foi o Caso " + encerrados[encerrados.length - 1].n + "." : ". Falta pegar o primeiro culpado!") },
+      prox ? { t: "Próxima pista", x: nomeCaso(prox.caso) + " · " + (prox.fase.titulo || prox.fase.nome) }
            : { t: "Parabéns, detetive!", x: "Você encerrou todos os casos." }
     ];
     if (r.qtdNotas) notas.push({ t: "Suas anotações", x: r.qtdNotas + (r.qtdNotas === 1 ? " fase com anotação." : " fases com anotação.") });
@@ -2152,10 +2159,11 @@
     var wrap = document.querySelector(".wrap");
     if (!wrap || document.querySelector(".caso-nav")) return;
     var arq = arqAtual();
-    var i = CAT.map(function (c) { return c.arq; }).indexOf(arq);
-    if (i < 0) return;
+    var i = CASOS.map(function (c) { return c.arq; }).indexOf(arq);
+    var ehTreino = CAT.some(function (c) { return c.arq === arq && c.treino; });
+    if (i < 0 && !ehTreino) return;
     var nav = el("nav", "caso-nav"); nav.setAttribute("aria-label", "Outros casos");
-    var ant = CAT[i - 1], prox = CAT[i + 1];
+    var ant = ehTreino ? CASOS[0] : CASOS[i - 1], prox = ehTreino ? CASOS[1] : CASOS[i + 1];
     if (ant) { var a = el("a", "btn", "← Caso " + ant.n + " · " + ant.titulo); a.href = ant.arq; nav.appendChild(a); }
     var home = el("a", "btn", "Todos os casos"); home.href = "index.html"; nav.appendChild(home);
     if (prox) { var p = el("a", "btn", "Caso " + prox.n + " · " + prox.titulo + " →"); p.href = prox.arq; nav.appendChild(p); }
@@ -2201,7 +2209,7 @@
       var ic = el("span", "ic"); ic.setAttribute("aria-hidden", "true"); ic.innerHTML = ICONES.play;
       var tx = el("span", "bt-texto");
       tx.appendChild(el("b", null, r.feitas > 0 ? "Continuar de onde parou" : "Começar a investigar"));
-      tx.appendChild(el("small", null, "Caso " + prox.caso.n + " · " + (prox.fase.titulo || prox.fase.nome)));
+      tx.appendChild(el("small", null, nomeCaso(prox.caso) + " · " + (prox.fase.titulo || prox.fase.nome)));
       go.appendChild(ic); go.appendChild(tx);
       acoes.appendChild(go);
     } else {
@@ -2289,7 +2297,7 @@
     }
     if (gavetaEditor) gavetaEditor.descarrega();
     gavetaFase = fa.id;
-    gavetaCaso.textContent = "Caso " + cs.n + " · " + cs.titulo;
+    gavetaCaso.textContent = nomeCaso(cs) + " · " + cs.titulo;
     gavetaTitulo.textContent = fa.num + " · " + (fa.titulo || fa.nome);
     gavetaMissao.textContent = fa.missao || ""; gavetaMissao.hidden = !fa.missao;
     gavetaCorpo.textContent = "";
