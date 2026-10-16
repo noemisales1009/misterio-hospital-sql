@@ -16,7 +16,7 @@ const { PGlite } = await import(pathToFileURL(path.join(raiz, 'vendor/pglite/ind
 // Mesmas regras de js/caderno.js (CMD_IGNORAR e CMD_ALIAS): etiquetas que não são comandos
 // ficam de fora, e duas grafias do mesmo conceito viram uma só.
 const CMD_IGNORAR = { 'fechar o caso': 1, 'tudo junto': 1 };
-const CMD_ALIAS = { subconsulta: 'SUBCONSULTA' };
+const CMD_ALIAS = { subconsulta: 'SUBCONSULTA', length: 'LENGTH', 'ROW_NUMBER()': 'ROW_NUMBER', 'SUM() FILTER': 'SUM(…) FILTER' };
 
 // ------------------------------------------------------------------ as explicações
 // c(o, h, ex, extras): o = o que faz · h = no hospital · ex = exemplo (SQL) · extras: pre, nota, db
@@ -1342,7 +1342,233 @@ ROLLBACK;`,
     `BEGIN;
 UPDATE ctp_conta SET desconto = 0 WHERE id = 1;
 COMMIT;`,
-    { nota: 'Confirma de verdade: use num banco seu, como o do Supabase do jogo.', semLinhas: true })
+    { nota: 'Confirma de verdade: use num banco seu, como o do Supabase do jogo.', semLinhas: true }),
+
+  // ---------- caso 15 (receita falsa: expressões regulares)
+  'SIMILAR TO': c(
+    'Compara o texto com um padrão, a meio caminho entre o LIKE e as expressões regulares: aceita o % e o _ do LIKE, e também | (ou), ( ) e [ ] das regex.',
+    'Um molde de carimbo livre: “CRM, duas letras, seis números”.',
+    `SELECT crm_texto, COUNT(*) AS receitas
+FROM rx_receita
+WHERE crm_texto SIMILAR TO 'CRM-[A-Z]{2} [0-9]{6}'
+GROUP BY crm_texto
+LIMIT 5;`),
+  '~': c(
+    'Testa se o texto combina com uma expressão regular (regex). Diferencia maiúscula de minúscula. O ^ marca o começo, o $ marca o fim e o \\d é um dígito.',
+    'Conferir se o CRM segue o molde “CRM-UF 000000”, em vez de comparar letra por letra.',
+    `SELECT crm_texto
+FROM rx_receita
+WHERE crm_texto ~ '^CRM-[A-Z]{2} \\d{6}$'
+LIMIT 5;`),
+  '!~': c(
+    'O contrário do ~: pega o texto que NÃO combina com o padrão. Ótimo para achar o que saiu do formato.',
+    'Separar as fichas de CRM escrito fora do padrão.',
+    `SELECT crm_texto, COUNT(*) AS receitas
+FROM rx_receita
+WHERE crm_texto !~ '^CRM-[A-Z]{2} \\d{6}$'
+GROUP BY crm_texto
+ORDER BY receitas DESC
+LIMIT 5;`),
+  '~*': c(
+    'Igual ao ~, mas sem diferenciar maiúscula de minúscula.',
+    'Procurar “crm” escrito de qualquer jeito: CRM, crm, Crm.',
+    `SELECT DISTINCT crm_texto
+FROM rx_receita
+WHERE crm_texto ~* '^crm'
+LIMIT 5;`),
+  'regexp_replace': c(
+    'Troca, dentro do texto, tudo o que combina com um padrão por outra coisa. É o REPLACE turbinado.',
+    'Passar o corretor em todos os pontos, traços e espaços do CRM de uma vez só.',
+    `SELECT crm_texto,
+       regexp_replace(crm_texto, '[^0-9]', '', 'g') AS so_numeros
+FROM rx_receita
+LIMIT 5;`),
+  '\\D': c(
+    'Dentro de uma regex, \\D quer dizer “qualquer coisa que não seja dígito”. Já o \\d é o dígito. Trocar \\D por vazio deixa só os números.',
+    'Rasgar tudo o que não é número no CRM escrito à mão.',
+    `SELECT regexp_replace('CRM-SP 12.345-6', '\\D', '', 'g') AS so_numeros;`),
+  "'g'": c(
+    'A letra g (de global) no fim do regexp_replace manda trocar todas as ocorrências. Sem ela, só a primeira é trocada.',
+    'Corrigir todos os pontos do número, e não só o primeiro.',
+    `SELECT regexp_replace('1.234.567', '\\.', '')     AS sem_g,
+       regexp_replace('1.234.567', '\\.', '', 'g') AS com_g;`),
+  'regexp_match': c(
+    'Devolve as partes do texto que combinam com os grupos ( ) do padrão, numa lista. O primeiro grupo é o item [1], o segundo é o [2]...',
+    'Cortar o CRM em número e sufixo de uma vez.',
+    `SELECT crm_texto,
+       regexp_match(crm_texto, '(\\d+)(P?)') AS partes
+FROM rx_receita
+LIMIT 5;`),
+  'grupos ( )': c(
+    'Parênteses numa regex marcam um pedaço para guardar. No regexp_match, cada grupo vira um item do resultado: (\\d+) pega os dígitos, e (P?) pega um P, se houver.',
+    'Separar o número do CRM e a letra que vem depois.',
+    `SELECT (regexp_match('CRM-SP 093417P', '(\\d+)(P?)'))[1] AS numero,
+       (regexp_match('CRM-SP 093417P', '(\\d+)(P?)'))[2] AS sufixo;`),
+  '[^…]': c(
+    'Colchetes definem um conjunto de caracteres. Com ^ logo no começo, [^A-Z0-9] quer dizer “qualquer coisa que NÃO seja letra maiúscula ou número”.',
+    'Tudo o que não é letra nem número: pontos, traços e espaços.',
+    `SELECT regexp_replace('CRM-SP 12.345', '[^A-Za-z0-9]', '', 'g') AS limpo;`),
+  'substring … from': c(
+    'Tira do texto o pedaço que combina com uma regex: substring(texto from \'padrão\'). Se o padrão tem parênteses, devolve só o grupo.',
+    'Pegar só o número que está escrito no meio do CRM.',
+    `SELECT crm_texto,
+       substring(crm_texto from '\\d+') AS numero
+FROM rx_receita
+LIMIT 5;`),
+  'regexp_matches': c(
+    'Como o regexp_match, mas com a opção g devolve todas as ocorrências, uma por linha. Serve para contar quantas vezes uma palavra aparece.',
+    'Contar de quantas maneiras diferentes a palavra “comprimido” foi escrita.',
+    `SELECT lower(m[1]) AS palavra, COUNT(*) AS vezes
+FROM rx_receita, regexp_matches(texto_receita, 'compr\\w*', 'gi') AS m
+GROUP BY palavra
+ORDER BY vezes DESC;`),
+  "'gi'": c(
+    'Opções do regexp_matches e do regexp_replace: g (todas as ocorrências) e i (ignora maiúsculas). Juntas: \'gi\'.',
+    'Achar todas as vezes que a palavra aparece, em maiúscula ou minúscula.',
+    `SELECT regexp_matches('Comprimido, comprimdo, COMPRIMIDO', 'compr\\w*', 'gi');`),
+  'split_part': c(
+    'Corta o texto por um separador e devolve o pedaço de número N. split_part(texto, \' | \', 4) pega o quarto pedaço.',
+    'Abrir a receita nos traços e ler só o campo do carimbo.',
+    `SELECT split_part(texto_receita, ' | ', 4) AS carimbo,
+       COUNT(*) AS receitas
+FROM rx_receita
+GROUP BY carimbo
+ORDER BY receitas DESC
+LIMIT 5;`),
+  'position': c(
+    'Diz em que posição um texto aparece dentro de outro: 1 é a primeira letra, e 0 quer dizer que não achou. position(\'x\' IN texto).',
+    'Descobrir em qual letra da linha está o traço do CRM.',
+    `SELECT crm_texto,
+       position('-' IN crm_texto) AS posicao_do_traco
+FROM rx_receita
+LIMIT 5;`),
+
+  // ---------- caso 16 (relatório da diretoria: ROLLUP/CUBE, ilhas e lacunas)
+  'ROLLUP': c(
+    'Agrupa como o GROUP BY e acrescenta, de graça, as linhas de subtotal e a de total geral. ROLLUP (setor, mes) dá o valor de cada mês, o subtotal de cada setor e o total geral.',
+    'O relatório da diretoria: um valor por setor, com a linha TOTAL no fim.',
+    `WITH base AS (
+  SELECT s.nome AS setor, c.qtd * m.valor_unit AS valor
+  FROM opme_consumo c
+  JOIN opme_material m ON m.codigo = c.material
+  JOIN opme_setor s ON s.cc = c.cc
+)
+SELECT COALESCE(setor, 'TOTAL') AS setor, SUM(valor) AS valor
+FROM base
+GROUP BY ROLLUP (setor)
+ORDER BY GROUPING(setor), valor DESC;`),
+  'GROUPING()': c(
+    'Diz se a linha é um subtotal: devolve 1 quando a coluna foi “somada” (fica NULL no subtotal) e 0 numa linha normal. Serve para escrever TOTAL no lugar do NULL e para ordenar os subtotais no fim.',
+    'Distinguir a linha “TOTAL” de um setor que simplesmente tem o nome em branco.',
+    `WITH base AS (
+  SELECT s.nome AS setor,
+         to_char(c.lancado_em, 'YYYY-MM') AS mes,
+         c.qtd * m.valor_unit AS valor
+  FROM opme_consumo c
+  JOIN opme_material m ON m.codigo = c.material
+  JOIN opme_setor s ON s.cc = c.cc
+)
+SELECT CASE WHEN GROUPING(setor) = 1 THEN 'TOTAL GERAL' ELSE setor END AS setor,
+       CASE WHEN GROUPING(mes) = 1 THEN 'subtotal' ELSE mes END AS mes,
+       SUM(valor) AS valor
+FROM base
+GROUP BY ROLLUP (setor, mes)
+ORDER BY GROUPING(setor), setor, GROUPING(mes), mes;`),
+  'pivot': c(
+    'Virar linhas em colunas: o mês deixa de ser uma linha e vira uma coluna (julho, agosto, setembro). No Postgres se faz com SUM(...) FILTER ou com CASE.',
+    'A tabela cruzada da planilha: setores nas linhas, meses nas colunas.',
+    `WITH base AS (
+  SELECT s.nome AS setor,
+         to_char(c.lancado_em, 'YYYY-MM') AS mes,
+         c.qtd * m.valor_unit AS valor
+  FROM opme_consumo c
+  JOIN opme_material m ON m.codigo = c.material
+  JOIN opme_setor s ON s.cc = c.cc
+)
+SELECT setor,
+       SUM(valor) FILTER (WHERE mes = '2026-07') AS julho,
+       SUM(valor) FILTER (WHERE mes = '2026-08') AS agosto,
+       SUM(valor) FILTER (WHERE mes = '2026-09') AS setembro,
+       SUM(valor) AS trimestre
+FROM base
+GROUP BY setor
+ORDER BY trimestre DESC;`),
+  'CUBE': c(
+    'Como o ROLLUP, mas calcula todas as combinações: por setor, por categoria, pelos dois juntos e o total geral.',
+    'Olhar o gasto por todos os cantos: por setor, por tipo de material e pelos dois.',
+    `SELECT COALESCE(s.nome, '(todos)') AS setor_que_pagou,
+       COALESCE(m.categoria, '(todas)') AS categoria,
+       SUM(c.qtd) AS unidades,
+       SUM(c.qtd * m.valor_unit) AS valor
+FROM opme_consumo c
+JOIN opme_material m ON m.codigo = c.material
+JOIN opme_setor s ON s.cc = c.cc
+WHERE m.categoria LIKE 'stent%'
+GROUP BY CUBE (s.nome, m.categoria)
+ORDER BY GROUPING(s.nome), s.nome, GROUPING(m.categoria), m.categoria;`),
+  'GROUPING SETS': c(
+    'Você escolhe exatamente quais agrupamentos quer, numa consulta só. GROUPING SETS ((a, b), ()) agrupa por a e b e também dá o total geral (o conjunto vazio, ()).',
+    'Pedir só os subtotais que interessam, sem as outras combinações.',
+    `SELECT COALESCE(ci.setor, 'TOTAL') AS setor_que_operou,
+       c.cc AS cc_que_pagou,
+       COUNT(*) AS lancamentos,
+       SUM(c.qtd * m.valor_unit) AS valor
+FROM opme_consumo c
+JOIN opme_cirurgia ci ON ci.id = c.cirurgia_id
+JOIN opme_material m ON m.codigo = c.material
+WHERE ci.setor <> c.cc
+GROUP BY GROUPING SETS ((ci.setor, c.cc), ())
+ORDER BY GROUPING(ci.setor), valor DESC;`),
+  'ilhas e lacunas': c(
+    'Técnica para achar sequências seguidas (as ilhas) e os buracos entre elas (as lacunas). Dias seguidos formam uma ilha: dia menos ROW_NUMBER dá o mesmo número para dias consecutivos, e aí dá para agrupar.',
+    'Descobrir quantos dias seguidos o setor lançou material, e quando houve folga.',
+    `WITH dias AS (
+  SELECT DISTINCT c.lancado_em::date AS dia
+  FROM opme_consumo c
+),
+grupos AS (
+  SELECT dia, dia - ROW_NUMBER() OVER (ORDER BY dia)::int AS grupo
+  FROM dias
+)
+SELECT MIN(dia) AS inicio, MAX(dia) AS fim, COUNT(*) AS dias_seguidos
+FROM grupos
+GROUP BY grupo
+ORDER BY inicio
+LIMIT 5;`),
+  'ROW_NUMBER() OVER (PARTITION BY)': c(
+    'O ROW_NUMBER numerando dentro de cada grupo (PARTITION BY): a numeração recomeça do 1 em cada pessoa, ou em cada pessoa e turno.',
+    'Numerar os plantões de cada profissional, recomeçando em cada um.',
+    `SELECT login, turno, data,
+       ROW_NUMBER() OVER (PARTITION BY login, turno ORDER BY data) AS n
+FROM opme_escala
+ORDER BY login, turno, data
+LIMIT 6;`),
+  'ilhas por pessoa': c(
+    'A mesma técnica das ilhas, mas separada por pessoa e turno (PARTITION BY login, turno). Mostra quem trabalhou vários dias seguidos no mesmo plantão.',
+    'Achar quem pegou o plantão da noite por uma semana inteira.',
+    `WITH t AS (
+  SELECT login, turno, data,
+         data - ROW_NUMBER() OVER (PARTITION BY login, turno ORDER BY data)::int AS grupo
+  FROM opme_escala
+)
+SELECT q.nome, t.turno,
+       MIN(t.data) AS inicio, MAX(t.data) AS fim,
+       COUNT(*) AS plantoes_seguidos
+FROM t
+JOIN opme_equipe q ON q.login = t.login
+GROUP BY q.nome, t.turno, t.grupo
+HAVING COUNT(*) >= 3
+ORDER BY plantoes_seguidos DESC;`),
+  'JOIN com a escala': c(
+    'Ligar um lançamento à escala de plantão pela data e pelo turno (dia ou noite, conforme a hora). Assim você descobre quem estava de plantão naquele momento.',
+    'Abrir a folha de plantão do dia e do turno em que o material saiu.',
+    `SELECT c.id, c.lancado_em, e.turno, q.nome
+FROM opme_consumo c
+JOIN opme_escala e
+  ON e.data = c.lancado_em::date
+ AND e.turno = CASE WHEN EXTRACT(HOUR FROM c.lancado_em) >= 19 THEN 'noite' ELSE 'dia' END
+JOIN opme_equipe q ON q.login = e.login
+LIMIT 5;`)
 };
 
 // ------------------------------------------------------------------ catálogo e validação

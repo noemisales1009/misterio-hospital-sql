@@ -51,6 +51,16 @@ for (const cs of catalogo) {
   for (const fa of cs.fases) {
     const m = html.match(new RegExp('<section[^>]*id="' + fa.id + '"[^>]*>([\\s\\S]*?)</section>'));
     if (!m) continue;
+    // fases que criam tabelas (Extra do caderno, E, F e G): o passo a passo monta o banco que as soluções
+    // usam, então os exemplos rodam antes, menos os "erro de propósito"
+    const semSolucao = m[1].replace(/<details class="sol"[\s\S]*?<\/details>/g, '');
+    const exemplos = [...semSolucao.matchAll(/<pre data-sql>([\s\S]*?)<\/pre>/g)].map((x) => destag(x[1]));
+    if (exemplos.some((e) => /\bcreate\s+table\b/i.test(e))) {
+      for (const exemplo of exemplos) {
+        if (/^--\s*ERRO de propósito/.test(exemplo)) continue;
+        try { await db.exec(exemplo); } catch (e) { /* um exemplo que falha não impede o resto */ }
+      }
+    }
     const solucoes = [...m[1].matchAll(/<details class="sol"[\s\S]*?<\/details>/g)]
       .flatMap((d) => [...d[0].matchAll(/<pre data-sql>([\s\S]*?)<\/pre>/g)].map((x) => destag(x[1])));
     if (!solucoes.length) continue;
@@ -75,6 +85,7 @@ for (const cs of catalogo) {
     }
     saida[fa.id] = lista;
   }
+  await db.close();   // um banco aberto por vez: vários ao mesmo tempo estouram a memória
   console.log(cs.arq.padEnd(12), 'ok');
 }
 
