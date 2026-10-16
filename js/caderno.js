@@ -1065,20 +1065,29 @@
     largo: { d: "M50 24 C65 24 72 35 71.5 47 C71 60 64.5 72.5 50 73.5 C35.5 72.5 29 60 28.5 47 C28 35 35 24 50 24Z", ex: 21.5 },
     fino:  { d: "M50 22 C63 22 69 33 68.5 46 C68 59 62.5 72.5 50 75 C37.5 72.5 32 59 31.5 46 C31 33 37 22 50 22Z", ex: 18.5 }
   };
+  // sugere cachos com pequenos arcos dentro da massa de cabelo
+  function cachos(base, luz, pontos) {
+    var a = "";
+    pontos.forEach(function (p, i) {
+      var r = 2.6 + (i % 3) * 0.5;
+      a += '<path d="M' + (p[0] - r) + ' ' + p[1] + ' a' + r + ' ' + r + ' 0 0 1 ' + (2 * r) + ' 0 a' + (r * 0.7) + ' ' + (r * 0.7) + ' 0 0 1 -' + (r * 1.1) + ' ' + (r * 1.1) + '" fill="none" stroke="' + luz + '" stroke-width="1" stroke-linecap="round" opacity=".32"/>';
+    });
+    return base + a;
+  }
   function cabeloTras(h, F, luz) {
     var f = ' fill="' + F + '"';
     if (h === "comprido") return '<path d="M27 52 C19 12 81 12 73 52 L79 97 C60 104 40 104 21 97 Z"' + f + '/><path d="M30 40 Q27 70 30 94 M70 40 Q73 70 70 94" stroke="' + luz + '" stroke-width="1.2" fill="none" opacity=".3"/>';
     if (h === "ondulado") return '<path d="M27.5 50 C19 13 81 13 72.5 50 C80 62 74 74 80 88 C72 91 68 82 62 90 L38 90 C32 82 28 91 20 88 C26 74 20 62 27.5 50Z"' + f + '/><path d="M27 58 Q24 72 26 84 M73 58 Q76 72 74 84" stroke="' + luz + '" stroke-width="1.2" fill="none" opacity=".3"/>';
-    if (h === "cacheado") return '<circle cx="50" cy="38" r="26"' + f + '/><circle cx="27" cy="52" r="10"' + f + '/><circle cx="73" cy="52" r="10"' + f + '/><circle cx="32" cy="65" r="8"' + f + '/><circle cx="68" cy="65" r="8"' + f + '/><circle cx="33" cy="30" r="9"' + f + '/><circle cx="67" cy="30" r="9"' + f + '/>';
-    if (h === "volume") return '<circle cx="50" cy="35" r="30"' + f + '/><circle cx="24" cy="48" r="11"' + f + '/><circle cx="76" cy="48" r="11"' + f + '/><circle cx="30" cy="26" r="12"' + f + '/><circle cx="70" cy="26" r="12"' + f + '/><circle cx="50" cy="12" r="12"' + f + '/>';
+    if (h === "cacheado") return cachos('<circle cx="50" cy="38" r="26"' + f + '/><circle cx="27" cy="52" r="10"' + f + '/><circle cx="73" cy="52" r="10"' + f + '/><circle cx="32" cy="65" r="8"' + f + '/><circle cx="68" cy="65" r="8"' + f + '/><circle cx="33" cy="30" r="9"' + f + '/><circle cx="67" cy="30" r="9"' + f + '/>', luz, [[40, 21], [50, 17], [60, 21], [27, 54], [73, 54], [32, 66], [68, 66], [34, 30], [66, 30]]);
+    if (h === "volume") return cachos('<circle cx="50" cy="37" r="28"' + f + '/><circle cx="24" cy="49" r="11"' + f + '/><circle cx="76" cy="49" r="11"' + f + '/><circle cx="31" cy="29" r="12"' + f + '/><circle cx="69" cy="29" r="12"' + f + '/><circle cx="50" cy="18" r="12"' + f + '/>', luz, [[38, 14], [50, 10], [62, 14], [28, 22], [72, 22], [21, 44], [79, 44], [30, 34], [70, 34], [44, 20], [56, 20]]);
     if (h === "coque") return '<circle cx="50" cy="12.5" r="10.5"' + f + '/><path d="M44 9 Q50 5.5 56 9 M43 13 Q50 10 57 13 M44.5 17 Q50 15 55.5 17" stroke="' + luz + '" stroke-width="1.1" fill="none" opacity=".4" stroke-linecap="round"/>';
     if (h === "rabo") return '<path d="M66 33 C87 29 96 57 86 86 C84 72 78 62 67 54Z"' + f + '/><path d="M76 42 Q85 56 82 76" stroke="' + luz + '" stroke-width="1.3" fill="none" opacity=".35" stroke-linecap="round"/>';
     return "";
   }
-  function cabeloFrente(h, F, luz, sombra) {
+  function cabeloFrente(h, F, luz, sombra, id) {
     var f = ' fill="' + F + '"';
     var fios = function (d) { return '<path d="' + d + '" stroke="' + luz + '" stroke-width="1.2" fill="none" opacity=".42" stroke-linecap="round"/>'; };
-    if (h === "careca") return '<path d="M30.4 49 C29.4 35 40 26.5 50 26.5 C60 26.5 70.6 35 69.6 49 C66.6 39.5 59.5 33 50 33 C40.5 33 33.4 39.5 30.4 49Z"' + f + ' opacity=".2"/><ellipse cx="50" cy="29.5" rx="10" ry="3.2" fill="#fff" opacity=".24"/>';
+    if (h === "careca") return '<path d="M30.4 49 C29.4 35 40 26.5 50 26.5 C60 26.5 70.6 35 69.6 49 C66.6 39.5 59.5 33 50 33 C40.5 33 33.4 39.5 30.4 49Z"' + f + ' opacity=".2"/><ellipse cx="48" cy="30" rx="13" ry="6.5" fill="url(#' + id + 'b)"/>';
     if (h === "raspado") return '<path d="M30.6 46 C29 28 40 20.5 50 20.5 C60 20.5 71 28 69.4 46 C67 37 59.5 31.5 50 31.5 C40.5 31.5 33 37 30.6 46Z"' + f + ' opacity=".5"/>' +
       '<path d="M31.4 42 C30.4 28 40.5 21.2 50 21.2 C59.5 21.2 69.6 28 68.6 42 C65.5 34.5 59 28.5 50 28.5 C41 28.5 34.5 34.5 31.4 42Z"' + f + ' opacity=".96"/>' + fios("M39 25.5 Q50 21.8 61 25.5");
     if (h === "social") return '<path d="M29.5 49 C26 21 48 13 62 18 C71.5 22.5 74 36 70.5 49 C68.5 38.5 64 33 57.5 31 C48.5 35 38 31.5 33.5 39 C31.5 42 30.5 45.5 29.5 49Z"' + f + '/>' +
@@ -1176,9 +1185,10 @@
     var s = '<svg viewBox="3 6 94 94" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Retrato de ' + nome + '">';
     s += '<defs>' +
       '<radialGradient id="' + id + 'p" cx=".4" cy=".3" r=".85"><stop offset="0" stop-color="' + clareia(pele[0], .14) + '"/><stop offset=".55" stop-color="' + pele[0] + '"/><stop offset="1" stop-color="' + pele[1] + '"/></radialGradient>' +
-      '<linearGradient id="' + id + 'h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + clareia(cab, .16) + '"/><stop offset=".5" stop-color="' + cab + '"/><stop offset="1" stop-color="' + clareia(cab, -.3) + '"/></linearGradient>' +
+      '<linearGradient id="' + id + 'h" gradientUnits="userSpaceOnUse" x1="0" y1="6" x2="0" y2="96"><stop offset="0" stop-color="' + clareia(cab, .16) + '"/><stop offset=".5" stop-color="' + cab + '"/><stop offset="1" stop-color="' + clareia(cab, -.3) + '"/></linearGradient>' +
       '<linearGradient id="' + id + 's" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".34"/><stop offset=".26" stop-color="#000" stop-opacity="0"/><stop offset=".74" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".34"/></linearGradient>' +
       '<linearGradient id="' + id + 'n" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + clareia(pele[1], -.12) + '"/><stop offset=".4" stop-color="' + pele[1] + '"/><stop offset=".75" stop-color="' + pele[0] + '"/></linearGradient>' +
+      '<radialGradient id="' + id + 'b"><stop offset="0" stop-color="#fff" stop-opacity=".4"/><stop offset=".6" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
       '<clipPath id="' + id + 't"><path d="M3 112 C5 90 26 81 50 81 C74 81 95 90 97 112 Z"/></clipPath>' +
       '</defs>';
     s += cabeloTras(t.h, F, luz);
@@ -1215,7 +1225,7 @@
     s += '<path d="M50.6 50 C51.4 54 52.4 57 51.2 59 Q50 60.2 48.8 59 C47.8 57.6 48.4 55.8 49 54" fill="none" stroke="' + pele[1] + '" stroke-width=".95" stroke-linecap="round" opacity=".7"/>' +
       '<path d="M52.4 53 Q53.6 57 51.8 59" fill="none" stroke="#000" stroke-width="1.6" opacity=".05"/>' +
       '<ellipse cx="48.6" cy="59.6" rx=".9" ry=".5" fill="' + pele[1] + '" opacity=".75"/><ellipse cx="51.4" cy="59.6" rx=".9" ry=".5" fill="' + pele[1] + '" opacity=".75"/>';
-    s += cabeloFrente(t.h, F, luz, sombra);
+    s += cabeloFrente(t.h, F, luz, sombra, id);
     // boca (por cima da barba)
     var labio = t.ci ? "#b5504a" : "#9b5146";
     var boca = t.s === "serio" ? '<path d="M44.4 65.8 Q50 67.2 55.6 65.8" stroke="#7a3b2e" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M46.5 67.6 Q50 68.8 53.5 67.6" stroke="' + labio + '" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".75"/>'
