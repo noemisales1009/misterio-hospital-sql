@@ -368,6 +368,20 @@
   var notas = ler(K_NOTAS, {});
 
   // ------------------------------------------------------------------ cálculos
+  // Comandos da aba "Comandos": vêm do subtítulo de cada fase. "fechar o caso" e "tudo junto" não são
+  // comandos, e "subconsulta" é o mesmo que "SUBCONSULTA" (mantenha igual em scripts/gerar-comandos.mjs).
+  var CMD_IGNORAR = { "fechar o caso": 1, "tudo junto": 1 };
+  var CMD_ALIAS = { "subconsulta": "SUBCONSULTA" };
+  function comandosDaFase(fa) {
+    var lista = [];
+    (fa.sub || "").split("·").forEach(function (h) {
+      h = h.trim();
+      if (!h || CMD_IGNORAR[h]) return;
+      h = CMD_ALIAS[h] || h;
+      if (lista.indexOf(h) === -1) lista.push(h);
+    });
+    return lista;
+  }
   function estado() { return ler(K_PROG, {}); }
   function liberada(fases, i, st) {
     return i === 0 || !!st[fases[i - 1].id] || !!st[fases[i].id];
@@ -381,7 +395,7 @@
         total++;
         if (st[fa.id]) {
           feitas++; f++;
-          (fa.sub || "").split("·").forEach(function (h) { h = h.trim(); if (h) habil[h] = true; });
+          comandosDaFase(fa).forEach(function (h) { habil[h] = true; });
         }
       });
       if (c.fases.length && f === c.fases.length) casosOk++;
@@ -942,23 +956,145 @@
 
   function paginaComandos(r) {
     var c = corpo;
-    c.appendChild(el("p", "cad-nota", "Os comandos se acendem conforme você conclui as fases em que eles aparecem."));
-    var todos = {}, ordem = [];
+    c.appendChild(el("p", "cad-nota", "Os comandos se acendem conforme você conclui as fases em que eles aparecem. Toque num comando aceso para ver a explicação."));
+    var onde = {}, ordem = [];   // comando -> fases em que ele aparece
     CAT.forEach(function (cs) {
-      cs.fases.forEach(function (fa) {
-        (fa.sub || "").split("·").forEach(function (h) {
-          h = h.trim(); if (!h) return;
-          if (!(h in todos)) { todos[h] = false; ordem.push(h); }
-          if (r.st[fa.id]) todos[h] = true;
+      cs.fases.forEach(function (fa, i) {
+        comandosDaFase(fa).forEach(function (h) {
+          if (!(h in onde)) { onde[h] = []; ordem.push(h); }
+          onde[h].push({ caso: cs, fase: fa, i: i });
         });
       });
     });
     var g = el("div", "cad-cmds");
     ordem.forEach(function (h) {
-      g.appendChild(el("span", "cad-cmd" + (todos[h] ? " ok" : ""), h));
+      var aceso = !!r.habil[h];
+      var b = el("button", "cad-cmd" + (aceso ? " ok" : ""), h); b.type = "button";
+      b.title = aceso ? "Ver a explicação" : "Trancado: conclua uma fase em que ele aparece";
+      b.addEventListener("click", function () { abreComando(h, onde[h]); });
+      g.appendChild(b);
     });
     c.appendChild(g);
     c.appendChild(el("p", "cad-nota", Object.keys(r.habil).length + " de " + ordem.length + " aprendidos."));
+  }
+
+  // ------------------------------------------------------------------ pop-up de cada comando
+  // Explicações em js/comandos-dados.json (gerado por scripts/gerar-comandos.mjs). Só abrem depois
+  // que a pessoa conclui uma fase em que o comando aparece.
+  var comandosDados = null, comandosPromessa = null;
+  function carregaComandosDados() {
+    if (comandosDados) return Promise.resolve(comandosDados);
+    if (!comandosPromessa) {
+      comandosPromessa = fetch(new URL("js/comandos-dados.json", document.baseURI).href, { cache: "no-cache" })
+        .then(function (r) { if (!r.ok) throw new Error("status " + r.status); return r.json(); })
+        .then(function (d) { comandosDados = d; return d; })
+        .catch(function () { comandosPromessa = null; return null; });
+    }
+    return comandosPromessa;
+  }
+  var cmdPop = null, cmdNome = null, cmdCorpo = null;
+  function criaCmdPop() {
+    if (cmdPop) return cmdPop;
+    var d = el("dialog", "cad-cmd-pop"); d.tabIndex = -1;
+    d.setAttribute("aria-labelledby", "cmdPopNome");
+    var painel = el("div", "cad-cmd-painel");
+    var topo = el("div", "cad-cmd-topo");
+    cmdNome = el("h3", "cad-cmd-nome"); cmdNome.id = "cmdPopNome";
+    var x = el("button", "cad-cmd-x", "✕"); x.type = "button"; x.setAttribute("aria-label", "Fechar explicação");
+    topo.appendChild(cmdNome); topo.appendChild(x);
+    cmdCorpo = el("div", "cad-cmd-corpo");
+    painel.appendChild(topo); painel.appendChild(cmdCorpo);
+    d.appendChild(painel);
+    x.addEventListener("click", function () { d.close(); });
+    // clicar no fundo escuro fecha
+    d.addEventListener("click", function (e) { if (e.target === d) d.close(); });
+    document.body.appendChild(d);
+    cmdPop = d;
+    return d;
+  }
+  function cmdBloco(rotulo, texto) {
+    var b = el("div", "cad-cmd-bloco");
+    b.appendChild(el("b", "cad-cmd-rot", rotulo));
+    b.appendChild(el("p", null, texto));
+    return b;
+  }
+  function rotuloFase(x) { return "Caso " + x.caso.n + " · fase " + x.fase.num + " · " + (x.fase.titulo || x.fase.nome); }
+  function copiaCmd(txt, btn) {
+    var antes = btn.textContent;
+    var ok = function () { btn.textContent = "Copiado!"; setTimeout(function () { btn.textContent = antes; }, 1500); };
+    var falhou = function () { btn.textContent = "Selecione e use Ctrl+C"; setTimeout(function () { btn.textContent = antes; }, 2500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(ok, falhou); return; }
+    try {
+      var t = document.createElement("textarea");
+      t.value = txt; t.style.position = "fixed"; t.style.opacity = "0";
+      document.body.appendChild(t); t.select();
+      var certo = document.execCommand("copy");
+      t.remove();
+      certo ? ok() : falhou();
+    } catch (e) { falhou(); }
+  }
+  function linkFase(x, texto) {
+    var a = el("a", "btn", texto); a.href = x.caso.arq + "#" + x.fase.id;
+    a.addEventListener("click", function () { if (cmdPop) cmdPop.close(); if (dlg) dlg.close(); });
+    return a;
+  }
+  function abreComando(tag, fases) {
+    var st = estado();
+    var feitas = fases.filter(function (x) { return st[x.fase.id]; });
+    var d = criaCmdPop();
+    cmdNome.textContent = tag;
+    cmdCorpo.textContent = "";
+    if (!feitas.length) {
+      // ainda trancado: diz onde ele aparece, sem entregar a explicação
+      cmdCorpo.appendChild(el("p", "cad-cmd-trava", "🔒 Este comando ainda está trancado. Conclua uma destas fases para abrir a explicação:"));
+      var lista = el("ul", "cad-cmd-fases");
+      fases.slice(0, 4).forEach(function (x) {
+        var li = el("li", null, rotuloFase(x) + "  ");
+        if (liberada(x.caso.fases, x.i, st)) li.appendChild(linkFase(x, "Ir"));
+        lista.appendChild(li);
+      });
+      cmdCorpo.appendChild(lista);
+      if (fases.length > 4) cmdCorpo.appendChild(el("p", "cad-cmd-nota", "E mais " + (fases.length - 4) + " fase(s)."));
+      if (!d.open) d.showModal();
+      return;
+    }
+    var carregando = el("p", "cad-cmd-nota", "Abrindo o arquivo…");
+    cmdCorpo.appendChild(carregando);
+    if (!d.open) d.showModal();
+    carregaComandosDados().then(function (dados) {
+      if (!cmdPop.open || cmdNome.textContent !== tag) return;   // fechou ou trocou de comando enquanto carregava
+      cmdCorpo.textContent = "";
+      var info = dados && dados[tag];
+      if (!info) {
+        cmdCorpo.appendChild(el("p", "cad-cmd-nota", dados ? "Ainda não escrevi a explicação deste comando." : "Não consegui abrir a explicação agora. Confira a conexão e tente de novo."));
+      } else {
+        cmdCorpo.appendChild(cmdBloco("O que faz", info.o));
+        cmdCorpo.appendChild(cmdBloco("No hospital", info.h));
+        if (info.ex) {
+          var bloco = el("div", "cad-cmd-bloco");
+          bloco.appendChild(el("b", "cad-cmd-rot", "Exemplo"));
+          bloco.appendChild(el("pre", "cad-cmd-ex", info.ex));
+          if (info.nota) bloco.appendChild(el("p", "cad-cmd-nota", info.nota));
+          var acoes = el("div", "cad-cmd-acoes");
+          var cp = el("button", "btn", "Copiar exemplo"); cp.type = "button";
+          cp.addEventListener("click", function () { copiaCmd(info.ex, cp); });
+          acoes.appendChild(cp);
+          bloco.appendChild(acoes);
+          cmdCorpo.appendChild(bloco);
+        }
+      }
+      var rodape = el("div", "cad-cmd-bloco");
+      rodape.appendChild(el("b", "cad-cmd-rot", "Você viu isto em"));
+      var ul = el("ul", "cad-cmd-fases");
+      feitas.slice(0, 4).forEach(function (x) {
+        var li = el("li", null, rotuloFase(x) + "  ");
+        li.appendChild(linkFase(x, "Rever"));
+        ul.appendChild(li);
+      });
+      rodape.appendChild(ul);
+      if (feitas.length > 4) rodape.appendChild(el("p", "cad-cmd-nota", "E mais " + (feitas.length - 4) + " fase(s)."));
+      cmdCorpo.appendChild(rodape);
+    });
   }
 
   // ------------------------------------------------------------------ caso encerrado: carimbo + culpado
@@ -974,7 +1110,11 @@
     "caso7.html":  { nome: "Cláudio Menezes", papel: "Cargo: Atendente · criou os cadastros em dobro" },
     "caso8.html":  { nome: "Leonel Guedes", papel: "Setor: Manutenção · 14 plantões sem entrada" },
     "caso9.html":  { nome: "Sérgio Paixão", papel: "Cargo: Faturista · Faturamento (noite)" },
-    "caso10.html": { nome: "Renan Duarte", papel: "Conta do portal · login renan.duarte" }
+    "caso10.html": { nome: "Renan Duarte", papel: "Conta do portal · login renan.duarte" },
+    "caso11.html": { nome: "Patrícia Lacerda", papel: "Cargo: Supervisora de enfermagem · PS (noite)" },
+    "caso12.html": { nome: "Wagner Bastos", papel: "Cargo: Auxiliar de farmácia · Satélite da Oncologia" },
+    "caso13.html": { nome: "Heloísa Brandini", papel: "Cargo: Enfermeira · UTI Adulto (noite)" },
+    "caso14.html": { nome: "Douglas Pacheco", papel: "Analista terceirizado · criou o gatilho" }
   };
   function casoCompleto(cs, st) {
     return !!cs && cs.fases.length > 0 && cs.fases.every(function (f) { return st[f.id]; });
@@ -1036,7 +1176,29 @@
     "Fábio Rezende":       { p: "clara",  h: "social",   c: "preto",    e: "escuro", b: "barba",       r: "scrub-verde", x: "cracha", s: "serio" },
     "Renata Godoy":        { p: "clara",  h: "rabo",     c: "castclaro", e: "verde", ci: 1,   o: "gatinho", r: "social",     x: "cracha", s: "serio" },
     "Sérgio Paixão":       { p: "media",  h: "entradas", c: "castanho", b: "barba",   o: "retangular", r: "social",      gr: 1, x: "cracha", s: "serio", f: "largo" },
-    "Renan Duarte":        { p: "morena", h: "cacheado", c: "preto",    b: "cav",     o: "redondo",    r: "moletom",     s: "serio" }
+    "Renan Duarte":        { p: "morena", h: "cacheado", c: "preto",    b: "cav",     o: "redondo",    r: "moletom",     s: "serio" },
+    "Patrícia Lacerda":    { p: "clara",  h: "coque",    c: "castanho", ci: 1,        o: "retangular", r: "scrub-azul",  x: "cracha", s: "serio", f: "fino" },
+    "Fábio Montenegro":    { p: "morena", h: "social",   c: "grisalho", b: "barba",                    ru: 1, r: "jaleco",   x: "cracha", s: "leve", f: "largo" },
+    "Vinícius Cardoso":    { p: "negra",  h: "raspado",  c: "preto",                                  r: "scrub-verde", x: "cracha", s: "leve" },
+    "Ivone Siqueira":      { p: "morena", h: "curto",    c: "branco",   ci: 1, br: 1,                   ru: 1, r: "casual",   s: "leve", f: "fino" },
+    "Bruno Saldanha":      { p: "clara",  h: "topete",   c: "loiro",    e: "azul",                     r: "polo-azul",   s: "largo" },
+    "Wagner Bastos":       { p: "morena", h: "topete",   c: "preto",    b: "cav",                      r: "jaleco",      x: "cracha", s: "serio" },
+    "Hélio Prado":         { p: "negra",  h: "raspado",  c: "preto",    b: "bigode",                   r: "scrub-verde", x: "cracha", s: "serio", f: "largo" },
+    "Lúcia Nogueira":      { p: "clara",  h: "coque",    c: "grisalho", ci: 1,        o: "gatinho",    ru: 1, r: "jaleco",   x: "cracha", s: "leve" },
+    "Sueli Arantes":       { p: "media",  h: "chanel",   c: "castanho", ci: 1,        o: "retangular", r: "jaleco",      x: "cracha", s: "leve" },
+    "Joana Leal":          { p: "morena", h: "volume",   c: "preto",    ci: 1, br: 1,                   r: "jaleco",      x: "cracha", s: "largo" },
+    "Heloísa Brandini":    { p: "media",  h: "rabo",     c: "castanho", e: "verde", ci: 1, br: 1, o: "gatinho", r: "scrub-roxo", x: "cracha", s: "serio" },
+    "Simone Leitão":       { p: "morena", h: "volume",   c: "preto",    ci: 1,                         r: "scrub-verde", x: "cracha", s: "leve" },
+    "Marta Seixas":        { p: "clara",  h: "curto",    c: "grisalho", ci: 1,        o: "redondo",    ru: 1, r: "scrub-azul", x: "cracha", s: "leve" },
+    "Wesley Coutinho":     { p: "negra",  h: "raspado",  c: "preto",    b: "barba",                    r: "polo-cinza",  x: "cracha", s: "leve" },
+    "Patrícia Galvão":     { p: "morena", h: "rabo",     c: "preto",    ci: 1,                         r: "scrub-bordo", x: "cracha", s: "leve" },
+    "Rosana Damasceno":    { p: "escura", h: "afro",     c: "preto",    ci: 1, br: 1,                   r: "scrub-azul",  x: "cracha", s: "largo" },
+    "Douglas Pacheco":     { p: "media",  h: "topete",   c: "preto",    b: "cav",     o: "retangular", r: "polo-azul",   x: "cracha", s: "serio" },
+    "Sílvia Damasceno":    { p: "clara",  h: "coque",    c: "castanho", ci: 1,        o: "redondo",    r: "blazer",      x: "cracha", s: "serio", f: "fino" },
+    "Jussara Moura":       { p: "negra",  h: "afro",     c: "preto",    ci: 1, br: 1,                   r: "social",      x: "cracha", s: "leve" },
+    "Regina Falcão":       { p: "morena", h: "cacheado", c: "castanho", ci: 1,                         r: "casual",      x: "cracha", s: "leve" },
+    "Vinícius Bastos":     { p: "clara",  h: "social",   c: "castclaro", b: "barba",                   r: "moletom",     x: "cracha", s: "leve" },
+    "Marlene Pacheco":     { p: "morena", h: "curto",    c: "grisalho", ci: 1, br: 1,                   ru: 1, r: "casual",   s: "leve" }
   };
   // traços estáveis para quem não está na lista
   function retratoPeloNome(nome) {
@@ -1463,7 +1625,31 @@
     "c10-f2": "O IP 198.51.100.23 começou a testar em 08/10. O 203.0.113.59 atacou em 11/10 e conseguiu 3 respostas com sucesso.",
     "c10-f3": "O ataque escalou com UNION SELECT até vazar dados: 112 pacientes diferentes tiveram resultados expostos.",
     "c10-f4": "O papel portal_web tem 12 privilégios, inclusive de escrita, e as 3 políticas de RLS usam a condição true: nada filtra.",
-    "c10-f5": "O ataque partiu do IP 203.0.113.59, que antes tinha um login confirmado: renan.duarte (Renan Duarte). Esse é o culpado."
+    "c10-f5": "O ataque partiu do IP 203.0.113.59, que antes tinha um login confirmado: renan.duarte (Renan Duarte). Esse é o culpado.",
+    "c11-f0": MONTADO,
+    "c11-f1": "A espera é a diferença entre chegada e início do atendimento. Dona Ivone, laranja (alvo de 10 minutos), esperou 01:55:00, ou 115 minutos. No mês, 120 atendimentos estouraram o alvo, 38 deles laranja.",
+    "c11-f2": "Pela média, a tarde seria a pior (49,1 min), mas a mediana dela (24,0) é normal: os extremos vêm de um dia só, o acidente com um ônibus em 12/09. Sem esse dia, a tarde cai para 21,7 e a equipe do Dr. Fábio Montenegro sai da suspeita. A noite tem o maior P90 (109,8 min) e não muda.",
+    "c11-f3": "Separando as 30 noites com NTILE(4), as 8 piores pelo P90 são 03, 07, 09, 13, 17, 19, 23 e 27/09. Patrícia Lacerda (supervisora) e Vinícius Cardoso (triagem) estavam de plantão nas 8.",
+    "c11-f4": "Na grade de 24 horas, os estouros se concentram às 23h (27), com zeros em várias horas. Na noite da denúncia, a fila de graves chegou a 4 pessoas às 02h, com Dona Ivone nela.",
+    "c11-f5": "Patrícia Lacerda subiu 20 pacientes para laranja, só 4 com justificativa. Os 20 tiveram alta e 18 passaram na frente de alguém laranja que já esperava, entre eles o rapaz do tornozelo. As 11 subidas de Vinícius tinham motivo clínico e nenhuma furou a fila. Essa é a culpada.",
+    "c12-f0": MONTADO,
+    "c12-f1": "A árvore do lote IGH-2609-114 tem 16 guias em 5 níveis: a entrada na Farmácia Central, 3 guias para as satélites, 10 entregas aos setores e uma devolução que volta para a satélite.",
+    "c12-f2": "Com o caminho de cada guia montado, o IGH-2609-114 lidera a perda em trânsito, com 3 frascos. Mas a auditoria fala em 13: faltam 10 que não aparecem como diferença.",
+    "c12-f3": "12 locais são alcançáveis pelas rotas autorizadas. Duas guias (1097 e 1198) mandaram 6 + 4 frascos, tarde da noite, para ONC-ANX, um setor desativado e fora do mapa: são os 10 que faltavam.",
+    "c12-f4": "Dois elos quebrados. A guia 1040 (12 → 11) tem termo de baixa por frasco quebrado. A guia 1065 (10 → 8) não tem termo, e quem assinou foi Hélio Prado, da UTI, cobrindo na Quimioterapia. 1 + 2 + 10 = 13.",
+    "c12-f5": "Hélio não responde a ninguém da farmácia, e Joana só tem perda justificada. Wagner Bastos, auxiliar da SAT-ONC, enviou as 3 guias-problema (12 frascos) e ele mesmo assinou o recebimento no setor desativado. Esse é o culpado.",
+    "c13-f0": MONTADO,
+    "c13-f1": "Os eventos das bombas vêm em JSON e se abrem com -> e ->>. Na madrugada de 12/10, a bomba BMB-14 do leito 14 registrou um alarme à 1h12, o login do crachá C-2207 às 2h29, um alarme às 2h31, uma sincronização às 2h41 e a programação das 2h43, também no crachá C-2207.",
+    "c13-f2": "Comparando a dose do JSON com a prescrição, três bolus de heparina parecem altos, mas estavam prescritos. Ligando também pelo modo, sobra uma linha: noradrenalina 2.4 contra 0.3 prescrito, às 2h43, no crachá de Simone Leitão.",
+    "c13-f3": "Abrindo as listas de alarmes: a oclusão da 1h12 foi mecânica (equipo dobrado), resolvida pelo técnico Wesley. Às 2h31 a bomba RECUSOU a dose de 2.4 (LIMITE_RIGIDO, limite 0.5). Doze minutos depois, a mesma dose passou.",
+    "c13-f4": "Dos 5 eventos de biblioteca, só um não tem a chave usuario: às 2h38 de 12/10, na sessão S-5763, o limite rígido da noradrenalina subiu de 0.5 para 3. A bomba sincronizou às 2h41.",
+    "c13-f5": "Simone Leitão tinha saído à 1h04: alguém usou o crachá que ela esqueceu. A sessão S-5763 da central foi aberta às 2h35 com o crachá de Heloísa Brandini, que estava de plantão. Ela subiu o limite e programou a dose com o crachá da colega. Essa é a culpada.",
+    "c14-f0": MONTADO,
+    "c14-f1": "22 contas de só 7 pacientes têm desconto acima dos 10% da política: R$ 43.394,25. E um UPDATE de teste na conta 346 mostrou o desconto subindo sozinho.",
+    "c14-f2": "A auditoria mostra exatamente 40% em 49 alterações, feitas por quatro logins diferentes, nenhum deles quem autoriza desconto. Começou em 19/09 às 02:00. É algo dentro do banco.",
+    "c14-f3": "Na tabela ctp_conta há um segundo gatilho, BEFORE INSERT OR UPDATE, disfarçado de 'ajuste de centavos': ele força 40% de desconto para os pacientes 12, 27, 33, 48, 59, 71 e 84.",
+    "c14-f4": "O gatilho foi criado em 18/09 às 23:41–23:43, sem chamado, pela conta compartilhada admin_sistemas, a partir da máquina NB-TERC-14. A auditoria da Regina tem chamado e foi criada em horário comercial.",
+    "c14-f5": "Três pacientes da lista são da família Pacheco, e quem estava na NB-TERC-14, por VPN, das 22:58 às 00:21 era Douglas Pacheco. Esse é o culpado."
   };
   // popup só para ver (sem editar) as imagens de uma fase
   function ctrlSomenteLeitura(lista, titulo) {
@@ -1661,7 +1847,19 @@
     "c9-f3": [["Jaqueline Prado", "Acesso fora do turno"]],
     "c9-f4": [["Renata Godoy", "6 senhas erradas"]],
     "c9-f5": [["Sérgio Paixão", "O culpado", "c"]],
-    "c10-f5": [["Renan Duarte", "O culpado", "c"]]
+    "c10-f5": [["Renan Duarte", "O culpado", "c"]],
+    "c11-f2": [["Fábio Montenegro", "Chefe da tarde"]],
+    "c11-f3": [["Vinícius Cardoso", "Triagem · noite"], ["Patrícia Lacerda", "Supervisora · noite"]],
+    "c11-f4": [["Ivone Siqueira", "Paciente da denúncia"]],
+    "c11-f5": [["Bruno Saldanha", "Furou a fila"], ["Vinícius Cardoso", "Reclassificou com motivo"], ["Patrícia Lacerda", "A culpada", "c"]],
+    "c12-f4": [["Hélio Prado", "Assinou o elo quebrado"], ["Lúcia Nogueira", "Recebeu com termo de baixa"]],
+    "c12-f5": [["Sueli Arantes", "Responsável pela SAT-ONC"], ["Joana Leal", "Perda com termo de baixa"], ["Wagner Bastos", "O culpado", "c"]],
+    "c13-f2": [["Simone Leitão", "Crachá usado na dose"], ["Marta Seixas", "Bolus prescrito"]],
+    "c13-f3": [["Wesley Coutinho", "Resolveu a oclusão"], ["Patrícia Galvão", "Erro barrado"]],
+    "c13-f5": [["Rosana Damasceno", "Baixou a dose"], ["Heloísa Brandini", "A culpada", "c"]],
+    "c14-f2": [["Sílvia Damasceno", "Coordena o faturamento"], ["Jussara Moura", "Autoriza descontos"]],
+    "c14-f4": [["Regina Falcão", "DBA oficial"], ["Vinícius Bastos", "Analista terceirizado"]],
+    "c14-f5": [["Marlene Pacheco", "Paciente da lista"], ["Douglas Pacheco", "O culpado", "c"]]
   };
   var MURAL_LARGURA_MIN = 1500;      // abaixo disso a página não tem sobra nas laterais
   var mural = null, muralEsq = null, muralDir = null, muralTimer = null;
@@ -1747,7 +1945,9 @@
     // as 10 fotos ficam na esquerda, em duas colunas (casos 1 a 5 e 6 a 10); o tamanho acompanha a altura da tela
     var linhas = Math.ceil(CAT.length / 2);
     var altura = window.innerHeight - 120;
-    var wAltura = (altura - 15 * (linhas - 1) - 42 * linhas) / (0.94 * linhas);
+    // com muitas fotos por coluna, o vão entre elas diminui para as fotos não ficarem minúsculas
+    var vao = linhas > 5 ? 6 : 15;
+    var wAltura = (altura - vao * (linhas - 1) - 42 * linhas) / (0.94 * linhas);
     var AW = Math.min(sobraEsq, 440);          // largura que as duas colunas podem ocupar
     var folga = 30;                            // espaço para o "tortinho" de cada lado
     var wLargura = (AW - 16) / 2 - 2 * folga;
@@ -1759,6 +1959,7 @@
     var colA = el("div", "mural-col fotos"), colB = el("div", "mural-col fotos");
     // a folga do "tortinho" fica dentro de cada coluna: as fotos não invadem a vizinha
     colA.style.padding = "0 " + Math.round(dxMax) + "px"; colB.style.padding = "0 " + Math.round(dxMax) + "px";
+    colA.style.gap = colB.style.gap = vao + "px";
     CAT.forEach(function (cs, i) {
       var cul = CULPADOS[cs.arq];
       var feito = casoCompleto(cs, r.st);

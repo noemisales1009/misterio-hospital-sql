@@ -1,0 +1,1397 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6b5b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mistério SQL">
+<title>Caso 13 · A dose reprogramada</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preload" href="fonts/atkinson-hyperlegible-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/atkinson-hyperlegible-700-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/big-shoulders-display-600-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="js/tema.js?v=45d4af28"></script>
+<link rel="stylesheet" href="css/estilo.css?v=f80c1510">
+<link rel="expect" href="#fim-da-pagina" blocking="render">
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+  <div class="tag"><a href="index.html">← Todos os casos</a> · Caso 13 · avançado</div>
+  <h1>Caso 13: a dose <span>reprogramada</span></h1>
+  <div class="case">
+    <div class="stamp">EVENTO ADVERSO</div>
+    <h2>12 de outubro de 2026 · UTI Adulto, leito 14</h2>
+    <p>Às 3h da madrugada de <mark>12 de outubro de 2026</mark>, o monitor do leito 14 da UTI disparou: pressão nas alturas, coração descompassado. O paciente, <strong>Aníbal Tenório</strong>, recebia <strong>noradrenalina</strong>, um remédio de alto risco que sobe a pressão. A enfermeira Rosana Damasceno correu até a bomba de infusão e viu a dose: <mark>2,4 mcg/kg/min, oito vezes o máximo prescrito</mark>. Ela baixou na hora e o Sr. Aníbal se recuperou. Mas alguém programou aquilo.</p>
+    <p>As bombas da UTI são "inteligentes": têm uma <strong>biblioteca de fármacos</strong> com um <mark>limite rígido</mark> para cada remédio. Acima dele, a bomba simplesmente recusa a dose. Para passar de 0,5 de noradrenalina, alguém teria que <strong>mudar o limite</strong> antes. E para mexer em qualquer bomba é preciso encostar o <mark>crachá</mark>.</p>
+    <p>Cada bomba (e a central da farmácia, onde fica a biblioteca) manda tudo o que acontece para o servidor do hospital: logins, programações, alarmes, mudanças de limite. Esses eventos chegam num formato chamado <strong>JSON</strong> e estão todos na tabela <code>bomba_evento</code>. A resposta deste caso é o <strong>nome completo</strong> de quem reprogramou a bomba do leito 14.</p>
+  </div>
+  <p class="lead">A novidade deste caso é o <strong>JSON</strong>: um jeito de guardar, dentro de <strong>uma única coluna</strong>, um "pacotinho" de informações com nomes, valores, listas e até pacotes dentro de pacotes. Você vai aprender a abrir esse pacote com <code>-&gt;</code> e <code>-&gt;&gt;</code>, entrar em caminhos aninhados com <code>#&gt;&gt;</code>, transformar texto em número com <code>::numeric</code>, filtrar com <code>?</code> e <code>@&gt;</code>, abrir listas com <code>jsonb_array_elements</code> e descobrir as chaves com <code>jsonb_object_keys</code> e <code>jsonb_each</code>. E, claro, juntar o JSON com tabelas comuns usando <code>JOIN</code>. Travou? Abra a dica, depois a solução.</p>
+</header>
+<aside class="box aviso-data"><b class="l">Atenção: nas datas deste caso</b><p>Aqui os eventos e o ponto são <strong>instantes com data e hora</strong> (<code>timestamp</code>). Escreva entre aspas simples, ano-mês-dia e depois a hora.</p><div class="tw"><table><tr><th>Neste caso</th><th>Escreva assim</th></tr><tr><td>✅ Certo</td><td><code>WHERE momento &gt;= '2026-10-12 00:00'</code></td></tr><tr><td>✅ Certo</td><td><code>WHERE momento BETWEEN '2026-10-12 00:00' AND '2026-10-12 06:00'</code></td></tr><tr><td>❌ Errado</td><td><code>WHERE momento = 20261012</code>, porque número não é data aqui</td></tr></table></div><p class="cad-nota">Nos Casos 1 a 3 a data era um número, como <code>20260310</code>. Para saber qual é o caso de cada coluna, olhe o tipo no mapa das tabelas: <code>integer</code> é número, e <code>date</code> ou <code>timestamp</code> é data de verdade.</p></aside>
+<nav class="trail" aria-label="Etapas do caso">
+  <div class="trail-inner" id="trail"></div>
+  <div class="bar"><i id="bar"></i></div>
+</nav>
+<section class="fase" id="c13-f0" data-fase="0" data-nome="Montar">
+  <div class="fase-head"><div class="num">0</div><div class="t"><h2>Montar o caso</h2><div class="sub">Supabase · SQL Editor</div></div></div>
+  <div class="box"><b class="l">Para que serve</b><p>Cada caso tem as <strong>próprias tabelas</strong>, com nomes diferentes. Você pode instalar no mesmo projeto do Supabase dos outros casos: nada se mistura e nada é apagado.</p></div>
+  <ol class="steps">
+    <li>No Supabase, abra o <strong>SQL Editor</strong> e clique em <strong>New query</strong>.</li>
+    <li>Clique no botão abaixo para copiar o banco do caso, cole no editor e clique em <strong>Run</strong>.</li>
+    <li>Deve aparecer: <code>✅ Caso 13 instalado!</code>. Para recomeçar, rode de novo.</li>
+  </ol>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <button class="btn big" id="copyAll" type="button">Copiar banco do Caso 13 (SQL)</button>
+    <span class="foot">São 5 tabelas e umas 900 linhas. O arquivo <code>caso13.sql</code> também está na pasta do projeto.</span>
+  </div>
+  <div class="mapa">
+    <div class="lbl" style="margin-bottom:8px">Mapa do banco · quem se liga com quem</div>
+<pre class="mermaid">
+erDiagram
+  bomba_equipe { text cracha PK
+    text nome
+    text cargo
+    text turno }
+  bomba_escala { int id PK
+    text cracha FK
+    timestamp entrada
+    timestamp saida }
+  bomba_paciente { int id PK
+    text nome
+    text leito
+    numeric peso_kg
+    text bomba }
+  bomba_prescricao { int id PK
+    int paciente_id FK
+    text farmaco
+    text modo
+    numeric dose
+    text unidade
+    text medico
+    date data }
+  bomba_evento { int id PK
+    timestamp momento
+    text aparelho
+    jsonb dados }
+  bomba_equipe ||--o{ bomba_escala : "cracha"
+  bomba_paciente ||--o{ bomba_prescricao : "paciente_id"
+  bomba_paciente ||..o{ bomba_evento : "paciente (no JSON)"
+  bomba_equipe ||..o{ bomba_evento : "usuario (no JSON)"
+</pre>
+  </div>
+  <ul class="list"><li><code>bomba_evento.dados</code> é do tipo <code>jsonb</code>: cada linha guarda um evento inteiro em JSON. Os campos mudam conforme o <strong>tipo</strong> do evento (um login não tem dose, um alarme não tem paciente…). Por isso as ligações com as outras tabelas aparecem pontilhadas no mapa: elas ficam <strong>dentro</strong> do JSON (<code>"usuario"</code> é o crachá, <code>"paciente"</code> é o id do paciente).</li><li><code>aparelho</code> é quem mandou o evento: as bombas <code>BMB-01</code> a <code>BMB-16</code> (a bomba <code>BMB-14</code> é a do leito <code>UTI-14</code>) ou a <code>CENTRAL</code>, o computador da farmácia onde fica a biblioteca de fármacos.</li><li>Em <code>bomba_prescricao</code>, <code>dose</code> é a dose <strong>máxima</strong> que o médico autorizou. <code>modo</code> diz se é infusão <code>continua</code> (por hora, sem parar) ou <code>bolus</code> (uma dose única de uma vez). Um mesmo paciente pode ter os dois modos do mesmo remédio.</li><li><code>bomba_escala</code> é o ponto eletrônico: a hora em que cada pessoa realmente entrou e saiu do plantão.</li><li>Todos os horários são locais, sem fuso. Personagens e dados são fictícios.</li></ul>
+  <div class="done-row"><input type="checkbox" id="c13-ok0"><label for="c13-ok0">Instalei o caso no Supabase</label></div>
+</section>
+<section class="fase" id="c13-f1" data-fase="1" data-nome="Abrindo o JSON">
+  <div class="fase-head"><div class="num">1</div><div class="t"><h2>O que é JSON e como abrir</h2><div class="sub">jsonb · -&gt; · -&gt;&gt;</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Antes de procurar o culpado, é preciso conseguir <strong>ler</strong> o que as bombas mandaram. Cada evento é uma linha de <code>bomba_evento</code>, mas o conteúdo está todo embrulhado na coluna <code>dados</code>, em JSON. Vamos aprender a desembrulhar.</p></div>
+  <div class="box novo"><b class="l">Ferramenta nova · JSON, explicado sem mistério</b><p>JSON é só um jeito organizado de escrever uma <strong>ficha</strong>. Pense numa etiqueta de soro: "paciente: 14", "remédio: noradrenalina", "dose: 0,25". Em JSON, isso fica entre chaves <code>{ }</code>, com o <strong>nome do campo</strong> (a <strong>chave</strong>) entre aspas, dois-pontos e o <strong>valor</strong>:</p></div>
+  <div class="code"><pre>{
+  "tipo": "programacao",
+  "usuario": "C-5120",
+  "paciente": 14,
+  "farmaco": "noradrenalina",
+  "infusao": { "dose": 0.25, "unidade": "mcg/kg/min", "vazao_ml_h": 18.3 }
+}</pre></div>
+  <div class="tw"><table><tr><th>o que você vê</th><th>o que quer dizer</th></tr><tr><td><code>"chave": "texto"</code></td><td>um campo com valor de texto (com aspas)</td></tr><tr><td><code>"paciente": 14</code></td><td>um campo com valor numérico (sem aspas)</td></tr><tr><td><code>"infusao": { … }</code></td><td>uma <strong>ficha dentro da ficha</strong> (JSON aninhado)</td></tr><tr><td><code>"alarmes": [ … , … ]</code></td><td>uma <strong>lista</strong> de valores, entre colchetes (aparece na fase 3)</td></tr></table></div>
+  <p>A grande vantagem: cada evento pode ter <strong>campos diferentes</strong> sem precisar de uma coluna para cada coisa. O Postgres guarda isso no tipo <code>jsonb</code> (o "b" é de <em>binário</em>: ele guarda já organizado, pronto para buscar rápido).</p>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>dados -&gt; 'chave'</code></td><td>pega o valor da chave, <strong>ainda em JSON</strong></td><td>“abre a ficha <code>infusao</code>, que tem mais coisa dentro”</td></tr>
+    <tr><td><code>dados -&gt;&gt; 'chave'</code></td><td>pega o valor da chave <strong>como texto</strong></td><td>“qual é o tipo do evento?”</td></tr>
+    <tr><td><code>jsonb</code></td><td>tipo de coluna que guarda JSON</td><td>“a coluna <code>dados</code>”</td></tr>
+  </table></div>
+  <div class="box novo"><b class="l">Ferramenta nova · uma seta ou duas?</b><p><code>-&gt;</code> (uma seta) devolve um <strong>pedaço de JSON</strong>: use quando você ainda vai entrar mais fundo, como em <code>dados -&gt; 'infusao'</code>. <code>-&gt;&gt;</code> (duas setas) devolve <strong>texto puro</strong>: use para mostrar, comparar ou agrupar, como em <code>dados -&gt;&gt; 'tipo' = 'login'</code>. Um jeito de lembrar: a segunda seta "tira da embalagem". Se a chave não existir naquele evento, o resultado é <code>NULL</code>, sem erro.</p></div>
+  <div class="tw"><table><tr><th>expressão</th><th>resultado</th><th>tipo</th></tr><tr><td><code>dados -&gt; 'farmaco'</code></td><td><code>"noradrenalina"</code> (com aspas)</td><td>jsonb</td></tr><tr><td><code>dados -&gt;&gt; 'farmaco'</code></td><td><code>noradrenalina</code></td><td>text</td></tr><tr><td><code>dados -&gt; 'infusao'</code></td><td><code>{"dose": 0.25, …}</code></td><td>jsonb</td></tr><tr><td><code>dados -&gt; 'infusao' -&gt;&gt; 'dose'</code></td><td><code>0.25</code></td><td>text</td></tr></table></div>
+  <div class="code"><pre data-sql>-- Dá uma olhada nos primeiros eventos e no que vem dentro do JSON (não é missão)
+SELECT id, momento, aparelho, dados
+FROM bomba_evento
+ORDER BY id
+LIMIT 10;</pre></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantos eventos de cada <strong>tipo</strong> existem? Mostre o tipo (a chave <code>tipo</code> do JSON) e a contagem, do mais comum para o menos comum.</li><li>Monte a <strong>linha do tempo</strong> da bomba do leito 14 (<code>BMB-14</code>) na madrugada do incidente, de <code>2026-10-12 00:00</code> até <code>2026-10-12 06:00</code>: mostre o <code>momento</code>, o tipo e o <code>usuario</code> (o crachá) de cada evento, em ordem de horário.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Primeira: <code>SELECT dados -&gt;&gt; 'tipo' AS tipo, COUNT(*) … GROUP BY tipo ORDER BY COUNT(*) DESC</code>. Segunda: <code>WHERE aparelho = 'BMB-14' AND momento BETWEEN '2026-10-12 00:00' AND '2026-10-12 06:00'</code>, mostrando <code>dados -&gt;&gt; 'tipo'</code> e <code>dados -&gt;&gt; 'usuario'</code>, com <code>ORDER BY momento</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT dados -&gt;&gt; 'tipo' AS tipo, COUNT(*) AS eventos
+FROM bomba_evento
+GROUP BY dados -&gt;&gt; 'tipo'
+ORDER BY eventos DESC;</pre></div>
+    <div class="code"><pre data-sql>SELECT momento,
+       dados -&gt;&gt; 'tipo'    AS tipo,
+       dados -&gt;&gt; 'usuario' AS usuario
+FROM bomba_evento
+WHERE aparelho = 'BMB-14'
+  AND momento BETWEEN '2026-10-12 00:00' AND '2026-10-12 06:00'
+ORDER BY momento;</pre></div>
+    <p>Para conferir: são <strong>7 tipos</strong> — <code>login</code> (275), <code>programacao</code> (215), <code>alarme</code> (111), <code>sincronizacao</code> (80), <code>retomada</code> (47), <code>relatorio</code> (8) e <code>biblioteca</code> (5). Na madrugada, a <code>BMB-14</code> tem <strong>9 eventos</strong>: um alarme à 1h12 (sem usuário), o crachá <code>C-4410</code> fazendo login e uma retomada, depois o crachá <code>C-2207</code> fazendo login às 2h29, um alarme às 2h31, uma sincronização às 2h41 e a programação das <strong>2h43</strong>; por fim, o crachá <code>C-5120</code> (a Rosana) entra às 3h09 e reprograma às 3h10. Guarde o <code>C-2207</code>: é dele a programação das 2h43.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c13-ok1"><label for="c13-ok1">Etapa 1 concluída</label></div>
+</section>
+<section class="fase" id="c13-f2" data-fase="2" data-nome="A dose">
+  <div class="fase-head"><div class="num">2</div><div class="t"><h2>A dose que passou da prescrição</h2><div class="sub">#&gt;&gt; · ::numeric · JOIN com JSON</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Agora vamos comparar o que cada bomba <strong>recebeu</strong> (no JSON) com o que o médico <strong>prescreveu</strong> (na tabela <code>bomba_prescricao</code>, uma tabela comum). O problema: a dose fica dentro de uma ficha dentro da ficha (<code>infusao</code> → <code>dose</code>), e sai do JSON como <strong>texto</strong>. Texto não se compara com número do jeito certo.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>dados #&gt;&gt; '{infusao,dose}'</code></td><td>segue um <strong>caminho</strong> dentro do JSON e devolve texto</td><td>“a dose que está dentro de infusao”</td></tr>
+    <tr><td><code>(…)::numeric</code></td><td>converte texto em número</td><td>“'2.4' vira 2.4, dá para comparar”</td></tr>
+    <tr><td><code>(dados -&gt;&gt; 'paciente')::int</code></td><td>converte texto em número inteiro</td><td>“para ligar com <code>bomba_paciente.id</code>”</td></tr>
+    <tr><td><code>JOIN … ON … = dados -&gt;&gt; '…'</code></td><td>liga um campo do JSON a uma tabela comum</td><td>“o evento com a sua prescrição”</td></tr>
+  </table></div>
+  <div class="box novo"><b class="l">Ferramenta nova · caminho aninhado e conversão de tipo</b><p>Para chegar na dose você pode encadear setas: <code>dados -&gt; 'infusao' -&gt;&gt; 'dose'</code>. Ou usar o atalho <code>#&gt;&gt;</code> com o <strong>caminho</strong> entre chaves, separando os passos por vírgula: <code>dados #&gt;&gt; '{infusao,dose}'</code>. As duas formas dão o mesmo texto. (Existe também <code>#&gt;</code>, com uma seta só, que devolve o pedaço em JSON.)</p><p>Depois, transforme em número com <code>::numeric</code>. Por que isso importa? Como texto, <code>'10' &lt; '9'</code> é verdadeiro (compara letra por letra, e "1" vem antes de "9"). Como número, <code>10 &gt; 9</code>, como deve ser. Os parênteses são obrigatórios: <code>(dados #&gt;&gt; '{infusao,dose}')::numeric</code>.</p></div>
+  <div class="tw"><table><tr><th>expressão</th><th>resultado</th></tr><tr><td><code>dados #&gt;&gt; '{infusao,dose}'</code></td><td><code>'2.4'</code> (texto)</td></tr><tr><td><code>(dados #&gt;&gt; '{infusao,dose}')::numeric</code></td><td><code>2.4</code> (número)</td></tr><tr><td><code>dados #&gt;&gt; '{infusao,unidade}'</code></td><td><code>'mcg/kg/min'</code></td></tr><tr><td><code>dados #&gt;&gt; '{infusao,nada}'</code></td><td><code>NULL</code> (o caminho não existe)</td></tr></table></div>
+  <div class="code"><pre data-sql>-- As programações com a dose já convertida em número (não é missão)
+SELECT momento, aparelho,
+       dados -&gt;&gt; 'farmaco' AS farmaco,
+       (dados #&gt;&gt; '{infusao,dose}')::numeric AS dose,
+       dados #&gt;&gt; '{infusao,unidade}' AS unidade
+FROM bomba_evento
+WHERE dados -&gt;&gt; 'tipo' = 'programacao'
+ORDER BY momento
+LIMIT 15;</pre></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Junte cada evento do tipo <code>programacao</code> com a prescrição do <strong>mesmo paciente</strong> e do <strong>mesmo fármaco</strong>, e mostre só as programações em que a dose programada ficou <strong>acima</strong> da dose prescrita. Mostre: <code>momento</code>, <code>aparelho</code>, o <code>usuario</code>, o fármaco, o <code>modo</code> da prescrição, a dose programada e a dose prescrita.</li><li>Repare no <code>modo</code> do resultado. Refaça ligando também pelo <strong>modo</strong> (o JSON tem a chave <code>modo</code>), e traga o <strong>nome</strong> do dono do crachá (de <code>bomba_equipe</code>). Mostre: <code>momento</code>, <code>aparelho</code>, <code>nome</code>, fármaco, dose programada e dose prescrita.</li></ul></div>
+  <details><summary>Dica</summary><div><p>A ligação: <code>JOIN bomba_prescricao p ON p.paciente_id = (e.dados -&gt;&gt; 'paciente')::int AND p.farmaco = e.dados -&gt;&gt; 'farmaco'</code>. O filtro: <code>WHERE e.dados -&gt;&gt; 'tipo' = 'programacao' AND (e.dados #&gt;&gt; '{infusao,dose}')::numeric &gt; p.dose</code>. Na segunda, acrescente <code>AND p.modo = e.dados -&gt;&gt; 'modo'</code> ao <code>ON</code> e um <code>JOIN bomba_equipe q ON q.cracha = e.dados -&gt;&gt; 'usuario'</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT e.momento, e.aparelho,
+       e.dados -&gt;&gt; 'usuario' AS usuario,
+       p.farmaco, p.modo,
+       (e.dados #&gt;&gt; '{infusao,dose}')::numeric AS dose_programada,
+       p.dose AS dose_prescrita
+FROM bomba_evento e
+JOIN bomba_prescricao p
+  ON p.paciente_id = (e.dados -&gt;&gt; 'paciente')::int
+ AND p.farmaco = e.dados -&gt;&gt; 'farmaco'
+WHERE e.dados -&gt;&gt; 'tipo' = 'programacao'
+  AND (e.dados #&gt;&gt; '{infusao,dose}')::numeric &gt; p.dose
+ORDER BY e.momento;</pre></div>
+    <div class="code"><pre data-sql>SELECT e.momento, e.aparelho, q.nome,
+       p.farmaco,
+       (e.dados #&gt;&gt; '{infusao,dose}')::numeric AS dose_programada,
+       p.dose AS dose_prescrita
+FROM bomba_evento e
+JOIN bomba_prescricao p
+  ON p.paciente_id = (e.dados -&gt;&gt; 'paciente')::int
+ AND p.farmaco = e.dados -&gt;&gt; 'farmaco'
+ AND p.modo = e.dados -&gt;&gt; 'modo'
+JOIN bomba_equipe q ON q.cracha = e.dados -&gt;&gt; 'usuario'
+WHERE e.dados -&gt;&gt; 'tipo' = 'programacao'
+  AND (e.dados #&gt;&gt; '{infusao,dose}')::numeric &gt; p.dose;</pre></div>
+    <p>Para conferir: a primeira consulta traz <strong>4 linhas</strong>. Três são <strong>bolus de heparina</strong> (5000, 4000 e 5000 UI) comparados com a prescrição <em>contínua</em> (1200, 900 e 1000 UI/h) — uma comparação injusta, de modos diferentes. Uma delas é da enfermeira de crachá <code>C-1875</code>, às 2h05 da mesma madrugada, na <code>BMB-03</code>: parece suspeito, mas o paciente tinha um <strong>bolus de 5000 UI prescrito</strong>. A quarta linha é a de verdade: <code>BMB-14</code>, noradrenalina <strong>2.4</strong> contra <strong>0.3</strong> prescrito. Ligando também pelo modo, sobra <strong>1 linha</strong>: os bolus somem (estavam dentro da prescrição de bolus) e fica só a noradrenalina das 2h43, programada com o crachá de <strong>Simone Leitão</strong>. Mas crachá não é pessoa: guarde o nome com um ponto de interrogação.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c13-ok2"><label for="c13-ok2">Etapa 2 concluída</label></div>
+</section>
+<section class="fase" id="c13-f3" data-fase="3" data-nome="Os alarmes">
+  <div class="fase-head"><div class="num">3</div><div class="t"><h2>Abrindo a lista de alarmes</h2><div class="sub">? · @&gt; · jsonb_array_elements</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Um detalhe não fecha: o limite rígido da noradrenalina era 0,5. Uma dose de 2,4 devia ter sido <strong>recusada</strong> pela bomba. Os eventos de alarme podem contar o que aconteceu. Só que cada alarme traz uma <strong>lista</strong> (às vezes a bomba dispara dois alarmes de uma vez), e uma lista dentro do JSON precisa ser aberta antes de ser contada.</p></div>
+  <div class="code"><pre>{ "tipo": "alarme",
+  "resolvido_por": "C-4410",
+  "alarmes": [
+    { "codigo": "OCLUSAO_JUSANTE", "prioridade": "alta",
+      "detalhe": { "pressao_mmhg": 780, "causa": "equipo dobrado" } },
+    { "codigo": "INFUSAO_PAUSADA", "prioridade": "media" }
+  ] }</pre></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>dados ? 'chave'</code></td><td>verdadeiro se o JSON <strong>tem</strong> aquela chave</td><td>“só os eventos que têm lista de alarmes”</td></tr>
+    <tr><td><code>dados @&gt; '{"tipo":"alarme"}'</code></td><td>verdadeiro se o JSON <strong>contém</strong> aquele pedaço</td><td>“só os alarmes”</td></tr>
+    <tr><td><code>jsonb_array_elements(lista)</code></td><td>abre uma lista: <strong>uma linha para cada item</strong></td><td>“um alarme por linha”</td></tr>
+  </table></div>
+  <div class="box novo"><b class="l">Ferramenta nova · ? e @&gt;, dois filtros próprios do JSON</b><p><code>dados ? 'alarmes'</code> pergunta: "esse JSON tem a chave <code>alarmes</code>?". Não importa o valor, só se a chave existe. Já <code>@&gt;</code> quer dizer "contém": <code>dados @&gt; '{"tipo":"alarme"}'</code> é verdadeiro quando o JSON da linha tem pelo menos aquele pedaço. Ele funciona até com listas: <code>dados @&gt; '{"alarmes":[{"codigo":"LIMITE_RIGIDO"}]}'</code> acha os eventos cuja lista de alarmes tem <strong>algum</strong> item com esse código. Repare que o pedaço que você procura também é escrito em JSON, com aspas duplas por dentro e aspas simples por fora.</p></div>
+  <div class="box novo"><b class="l">Ferramenta nova · jsonb_array_elements, uma linha por item</b><p>Ela pega uma lista e "espalha" cada item numa linha separada. Escreva no <code>FROM</code>, depois de uma vírgula: <code>FROM bomba_evento e, jsonb_array_elements(e.dados -&gt; 'alarmes') AS a</code>. Para cada evento, o Postgres cria tantas linhas quantos forem os itens da lista daquele evento, e <code>a</code> é o item da vez (em JSON). Aí é só usar <code>a -&gt;&gt; 'codigo'</code> como em qualquer ficha. Teste com uma lista escrita na mão:</p></div>
+  <div class="code"><pre data-sql>-- Uma lista com 2 alarmes vira 2 linhas (não é missão)
+SELECT a -&gt;&gt; 'codigo' AS codigo, a -&gt;&gt; 'prioridade' AS prioridade
+FROM jsonb_array_elements('[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta"},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}]') AS a;</pre></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Abra a lista de alarmes de todos os eventos que têm a chave <code>alarmes</code> e conte quantas vezes cada <strong>código</strong> de alarme aparece, do mais comum para o menos comum.</li><li>Use <code>@&gt;</code> para achar os eventos cuja lista de alarmes tem um <code>LIMITE_RIGIDO</code> (a bomba recusou a dose). Mostre <code>momento</code>, <code>aparelho</code> e <code>usuario</code>.</li><li>Abra os alarmes da <code>BMB-14</code> na madrugada (<code>2026-10-12 00:00</code> a <code>06:00</code>) e mostre: <code>momento</code>, código, a causa (<code>detalhe</code> → <code>causa</code>), a dose tentada (<code>detalhe</code> → <code>dose_tentada</code>) e o limite (<code>detalhe</code> → <code>limite</code>).</li></ul></div>
+  <details><summary>Dica</summary><div><p>Primeira: <code>FROM bomba_evento e, jsonb_array_elements(e.dados -&gt; 'alarmes') AS a WHERE e.dados ? 'alarmes'</code>, agrupando por <code>a -&gt;&gt; 'codigo'</code>. Segunda: <code>WHERE dados @&gt; '{"alarmes":[{"codigo":"LIMITE_RIGIDO"}]}'</code>. Terceira: o mesmo <code>FROM</code> da primeira, filtrando <code>aparelho</code> e <code>momento</code>, e para cada item use caminhos: <code>a #&gt;&gt; '{detalhe,causa}'</code>, <code>a #&gt;&gt; '{detalhe,dose_tentada}'</code>, <code>a #&gt;&gt; '{detalhe,limite}'</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT a -&gt;&gt; 'codigo' AS codigo, COUNT(*) AS vezes
+FROM bomba_evento e, jsonb_array_elements(e.dados -&gt; 'alarmes') AS a
+WHERE e.dados ? 'alarmes'
+GROUP BY a -&gt;&gt; 'codigo'
+ORDER BY vezes DESC;</pre></div>
+    <div class="code"><pre data-sql>SELECT momento, aparelho, dados -&gt;&gt; 'usuario' AS usuario
+FROM bomba_evento
+WHERE dados @&gt; '{"alarmes":[{"codigo":"LIMITE_RIGIDO"}]}'
+ORDER BY momento;</pre></div>
+    <div class="code"><pre data-sql>SELECT e.momento,
+       a -&gt;&gt; 'codigo' AS codigo,
+       a #&gt;&gt; '{detalhe,causa}' AS causa,
+       a #&gt;&gt; '{detalhe,dose_tentada}' AS dose_tentada,
+       a #&gt;&gt; '{detalhe,limite}' AS limite
+FROM bomba_evento e, jsonb_array_elements(e.dados -&gt; 'alarmes') AS a
+WHERE e.aparelho = 'BMB-14'
+  AND e.momento BETWEEN '2026-10-12 00:00' AND '2026-10-12 06:00'
+ORDER BY e.momento;</pre></div>
+    <p>Para conferir: <strong>7 códigos</strong>; o mais comum é <code>INFUSAO_PAUSADA</code> (47), depois <code>FIM_DE_INFUSAO</code> (37), <code>OCLUSAO_JUSANTE</code> (28), <code>BATERIA_BAIXA</code> (19) e <code>AR_NA_LINHA</code> (19), <code>PORTA_ABERTA</code> (6) e, raríssimo, <code>LIMITE_RIGIDO</code> (2). Os dois limites rígidos: um em 06/10 na <code>BMB-06</code> (crachá <code>C-4127</code>, que digitou 60 de insulina em vez de 6 e corrigiu um minuto depois — erro de digitação comum, a trava funcionou) e outro às <strong>2h31 de 12/10 na BMB-14</strong>, com o crachá <code>C-2207</code>. A madrugada da <code>BMB-14</code> traz <strong>3 linhas</strong>: à 1h12 uma <code>OCLUSAO_JUSANTE</code> com causa <strong>"equipo dobrado"</strong> e a <code>INFUSAO_PAUSADA</code> que vem junto — problema mecânico, resolvido pelo técnico de crachá <code>C-4410</code> (chave <code>resolvido_por</code>), que só retomou a infusão. E às 2h31 o <code>LIMITE_RIGIDO</code>: dose tentada <strong>2.4</strong>, limite <strong>0.5</strong>. A bomba <strong>recusou</strong>. Doze minutos depois, às 2h43, a mesma dose passou. O que mudou no meio? Lembre do evento das 2h41 na linha do tempo: uma <code>sincronizacao</code>.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c13-ok3"><label for="c13-ok3">Etapa 3 concluída</label></div>
+</section>
+<section class="fase" id="c13-f4" data-fase="4" data-nome="A chave que falta">
+  <div class="fase-head"><div class="num">4</div><div class="t"><h2>A chave que falta</h2><div class="sub">jsonb_object_keys · jsonb_each · NOT ?</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Sincronização é quando a bomba baixa a versão mais nova da <strong>biblioteca de fármacos</strong> da central. Ou seja: alguém mudou a biblioteca pouco antes das 2h41. As mudanças de biblioteca são os eventos do tipo <code>biblioteca</code>, mandados pela <code>CENTRAL</code>. Mas você não sabe ainda <strong>que chaves</strong> esse tipo de evento tem. Em JSON, o próprio banco pode contar.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>jsonb_object_keys(dados)</code></td><td>lista os <strong>nomes das chaves</strong>, uma por linha</td><td>“que campos esse evento tem?”</td></tr>
+    <tr><td><code>jsonb_each(dados)</code></td><td>abre a ficha em pares <code>key</code> / <code>value</code>, um por linha</td><td>“campo e valor, lado a lado”</td></tr>
+    <tr><td><code>NOT dados ? 'chave'</code></td><td>só os JSON que <strong>não têm</strong> aquela chave</td><td>“o evento sem usuário”</td></tr>
+  </table></div>
+  <div class="box novo"><b class="l">Ferramenta nova · descobrindo o que tem dentro</b><p>Quando cada linha pode ter chaves diferentes, é útil perguntar ao banco quais existem. <code>jsonb_object_keys(dados)</code> devolve o nome de cada chave numa linha; no <code>FROM</code>, junto com a tabela, dá para agrupar e contar quantos eventos têm cada chave. <code>jsonb_each(dados)</code> vai além: cada linha traz duas colunas, <code>key</code> (o nome) e <code>value</code> (o valor, em JSON). Se preferir o valor como texto, existe a irmã <code>jsonb_each_text</code>. E para achar quem <strong>não</strong> tem uma chave, basta negar o <code>?</code>: <code>NOT dados ? 'usuario'</code>.</p></div>
+  <div class="code"><pre data-sql>-- Experimente nas fichas escritas na mão (não é missão)
+SELECT jsonb_object_keys('{"farmaco":"insulina","limite":{"antes":15,"depois":20}}') AS chave;
+SELECT key, value FROM jsonb_each('{"campo":"dose_max_rigido","antes":15,"depois":20}');</pre></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para os eventos do tipo <code>biblioteca</code>, liste cada <strong>chave</strong> que aparece e em <strong>quantos</strong> eventos ela aparece. Uma das chaves não está em todos.</li><li>Ache o evento de biblioteca que <strong>não tem</strong> a chave <code>usuario</code> e abra a ficha <code>limite</code> dele com <code>jsonb_each</code>. Mostre: <code>momento</code>, a <code>sessao</code>, o fármaco, e as colunas <code>key</code> e <code>value</code> do limite.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Primeira: <code>FROM bomba_evento, jsonb_object_keys(dados) AS chave WHERE dados @&gt; '{"tipo":"biblioteca"}' GROUP BY chave</code>. Segunda: <code>FROM bomba_evento e, jsonb_each(e.dados -&gt; 'limite') AS l WHERE e.dados -&gt;&gt; 'tipo' = 'biblioteca' AND NOT e.dados ? 'usuario'</code>, mostrando <code>l.key</code> e <code>l.value</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT chave, COUNT(*) AS eventos
+FROM bomba_evento, jsonb_object_keys(dados) AS chave
+WHERE dados @&gt; '{"tipo":"biblioteca"}'
+GROUP BY chave
+ORDER BY eventos DESC, chave;</pre></div>
+    <div class="code"><pre data-sql>SELECT e.momento,
+       e.dados -&gt;&gt; 'sessao'  AS sessao,
+       e.dados -&gt;&gt; 'farmaco' AS farmaco,
+       l.key, l.value
+FROM bomba_evento e, jsonb_each(e.dados -&gt; 'limite') AS l
+WHERE e.dados -&gt;&gt; 'tipo' = 'biblioteca'
+  AND NOT e.dados ? 'usuario';</pre></div>
+    <p>Para conferir: há <strong>5 eventos de biblioteca</strong>, e as chaves <code>farmaco</code>, <code>limite</code>, <code>motivo</code>, <code>sessao</code>, <code>tipo</code> e <code>unidade</code> aparecem nos 5. Só <code>usuario</code> aparece em <strong>4</strong>. Os outros quatro são da farmácia, em horário comercial, com motivo de protocolo. O evento sem usuário é das <strong>2h38 de 12/10</strong>: sessão <code>S-5763</code>, noradrenalina, e o limite traz 3 linhas — <code>campo</code> = <code>dose_max_rigido</code>, <code>antes</code> = <strong>0.5</strong>, <code>depois</code> = <strong>3</strong>. Alguém subiu o limite rígido seis vezes, três minutos antes da sincronização e cinco antes da dose passar. O software da central não gravou quem foi — gravou só a <strong>sessão</strong>. E toda sessão começa com um login.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c13-ok4"><label for="c13-ok4">Etapa 4 concluída</label></div>
+</section>
+<section class="fase" id="c13-f5" data-fase="5" data-nome="O dono da sessão">
+  <div class="fase-head"><div class="num">5</div><div class="t"><h2>Quem estava lá, e quem abriu a sessão</h2><div class="sub">@&gt; · JOIN · escala</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Você tem duas pistas que apontam para lugares diferentes. Na bomba, a programação saiu com o crachá <code>C-2207</code>, da Simone Leitão. Na central, o limite foi mudado numa sessão sem nome. Hora de cruzar o JSON com o <strong>ponto eletrônico</strong> e com os <strong>logins</strong>.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>'instante' BETWEEN entrada AND saida</code></td><td>quem estava no plantão naquele instante</td><td>“quem estava na UTI às 2h43?”</td></tr>
+    <tr><td><code>dados @&gt; '{"tipo":"login","sessao":"…"}'</code></td><td>contém as duas chaves com esses valores</td><td>“o login que abriu aquela sessão”</td></tr>
+    <tr><td><code>JOIN bomba_equipe ON cracha = dados -&gt;&gt; 'usuario'</code></td><td>do crachá no JSON para o nome da pessoa</td><td>“de quem é o crachá”</td></tr>
+  </table></div>
+  <div class="box novo"><b class="l">Juntando tudo · @&gt; com várias chaves</b><p>O pedaço que você passa para o <code>@&gt;</code> pode ter quantas chaves quiser: o JSON da linha precisa conter <strong>todas</strong>, com os mesmos valores. É um jeito curto de escrever <code>dados -&gt;&gt; 'tipo' = 'login' AND dados -&gt;&gt; 'sessao' = '…'</code>.</p></div>
+  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Pelo ponto (<code>bomba_escala</code>), quem estava de plantão no instante da programação, <code>2026-10-12 02:43</code>? Mostre o <code>nome</code>, o <code>cargo</code>, a <code>entrada</code> e a <code>saida</code>.</li><li>E a dona do crachá <code>C-2207</code>? Mostre a <code>entrada</code> e a <code>saida</code> dela no plantão que começou em <code>2026-10-11</code>.</li><li>Ache o <strong>login</strong> que abriu a sessão da mudança de biblioteca (a que você achou na fase 4) e mostre o <code>momento</code>, o <code>aparelho</code>, o <code>nome</code> e o <code>cargo</code> de quem fez login.</li><li>Junte as pistas e confira: <code>SELECT verificar_caso13('Nome Completo');</code></li></ul></div>
+  <details><summary>Dica</summary><div><p>Primeira: <code>FROM bomba_escala s JOIN bomba_equipe q ON q.cracha = s.cracha WHERE '2026-10-12 02:43' BETWEEN s.entrada AND s.saida</code>. Repare se a dona do crachá <code>C-2207</code> está na lista. Segunda: <code>WHERE cracha = 'C-2207' AND entrada &gt;= '2026-10-11'</code>. Terceira: <code>WHERE e.dados @&gt; '{"tipo":"login","sessao":"S-5763"}'</code>, com <code>JOIN bomba_equipe q ON q.cracha = e.dados -&gt;&gt; 'usuario'</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>SELECT q.nome, q.cargo, s.entrada, s.saida
+FROM bomba_escala s
+JOIN bomba_equipe q ON q.cracha = s.cracha
+WHERE '2026-10-12 02:43' BETWEEN s.entrada AND s.saida
+ORDER BY q.nome;</pre></div>
+    <div class="code"><pre data-sql>SELECT entrada, saida
+FROM bomba_escala
+WHERE cracha = 'C-2207' AND entrada &gt;= '2026-10-11';</pre></div>
+    <div class="code"><pre data-sql>SELECT e.momento, e.aparelho, q.nome, q.cargo
+FROM bomba_evento e
+JOIN bomba_equipe q ON q.cracha = e.dados -&gt;&gt; 'usuario'
+WHERE e.dados @&gt; '{"tipo":"login","sessao":"S-5763"}';</pre></div>
+    <p>Para conferir: às 2h43 havia <strong>4 pessoas</strong> de plantão — Heloísa Brandini, Marta Seixas, Rosana Damasceno e Wesley Coutinho. <strong>Simone Leitão não está</strong>, e a segunda consulta (1 linha) mostra por quê: ela entrou de manhã no dia 11, dobrou o plantão e bateu o ponto de saída à <strong>1h04</strong> do dia 12. Quem usou o crachá dela às 2h29 estava com ele na mão, não era ela. A sessão <code>S-5763</code> foi aberta na <code>CENTRAL</code> às <strong>2h35</strong> com o crachá de <strong>Heloísa Brandini</strong>, enfermeira do plantão noturno. A sequência fecha: a bomba recusa a dose às 2h31 → Heloísa entra na central com o próprio crachá às 2h35 → sobe o limite de 0,5 para 3,0 às 2h38 → a bomba sincroniza às 2h41 → a dose de 2,4 passa às 2h43 no crachá esquecido da Simone. Marta fez um bolus prescrito, Wesley desdobrou um equipo, Rosana salvou o paciente. Confira com <code>SELECT verificar_caso13('Heloísa Brandini');</code></p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c13-ok5"><label for="c13-ok5">Etapa 5 concluída</label></div>
+</section>
+<section class="fase" id="c13-cola" style="gap:12px">
+  <h2 style="font-size:32px">Cola rápida</h2>
+  <div class="tw"><table>
+    <tr><th>Comando</th><th>Lembrete rápido</th></tr>
+    <tr><td><code>jsonb</code></td><td>tipo de coluna que guarda JSON: <code>{"chave": valor, …}</code></td></tr>
+    <tr><td><code>dados -&gt; 'chave'</code></td><td>valor da chave, ainda em JSON (para entrar mais fundo)</td></tr>
+    <tr><td><code>dados -&gt;&gt; 'chave'</code></td><td>valor da chave como texto (para mostrar, comparar, agrupar)</td></tr>
+    <tr><td><code>dados #&gt;&gt; '{a,b}'</code></td><td>segue o caminho a → b e devolve texto</td></tr>
+    <tr><td><code>(dados -&gt;&gt; 'x')::numeric</code></td><td>texto vira número (parênteses obrigatórios)</td></tr>
+    <tr><td><code>dados ? 'chave'</code></td><td>o JSON tem essa chave? (<code>NOT … ?</code> para quem não tem)</td></tr>
+    <tr><td><code>dados @&gt; '{"tipo":"login"}'</code></td><td>o JSON contém esse pedaço? (funciona com listas também)</td></tr>
+    <tr><td><code>FROM t, jsonb_array_elements(t.dados -&gt; 'lista') AS a</code></td><td>uma linha para cada item da lista</td></tr>
+    <tr><td><code>FROM t, jsonb_object_keys(t.dados) AS chave</code></td><td>uma linha para cada nome de chave</td></tr>
+    <tr><td><code>FROM t, jsonb_each(t.dados) AS l</code></td><td>pares <code>l.key</code> / <code>l.value</code> (<code>jsonb_each_text</code> dá o valor em texto)</td></tr>
+    <tr><td><code>JOIN p ON p.id = (e.dados -&gt;&gt; 'paciente')::int</code></td><td>liga um campo do JSON a uma tabela comum</td></tr>
+  </table></div>
+  <p class="foot"><a href="index.html">← Todos os casos</a> · Personagens e dados são fictícios.</p>
+</section>
+</div>
+<script type="text/plain" id="sqlsrc">-- =====================================================================
+--  MISTÉRIO NO HOSPITAL SQL  ·  CASO 13: A dose reprogramada
+--  Cole tudo isto no SQL Editor do Supabase e clique em RUN.
+--  Pode rodar de novo quando quiser: recria só as tabelas deste caso.
+--  Não mexe nas tabelas dos outros casos.
+-- =====================================================================
+
+DROP FUNCTION IF EXISTS verificar_caso13(text);
+DROP TABLE IF EXISTS bomba_evento, bomba_escala, bomba_prescricao, bomba_paciente, bomba_equipe CASCADE;
+
+-- Equipe da UTI Adulto que usa as bombas (cada pessoa tem um crachá)
+CREATE TABLE bomba_equipe (
+  cracha  text PRIMARY KEY,  -- código do crachá, ex.: C-1875
+  nome    text NOT NULL,
+  cargo   text,
+  turno   text
+);
+
+-- Pacientes internados na UTI Adulto, cada um com a sua bomba de infusão
+CREATE TABLE bomba_paciente (
+  id       integer PRIMARY KEY,
+  nome     text NOT NULL,
+  leito    text,
+  peso_kg  numeric(5,1),
+  bomba    text           -- código da bomba ligada ao paciente, ex.: BMB-03
+);
+
+-- Prescrição médica: a dose MÁXIMA autorizada de cada medicamento
+CREATE TABLE bomba_prescricao (
+  id           integer PRIMARY KEY,
+  paciente_id  integer REFERENCES bomba_paciente(id),
+  farmaco      text,          -- 'noradrenalina', 'heparina', 'insulina', 'fentanil', 'midazolam'
+  modo         text,          -- 'continua' (gota a gota, por hora) ou 'bolus' (dose única de uma vez)
+  dose         numeric,       -- dose máxima prescrita
+  unidade      text,
+  medico       text,
+  data         date
+);
+
+-- Ponto eletrônico da UTI: quando cada pessoa entrou e saiu do plantão
+CREATE TABLE bomba_escala (
+  id       integer PRIMARY KEY,
+  cracha   text REFERENCES bomba_equipe(cracha),
+  entrada  timestamp,
+  saida    timestamp
+);
+
+-- Tudo o que as bombas (e a central de infusão) mandam para o servidor.
+-- O conteúdo de cada evento vem em JSON, na coluna "dados".
+CREATE TABLE bomba_evento (
+  id        integer PRIMARY KEY,
+  momento   timestamp,
+  aparelho  text,          -- 'BMB-01' … 'BMB-16' (as bombas) ou 'CENTRAL' (o computador da farmácia)
+  dados     jsonb          -- o evento em si, em JSON
+);
+
+
+INSERT INTO bomba_equipe (cracha,nome,cargo,turno) VALUES
+('C-3318','Heloísa Brandini','Enfermeira','noturno (dias ímpares)'),
+('C-1875','Marta Seixas','Enfermeira','noturno (dias ímpares)'),
+('C-5120','Rosana Damasceno','Enfermeira','noturno (dias ímpares)'),
+('C-4410','Wesley Coutinho','Técnico de enfermagem','noturno (dias ímpares)'),
+('C-2207','Simone Leitão','Enfermeira','diurno (dias ímpares)'),
+('C-2964','Daniela Frota','Enfermeira','diurno (dias ímpares)'),
+('C-4502','Joelma Guerra','Técnica de enfermagem','diurno (dias ímpares)'),
+('C-3051','Cristiano Lobato','Enfermeiro','diurno (dias pares)'),
+('C-4127','Patrícia Galvão','Enfermeira','diurno (dias pares)'),
+('C-4618','Everton Cordeiro','Técnico de enfermagem','diurno (dias pares)'),
+('C-1590','Leandro Bezerra','Enfermeiro','noturno (dias pares)'),
+('C-2683','Yara Medeiros','Enfermeira','noturno (dias pares)'),
+('C-4733','Kátia Mattos','Técnica de enfermagem','noturno (dias pares)'),
+('C-6011','Otávio Assunção','Farmacêutico','comercial'),
+('C-6024','Lívia Bragança','Farmacêutica','comercial'),
+('C-7002','Ivone Esteves','Coordenadora de enfermagem','comercial'),
+('C-8105','Caio Carneiro','Médico intensivista','plantão médico'),
+('C-8117','Renata Quintão','Médica intensivista','plantão médico');
+
+INSERT INTO bomba_paciente (id,nome,leito,peso_kg,bomba) VALUES
+(1,'Benedito Barreto','UTI-01',72.0,'BMB-01'),
+(2,'Lourdes Sarmento','UTI-02',58.0,'BMB-02'),
+(3,'Raimundo Bandeira','UTI-03',85.0,'BMB-03'),
+(4,'Celina Cavalcante','UTI-04',63.0,'BMB-04'),
+(5,'Joaquim Fonseca','UTI-05',90.0,'BMB-05'),
+(6,'Glória Macedo','UTI-06',67.0,'BMB-06'),
+(7,'Severino Rios','UTI-07',74.0,'BMB-07'),
+(8,'Iolanda Távora','UTI-08',55.0,'BMB-08'),
+(9,'Nilton Vilela','UTI-09',81.0,'BMB-09'),
+(10,'Zuleide Novaes','UTI-10',60.0,'BMB-10'),
+(11,'Osvaldo Quaresma','UTI-11',77.0,'BMB-11'),
+(12,'Albertina Ribas','UTI-12',52.0,'BMB-12'),
+(13,'Ademar Sodré','UTI-13',88.0,'BMB-13'),
+(14,'Aníbal Tenório','UTI-14',78.0,'BMB-14'),
+(15,'Dirce Valença','UTI-15',64.0,'BMB-15'),
+(16,'Genésio Falcone','UTI-16',70.0,'BMB-16');
+
+INSERT INTO bomba_prescricao (id,paciente_id,farmaco,modo,dose,unidade,medico,data) VALUES
+(1,1,'heparina','continua',1000,'UI/h','Caio Carneiro','2026-09-28'),
+(2,1,'fentanil','continua',200,'mcg/h','Renata Quintão','2026-09-25'),
+(3,1,'midazolam','continua',10,'mg/h','Renata Quintão','2026-09-28'),
+(4,2,'noradrenalina','continua',0.5,'mcg/kg/min','Renata Quintão','2026-09-27'),
+(5,2,'fentanil','continua',50,'mcg/h','Caio Carneiro','2026-09-30'),
+(6,2,'midazolam','continua',8,'mg/h','Caio Carneiro','2026-09-24'),
+(7,3,'heparina','continua',1000,'UI/h','Renata Quintão','2026-09-27'),
+(8,3,'heparina','bolus',5000,'UI','Caio Carneiro','2026-09-27'),
+(9,3,'fentanil','continua',100,'mcg/h','Caio Carneiro','2026-09-26'),
+(10,4,'noradrenalina','continua',0.25,'mcg/kg/min','Caio Carneiro','2026-09-30'),
+(11,4,'fentanil','continua',150,'mcg/h','Caio Carneiro','2026-09-29'),
+(12,5,'heparina','continua',800,'UI/h','Renata Quintão','2026-09-26'),
+(13,5,'insulina','continua',5,'UI/h','Caio Carneiro','2026-09-25'),
+(14,5,'midazolam','continua',10,'mg/h','Renata Quintão','2026-09-30'),
+(15,6,'insulina','continua',8,'UI/h','Renata Quintão','2026-09-30'),
+(16,6,'noradrenalina','continua',0.2,'mcg/kg/min','Renata Quintão','2026-09-29'),
+(17,7,'heparina','continua',1400,'UI/h','Caio Carneiro','2026-09-29'),
+(18,7,'insulina','continua',12,'UI/h','Renata Quintão','2026-09-28'),
+(19,7,'fentanil','continua',200,'mcg/h','Renata Quintão','2026-09-28'),
+(20,8,'noradrenalina','continua',0.4,'mcg/kg/min','Caio Carneiro','2026-09-26'),
+(21,8,'heparina','continua',800,'UI/h','Caio Carneiro','2026-09-28'),
+(22,9,'heparina','continua',1200,'UI/h','Caio Carneiro','2026-09-30'),
+(23,9,'heparina','bolus',5000,'UI','Caio Carneiro','2026-09-29'),
+(24,9,'midazolam','continua',5,'mg/h','Renata Quintão','2026-09-30'),
+(25,10,'noradrenalina','continua',0.4,'mcg/kg/min','Caio Carneiro','2026-09-27'),
+(26,10,'midazolam','continua',5,'mg/h','Caio Carneiro','2026-09-27'),
+(27,11,'heparina','continua',900,'UI/h','Renata Quintão','2026-09-27'),
+(28,11,'heparina','bolus',4000,'UI','Renata Quintão','2026-09-25'),
+(29,11,'noradrenalina','continua',0.4,'mcg/kg/min','Caio Carneiro','2026-09-27'),
+(30,12,'fentanil','continua',75,'mcg/h','Renata Quintão','2026-09-26'),
+(31,12,'midazolam','continua',10,'mg/h','Renata Quintão','2026-09-29'),
+(32,13,'insulina','continua',8,'UI/h','Renata Quintão','2026-09-28'),
+(33,13,'midazolam','continua',8,'mg/h','Caio Carneiro','2026-09-24'),
+(34,14,'noradrenalina','continua',0.3,'mcg/kg/min','Caio Carneiro','2026-09-26'),
+(35,14,'fentanil','continua',75,'mcg/h','Caio Carneiro','2026-09-25'),
+(36,14,'insulina','continua',6,'UI/h','Renata Quintão','2026-09-25'),
+(37,15,'midazolam','continua',10,'mg/h','Caio Carneiro','2026-09-25'),
+(38,16,'noradrenalina','continua',0.25,'mcg/kg/min','Renata Quintão','2026-09-25'),
+(39,16,'fentanil','continua',50,'mcg/h','Caio Carneiro','2026-09-29');
+
+INSERT INTO bomba_escala (id,cracha,entrada,saida) VALUES
+(1,'C-7002','2026-10-01 06:50:00','2026-10-01 16:06:00'),
+(2,'C-2964','2026-10-01 06:53:00','2026-10-01 19:03:00'),
+(3,'C-4502','2026-10-01 07:01:00','2026-10-01 19:13:00'),
+(4,'C-2207','2026-10-01 07:05:00','2026-10-01 18:58:00'),
+(5,'C-6011','2026-10-01 07:57:00','2026-10-01 17:03:00'),
+(6,'C-6024','2026-10-01 08:00:00','2026-10-01 16:56:00'),
+(7,'C-1875','2026-10-01 18:52:00','2026-10-02 06:59:00'),
+(8,'C-4410','2026-10-01 19:01:00','2026-10-02 06:56:00'),
+(9,'C-5120','2026-10-01 19:03:00','2026-10-02 07:06:00'),
+(10,'C-3318','2026-10-01 19:05:00','2026-10-02 06:57:00'),
+(11,'C-4127','2026-10-02 06:49:00','2026-10-02 19:12:00'),
+(12,'C-7002','2026-10-02 06:55:00','2026-10-02 16:03:00'),
+(13,'C-4618','2026-10-02 06:58:00','2026-10-02 19:12:00'),
+(14,'C-3051','2026-10-02 07:05:00','2026-10-02 19:13:00'),
+(15,'C-6011','2026-10-02 07:51:00','2026-10-02 17:07:00'),
+(16,'C-6024','2026-10-02 08:03:00','2026-10-02 17:08:00'),
+(17,'C-2683','2026-10-02 18:51:00','2026-10-03 06:59:00'),
+(18,'C-4733','2026-10-02 19:03:00','2026-10-03 06:56:00'),
+(19,'C-1590','2026-10-02 19:06:00','2026-10-03 07:10:00'),
+(20,'C-2964','2026-10-03 06:59:00','2026-10-03 19:02:00'),
+(21,'C-2207','2026-10-03 07:05:00','2026-10-03 18:58:00'),
+(22,'C-4502','2026-10-03 07:05:00','2026-10-03 19:13:00'),
+(23,'C-4410','2026-10-03 18:48:00','2026-10-04 06:59:00'),
+(24,'C-3318','2026-10-03 19:02:00','2026-10-04 07:13:00'),
+(25,'C-1875','2026-10-03 19:04:00','2026-10-04 07:08:00'),
+(26,'C-5120','2026-10-03 19:06:00','2026-10-04 07:02:00'),
+(27,'C-3051','2026-10-04 06:49:00','2026-10-04 19:11:00'),
+(28,'C-4618','2026-10-04 06:54:00','2026-10-04 19:00:00'),
+(29,'C-4127','2026-10-04 07:04:00','2026-10-04 19:01:00'),
+(30,'C-2683','2026-10-04 18:48:00','2026-10-05 07:09:00'),
+(31,'C-4733','2026-10-04 18:53:00','2026-10-05 07:07:00'),
+(32,'C-1590','2026-10-04 19:04:00','2026-10-05 07:07:00'),
+(33,'C-4502','2026-10-05 06:53:00','2026-10-05 18:58:00'),
+(34,'C-7002','2026-10-05 06:54:00','2026-10-05 16:02:00'),
+(35,'C-2964','2026-10-05 07:00:00','2026-10-05 19:04:00'),
+(36,'C-2207','2026-10-05 07:02:00','2026-10-05 19:11:00'),
+(37,'C-6011','2026-10-05 07:59:00','2026-10-05 16:56:00'),
+(38,'C-6024','2026-10-05 08:01:00','2026-10-05 16:58:00'),
+(39,'C-5120','2026-10-05 18:50:00','2026-10-06 06:56:00'),
+(40,'C-4410','2026-10-05 18:51:00','2026-10-06 07:00:00'),
+(41,'C-3318','2026-10-05 18:59:00','2026-10-06 06:57:00'),
+(42,'C-1875','2026-10-05 19:06:00','2026-10-06 07:06:00'),
+(43,'C-4127','2026-10-06 06:52:00','2026-10-06 18:57:00'),
+(44,'C-4618','2026-10-06 06:56:00','2026-10-06 19:12:00'),
+(45,'C-7002','2026-10-06 07:00:00','2026-10-06 16:02:00'),
+(46,'C-3051','2026-10-06 07:06:00','2026-10-06 19:04:00'),
+(47,'C-6024','2026-10-06 07:53:00','2026-10-06 17:06:00'),
+(48,'C-6011','2026-10-06 08:05:00','2026-10-06 17:06:00'),
+(49,'C-1590','2026-10-06 18:48:00','2026-10-07 07:02:00'),
+(50,'C-2683','2026-10-06 18:52:00','2026-10-07 06:59:00'),
+(51,'C-4733','2026-10-06 19:03:00','2026-10-07 07:13:00'),
+(52,'C-2207','2026-10-07 06:53:00','2026-10-07 19:01:00'),
+(53,'C-4502','2026-10-07 06:55:00','2026-10-07 18:59:00'),
+(54,'C-7002','2026-10-07 07:00:00','2026-10-07 15:58:00'),
+(55,'C-2964','2026-10-07 07:01:00','2026-10-07 19:06:00'),
+(56,'C-6011','2026-10-07 07:58:00','2026-10-07 16:58:00'),
+(57,'C-6024','2026-10-07 08:01:00','2026-10-07 16:58:00'),
+(58,'C-5120','2026-10-07 18:55:00','2026-10-08 07:02:00'),
+(59,'C-1875','2026-10-07 18:58:00','2026-10-08 07:06:00'),
+(60,'C-3318','2026-10-07 19:03:00','2026-10-08 07:12:00'),
+(61,'C-4410','2026-10-07 19:06:00','2026-10-08 06:59:00'),
+(62,'C-3051','2026-10-08 06:52:00','2026-10-08 18:59:00'),
+(63,'C-7002','2026-10-08 06:53:00','2026-10-08 16:06:00'),
+(64,'C-4127','2026-10-08 06:57:00','2026-10-08 19:05:00'),
+(65,'C-4618','2026-10-08 07:05:00','2026-10-08 19:13:00'),
+(66,'C-6024','2026-10-08 07:51:00','2026-10-08 17:01:00'),
+(67,'C-6011','2026-10-08 08:03:00','2026-10-08 17:07:00'),
+(68,'C-1590','2026-10-08 18:49:00','2026-10-09 07:03:00'),
+(69,'C-4733','2026-10-08 18:51:00','2026-10-09 07:06:00'),
+(70,'C-2683','2026-10-08 19:00:00','2026-10-09 06:59:00'),
+(71,'C-7002','2026-10-09 06:53:00','2026-10-09 16:13:00'),
+(72,'C-4502','2026-10-09 06:55:00','2026-10-09 18:56:00'),
+(73,'C-2207','2026-10-09 07:04:00','2026-10-09 18:57:00'),
+(74,'C-2964','2026-10-09 07:05:00','2026-10-09 19:14:00'),
+(75,'C-6024','2026-10-09 07:51:00','2026-10-09 17:09:00'),
+(76,'C-6011','2026-10-09 07:55:00','2026-10-09 16:58:00'),
+(77,'C-4410','2026-10-09 18:59:00','2026-10-10 06:59:00'),
+(78,'C-5120','2026-10-09 19:00:00','2026-10-10 06:56:00'),
+(79,'C-1875','2026-10-09 19:01:00','2026-10-10 07:07:00'),
+(80,'C-3318','2026-10-09 19:06:00','2026-10-10 07:01:00'),
+(81,'C-4618','2026-10-10 06:49:00','2026-10-10 19:11:00'),
+(82,'C-3051','2026-10-10 06:53:00','2026-10-10 19:09:00'),
+(83,'C-4127','2026-10-10 07:02:00','2026-10-10 19:06:00'),
+(84,'C-1590','2026-10-10 18:49:00','2026-10-11 06:59:00'),
+(85,'C-4733','2026-10-10 19:03:00','2026-10-11 06:56:00'),
+(86,'C-2683','2026-10-10 19:05:00','2026-10-11 07:06:00'),
+(87,'C-2207','2026-10-11 06:49:00','2026-10-12 01:04:00'),
+(88,'C-2964','2026-10-11 06:53:00','2026-10-11 19:14:00'),
+(89,'C-4502','2026-10-11 06:57:00','2026-10-11 19:06:00'),
+(90,'C-1875','2026-10-11 18:48:00','2026-10-12 06:59:00'),
+(91,'C-5120','2026-10-11 18:49:00','2026-10-12 06:59:00'),
+(92,'C-3318','2026-10-11 18:54:00','2026-10-12 07:07:00'),
+(93,'C-4410','2026-10-11 19:02:00','2026-10-12 06:56:00'),
+(94,'C-4618','2026-10-12 06:49:00','2026-10-12 19:09:00'),
+(95,'C-3051','2026-10-12 06:50:00','2026-10-12 18:56:00'),
+(96,'C-7002','2026-10-12 06:53:00','2026-10-12 19:00:00'),
+(97,'C-4127','2026-10-12 06:58:00','2026-10-12 19:04:00');
+
+INSERT INTO bomba_evento (id,momento,aparelho,dados) VALUES
+(1,'2026-10-01 08:19:00','BMB-09','{"tipo":"login","usuario":"C-2207","sessao":"S-5850"}'),
+(2,'2026-10-01 08:21:00','BMB-09','{"tipo":"programacao","usuario":"C-2207","sessao":"S-5850","paciente":9,"farmaco":"midazolam","modo":"continua","infusao":{"dose":5,"unidade":"mg/h","vazao_ml_h":5}}'),
+(3,'2026-10-01 08:39:00','BMB-16','{"tipo":"login","usuario":"C-2207","sessao":"S-8456"}'),
+(4,'2026-10-01 08:42:00','BMB-16','{"tipo":"programacao","usuario":"C-2207","sessao":"S-8456","paciente":16,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.14,"unidade":"mcg/kg/min","vazao_ml_h":9.2}}'),
+(5,'2026-10-01 09:35:00','BMB-08','{"tipo":"login","usuario":"C-2964","sessao":"S-4165"}'),
+(6,'2026-10-01 09:36:00','BMB-08','{"tipo":"programacao","usuario":"C-2964","sessao":"S-4165","paciente":8,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.27,"unidade":"mcg/kg/min","vazao_ml_h":13.9}}'),
+(7,'2026-10-01 09:58:00','BMB-10','{"tipo":"login","usuario":"C-2964","sessao":"S-2411"}'),
+(8,'2026-10-01 09:59:00','BMB-12','{"tipo":"login","usuario":"C-2207","sessao":"S-6887"}'),
+(9,'2026-10-01 10:01:00','BMB-10','{"tipo":"programacao","usuario":"C-2964","sessao":"S-2411","paciente":10,"farmaco":"midazolam","modo":"continua","infusao":{"dose":4,"unidade":"mg/h","vazao_ml_h":4}}'),
+(10,'2026-10-01 10:02:00','BMB-12','{"tipo":"programacao","usuario":"C-2207","sessao":"S-6887","paciente":12,"farmaco":"fentanil","modo":"continua","infusao":{"dose":35,"unidade":"mcg/h","vazao_ml_h":3.5}}'),
+(11,'2026-10-01 11:51:00','BMB-07','{"tipo":"login","usuario":"C-2964","sessao":"S-7358"}'),
+(12,'2026-10-01 11:53:00','BMB-07','{"tipo":"programacao","usuario":"C-2964","sessao":"S-7358","paciente":7,"farmaco":"heparina","modo":"continua","infusao":{"dose":650,"unidade":"UI/h","vazao_ml_h":6.5}}'),
+(13,'2026-10-01 12:01:00','CENTRAL','{"tipo":"login","usuario":"C-7002","sessao":"S-8277"}'),
+(14,'2026-10-01 12:03:00','CENTRAL','{"tipo":"relatorio","usuario":"C-7002","nome":"adesão à biblioteca"}'),
+(15,'2026-10-01 12:33:00','BMB-12','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":750,"causa":"equipo preso na grade da cama"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4502"}'),
+(16,'2026-10-01 12:39:00','BMB-12','{"tipo":"login","usuario":"C-4502","sessao":"S-5467"}'),
+(17,'2026-10-01 12:40:00','BMB-12','{"tipo":"retomada","usuario":"C-4502","sessao":"S-5467","paciente":12}'),
+(18,'2026-10-01 12:53:00','BMB-02','{"tipo":"login","usuario":"C-2964","sessao":"S-8234"}'),
+(19,'2026-10-01 12:56:00','BMB-02','{"tipo":"programacao","usuario":"C-2964","sessao":"S-8234","paciente":2,"farmaco":"midazolam","modo":"continua","infusao":{"dose":5.5,"unidade":"mg/h","vazao_ml_h":5.5}}'),
+(20,'2026-10-01 13:07:00','BMB-11','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(21,'2026-10-01 14:48:00','BMB-08','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":835,"causa":"equipo preso na grade da cama"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4502"}'),
+(22,'2026-10-01 14:54:00','BMB-08','{"tipo":"login","usuario":"C-4502","sessao":"S-5206"}'),
+(23,'2026-10-01 14:55:00','BMB-08','{"tipo":"retomada","usuario":"C-4502","sessao":"S-5206","paciente":8}'),
+(24,'2026-10-01 15:45:00','BMB-14','{"tipo":"login","usuario":"C-2964","sessao":"S-1984"}'),
+(25,'2026-10-01 15:48:00','BMB-14','{"tipo":"programacao","usuario":"C-2964","sessao":"S-1984","paciente":14,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.16,"unidade":"mcg/kg/min","vazao_ml_h":11.7}}'),
+(26,'2026-10-01 16:47:00','BMB-01','{"tipo":"login","usuario":"C-2964","sessao":"S-4805"}'),
+(27,'2026-10-01 16:48:00','BMB-01','{"tipo":"programacao","usuario":"C-2964","sessao":"S-4805","paciente":1,"farmaco":"heparina","modo":"continua","infusao":{"dose":500,"unidade":"UI/h","vazao_ml_h":5}}'),
+(28,'2026-10-01 17:11:00','BMB-06','{"tipo":"login","usuario":"C-2964","sessao":"S-2156"}'),
+(29,'2026-10-01 17:14:00','BMB-06','{"tipo":"programacao","usuario":"C-2964","sessao":"S-2156","paciente":6,"farmaco":"insulina","modo":"continua","infusao":{"dose":5,"unidade":"UI/h","vazao_ml_h":5}}'),
+(30,'2026-10-01 19:20:00','BMB-03','{"tipo":"login","usuario":"C-1875","sessao":"S-5143"}'),
+(31,'2026-10-01 19:22:00','BMB-03','{"tipo":"programacao","usuario":"C-1875","sessao":"S-5143","paciente":3,"farmaco":"heparina","modo":"continua","infusao":{"dose":850,"unidade":"UI/h","vazao_ml_h":8.5}}'),
+(32,'2026-10-01 21:04:00','BMB-16','{"tipo":"login","usuario":"C-3318","sessao":"S-6234"}'),
+(33,'2026-10-01 21:07:00','BMB-16','{"tipo":"programacao","usuario":"C-3318","sessao":"S-6234","paciente":16,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.21,"unidade":"mcg/kg/min","vazao_ml_h":13.8}}'),
+(34,'2026-10-01 22:17:00','BMB-01','{"tipo":"login","usuario":"C-3318","sessao":"S-6666"}'),
+(35,'2026-10-01 22:20:00','BMB-01','{"tipo":"programacao","usuario":"C-3318","sessao":"S-6666","paciente":1,"farmaco":"midazolam","modo":"continua","infusao":{"dose":5.5,"unidade":"mg/h","vazao_ml_h":5.5}}'),
+(36,'2026-10-01 22:38:00','BMB-04','{"tipo":"login","usuario":"C-5120","sessao":"S-9542"}'),
+(37,'2026-10-01 22:39:00','BMB-04','{"tipo":"programacao","usuario":"C-5120","sessao":"S-9542","paciente":4,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.24,"unidade":"mcg/kg/min","vazao_ml_h":14.2}}'),
+(38,'2026-10-01 22:57:00','BMB-11','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(39,'2026-10-02 00:53:00','BMB-14','{"tipo":"login","usuario":"C-5120","sessao":"S-9772"}'),
+(40,'2026-10-02 00:56:00','BMB-14','{"tipo":"programacao","usuario":"C-5120","sessao":"S-9772","paciente":14,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.24,"unidade":"mcg/kg/min","vazao_ml_h":17.5}}'),
+(41,'2026-10-02 01:22:00','BMB-12','{"tipo":"login","usuario":"C-3318","sessao":"S-6721"}'),
+(42,'2026-10-02 01:25:00','BMB-12','{"tipo":"programacao","usuario":"C-3318","sessao":"S-6721","paciente":12,"farmaco":"fentanil","modo":"continua","infusao":{"dose":55,"unidade":"mcg/h","vazao_ml_h":5.5}}'),
+(43,'2026-10-02 03:24:00','BMB-10','{"tipo":"login","usuario":"C-3318","sessao":"S-1647"}'),
+(44,'2026-10-02 03:26:00','BMB-05','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(45,'2026-10-02 03:26:00','BMB-10','{"tipo":"programacao","usuario":"C-3318","sessao":"S-1647","paciente":10,"farmaco":"midazolam","modo":"continua","infusao":{"dose":4.5,"unidade":"mg/h","vazao_ml_h":4.5}}'),
+(46,'2026-10-02 03:27:00','BMB-02','{"tipo":"login","usuario":"C-3318","sessao":"S-6750"}'),
+(47,'2026-10-02 03:29:00','BMB-02','{"tipo":"programacao","usuario":"C-3318","sessao":"S-6750","paciente":2,"farmaco":"fentanil","modo":"continua","infusao":{"dose":30,"unidade":"mcg/h","vazao_ml_h":3}}'),
+(48,'2026-10-02 04:02:00','BMB-15','{"tipo":"login","usuario":"C-3318","sessao":"S-9280"}'),
+(49,'2026-10-02 04:03:00','BMB-15','{"tipo":"programacao","usuario":"C-3318","sessao":"S-9280","paciente":15,"farmaco":"midazolam","modo":"continua","infusao":{"dose":10,"unidade":"mg/h","vazao_ml_h":10}}'),
+(50,'2026-10-02 04:15:00','BMB-06','{"tipo":"login","usuario":"C-1875","sessao":"S-2583"}'),
+(51,'2026-10-02 04:18:00','BMB-06','{"tipo":"programacao","usuario":"C-1875","sessao":"S-2583","paciente":6,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.13,"unidade":"mcg/kg/min","vazao_ml_h":8.2}}'),
+(52,'2026-10-02 04:30:00','BMB-05','{"tipo":"login","usuario":"C-5120","sessao":"S-9133"}'),
+(53,'2026-10-02 04:32:00','BMB-05','{"tipo":"programacao","usuario":"C-5120","sessao":"S-9133","paciente":5,"farmaco":"midazolam","modo":"continua","infusao":{"dose":9.5,"unidade":"mg/h","vazao_ml_h":9.5}}'),
+(54,'2026-10-02 04:46:00','BMB-13','{"tipo":"login","usuario":"C-1875","sessao":"S-5563"}'),
+(55,'2026-10-02 04:48:00','BMB-13','{"tipo":"programacao","usuario":"C-1875","sessao":"S-5563","paciente":13,"farmaco":"insulina","modo":"continua","infusao":{"dose":6.5,"unidade":"UI/h","vazao_ml_h":6.5}}'),
+(56,'2026-10-02 09:00:00','BMB-07','{"tipo":"login","usuario":"C-4127","sessao":"S-1228"}'),
+(57,'2026-10-02 09:02:00','BMB-07','{"tipo":"programacao","usuario":"C-4127","sessao":"S-1228","paciente":7,"farmaco":"heparina","modo":"continua","infusao":{"dose":750,"unidade":"UI/h","vazao_ml_h":7.5}}'),
+(58,'2026-10-02 09:18:00','BMB-13','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":5}}]}'),
+(59,'2026-10-02 09:23:00','BMB-01','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(60,'2026-10-02 10:12:00','CENTRAL','{"tipo":"login","usuario":"C-6011","sessao":"S-3771"}'),
+(61,'2026-10-02 10:15:00','CENTRAL','{"tipo":"biblioteca","sessao":"S-3771","farmaco":"insulina","unidade":"UI/h","limite":{"campo":"dose_max_rigido","antes":15,"depois":20},"motivo":"Protocolo de insulina revisado pela Comissão de Farmácia","usuario":"C-6011"}'),
+(62,'2026-10-02 10:16:00','BMB-03','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(63,'2026-10-02 10:16:00','BMB-13','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(64,'2026-10-02 10:16:00','BMB-15','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(65,'2026-10-02 10:17:00','BMB-04','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(66,'2026-10-02 10:17:00','BMB-09','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(67,'2026-10-02 10:17:00','BMB-10','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(68,'2026-10-02 10:17:00','BMB-12','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(69,'2026-10-02 10:18:00','BMB-01','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(70,'2026-10-02 10:18:00','BMB-02','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(71,'2026-10-02 10:18:00','BMB-05','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(72,'2026-10-02 10:18:00','BMB-06','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(73,'2026-10-02 10:18:00','BMB-07','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(74,'2026-10-02 10:18:00','BMB-08','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(75,'2026-10-02 10:18:00','BMB-11','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(76,'2026-10-02 10:19:00','BMB-14','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(77,'2026-10-02 10:19:00','BMB-16','{"tipo":"sincronizacao","versao":"BIB-2026.10.02-1015"}'),
+(78,'2026-10-02 10:48:00','BMB-15','{"tipo":"login","usuario":"C-4127","sessao":"S-6980"}'),
+(79,'2026-10-02 10:51:00','BMB-15','{"tipo":"programacao","usuario":"C-4127","sessao":"S-6980","paciente":15,"farmaco":"midazolam","modo":"continua","infusao":{"dose":6.5,"unidade":"mg/h","vazao_ml_h":6.5}}'),
+(80,'2026-10-02 10:53:00','BMB-01','{"tipo":"login","usuario":"C-3051","sessao":"S-7029"}'),
+(81,'2026-10-02 10:56:00','BMB-01','{"tipo":"programacao","usuario":"C-3051","sessao":"S-7029","paciente":1,"farmaco":"fentanil","modo":"continua","infusao":{"dose":135,"unidade":"mcg/h","vazao_ml_h":13.5}}'),
+(82,'2026-10-02 11:20:00','BMB-08','{"tipo":"login","usuario":"C-4127","sessao":"S-5031"}'),
+(83,'2026-10-02 11:21:00','BMB-08','{"tipo":"programacao","usuario":"C-4127","sessao":"S-5031","paciente":8,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.35,"unidade":"mcg/kg/min","vazao_ml_h":18}}'),
+(84,'2026-10-02 11:53:00','BMB-02','{"tipo":"login","usuario":"C-3051","sessao":"S-6141"}'),
+(85,'2026-10-02 11:56:00','BMB-02','{"tipo":"programacao","usuario":"C-3051","sessao":"S-6141","paciente":2,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.35,"unidade":"mcg/kg/min","vazao_ml_h":19}}'),
+(86,'2026-10-02 12:24:00','BMB-07','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":14}}]}'),
+(87,'2026-10-02 13:23:00','BMB-16','{"tipo":"login","usuario":"C-3051","sessao":"S-4121"}'),
+(88,'2026-10-02 13:24:00','BMB-16','{"tipo":"programacao","usuario":"C-3051","sessao":"S-4121","paciente":16,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.18,"unidade":"mcg/kg/min","vazao_ml_h":11.8}}'),
+(89,'2026-10-02 14:42:00','CENTRAL','{"tipo":"login","usuario":"C-7002","sessao":"S-4290"}'),
+(90,'2026-10-02 14:44:00','CENTRAL','{"tipo":"relatorio","usuario":"C-7002","nome":"alarmes por leito"}'),
+(91,'2026-10-02 15:45:00','BMB-12','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":827,"causa":"clamp fechado"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4618"}'),
+(92,'2026-10-02 15:51:00','BMB-12','{"tipo":"login","usuario":"C-4618","sessao":"S-1291"}'),
+(93,'2026-10-02 15:52:00','BMB-12','{"tipo":"retomada","usuario":"C-4618","sessao":"S-1291","paciente":12}'),
+(94,'2026-10-02 16:09:00','BMB-11','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":111}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4618"}'),
+(95,'2026-10-02 16:14:00','BMB-11','{"tipo":"login","usuario":"C-4618","sessao":"S-1928"}'),
+(96,'2026-10-02 16:15:00','BMB-11','{"tipo":"retomada","usuario":"C-4618","sessao":"S-1928","paciente":11}'),
+(97,'2026-10-02 16:25:00','BMB-09','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":808,"causa":"clamp fechado"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4618"}'),
+(98,'2026-10-02 16:28:00','BMB-09','{"tipo":"login","usuario":"C-4618","sessao":"S-5968"}'),
+(99,'2026-10-02 16:29:00','BMB-09','{"tipo":"retomada","usuario":"C-4618","sessao":"S-5968","paciente":9}'),
+(100,'2026-10-02 18:17:00','BMB-06','{"tipo":"login","usuario":"C-4127","sessao":"S-3949"}'),
+(101,'2026-10-02 18:18:00','BMB-06','{"tipo":"programacao","usuario":"C-4127","sessao":"S-3949","paciente":6,"farmaco":"insulina","modo":"continua","infusao":{"dose":6,"unidade":"UI/h","vazao_ml_h":6}}'),
+(102,'2026-10-02 20:12:00','BMB-07','{"tipo":"login","usuario":"C-2683","sessao":"S-3808"}'),
+(103,'2026-10-02 20:15:00','BMB-07','{"tipo":"programacao","usuario":"C-2683","sessao":"S-3808","paciente":7,"farmaco":"insulina","modo":"continua","infusao":{"dose":6.5,"unidade":"UI/h","vazao_ml_h":6.5}}'),
+(104,'2026-10-02 20:35:00','BMB-01','{"tipo":"login","usuario":"C-2683","sessao":"S-2023"}'),
+(105,'2026-10-02 20:38:00','BMB-01','{"tipo":"programacao","usuario":"C-2683","sessao":"S-2023","paciente":1,"farmaco":"midazolam","modo":"continua","infusao":{"dose":5,"unidade":"mg/h","vazao_ml_h":5}}'),
+(106,'2026-10-02 21:15:00','BMB-08','{"tipo":"login","usuario":"C-1590","sessao":"S-8652"}'),
+(107,'2026-10-02 21:17:00','BMB-08','{"tipo":"programacao","usuario":"C-1590","sessao":"S-8652","paciente":8,"farmaco":"heparina","modo":"continua","infusao":{"dose":700,"unidade":"UI/h","vazao_ml_h":7}}'),
+(108,'2026-10-02 23:29:00','BMB-04','{"tipo":"login","usuario":"C-2683","sessao":"S-9322"}'),
+(109,'2026-10-02 23:32:00','BMB-03','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":12}}]}'),
+(110,'2026-10-02 23:32:00','BMB-04','{"tipo":"programacao","usuario":"C-2683","sessao":"S-9322","paciente":4,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.17,"unidade":"mcg/kg/min","vazao_ml_h":10}}'),
+(111,'2026-10-03 00:28:00','BMB-01','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":210}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4733"}'),
+(112,'2026-10-03 00:33:00','BMB-01','{"tipo":"login","usuario":"C-4733","sessao":"S-4338"}'),
+(113,'2026-10-03 00:34:00','BMB-01','{"tipo":"retomada","usuario":"C-4733","sessao":"S-4338","paciente":1}'),
+(114,'2026-10-03 01:13:00','BMB-02','{"tipo":"login","usuario":"C-2683","sessao":"S-3119"}'),
+(115,'2026-10-03 01:14:00','BMB-02','{"tipo":"programacao","usuario":"C-2683","sessao":"S-3119","paciente":2,"farmaco":"fentanil","modo":"continua","infusao":{"dose":35,"unidade":"mcg/h","vazao_ml_h":3.5}}'),
+(116,'2026-10-03 02:31:00','BMB-07','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(117,'2026-10-03 02:31:00','BMB-08','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":13}}]}'),
+(118,'2026-10-03 02:47:00','BMB-12','{"tipo":"login","usuario":"C-1590","sessao":"S-3775"}'),
+(119,'2026-10-03 02:50:00','BMB-12','{"tipo":"programacao","usuario":"C-1590","sessao":"S-3775","paciente":12,"farmaco":"midazolam","modo":"continua","infusao":{"dose":6,"unidade":"mg/h","vazao_ml_h":6}}'),
+(120,'2026-10-03 03:31:00','BMB-12','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":104}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4733"}'),
+(121,'2026-10-03 03:38:00','BMB-12','{"tipo":"login","usuario":"C-4733","sessao":"S-9682"}'),
+(122,'2026-10-03 03:39:00','BMB-12','{"tipo":"retomada","usuario":"C-4733","sessao":"S-9682","paciente":12}'),
+(123,'2026-10-03 04:56:00','BMB-15','{"tipo":"login","usuario":"C-2683","sessao":"S-9053"}'),
+(124,'2026-10-03 04:58:00','BMB-15','{"tipo":"programacao","usuario":"C-2683","sessao":"S-9053","paciente":15,"farmaco":"midazolam","modo":"continua","infusao":{"dose":5,"unidade":"mg/h","vazao_ml_h":5}}'),
+(125,'2026-10-03 05:18:00','BMB-06','{"tipo":"login","usuario":"C-2683","sessao":"S-3051"}'),
+(126,'2026-10-03 05:20:00','BMB-06','{"tipo":"programacao","usuario":"C-2683","sessao":"S-3051","paciente":6,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.13,"unidade":"mcg/kg/min","vazao_ml_h":8.2}}'),
+(127,'2026-10-03 06:29:00','BMB-10','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(128,'2026-10-03 07:45:00','BMB-03','{"tipo":"login","usuario":"C-2964","sessao":"S-7685"}'),
+(129,'2026-10-03 07:47:00','BMB-03','{"tipo":"programacao","usuario":"C-2964","sessao":"S-7685","paciente":3,"farmaco":"heparina","modo":"continua","infusao":{"dose":850,"unidade":"UI/h","vazao_ml_h":8.5}}'),
+(130,'2026-10-03 08:42:00','BMB-15','{"tipo":"login","usuario":"C-2207","sessao":"S-6275"}'),
+(131,'2026-10-03 08:44:00','BMB-15','{"tipo":"programacao","usuario":"C-2207","sessao":"S-6275","paciente":15,"farmaco":"midazolam","modo":"continua","infusao":{"dose":9.5,"unidade":"mg/h","vazao_ml_h":9.5}}'),
+(132,'2026-10-03 08:58:00','BMB-16','{"tipo":"login","usuario":"C-2207","sessao":"S-2506"}'),
+(133,'2026-10-03 09:00:00','BMB-16','{"tipo":"programacao","usuario":"C-2207","sessao":"S-2506","paciente":16,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.15,"unidade":"mcg/kg/min","vazao_ml_h":9.8}}'),
+(134,'2026-10-03 09:05:00','BMB-08','{"tipo":"login","usuario":"C-2964","sessao":"S-2910"}'),
+(135,'2026-10-03 09:06:00','BMB-08','{"tipo":"programacao","usuario":"C-2964","sessao":"S-2910","paciente":8,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.24,"unidade":"mcg/kg/min","vazao_ml_h":12.4}}'),
+(136,'2026-10-03 09:22:00','BMB-06','{"tipo":"login","usuario":"C-2964","sessao":"S-4484"}'),
+(137,'2026-10-03 09:24:00','BMB-06','{"tipo":"programacao","usuario":"C-2964","sessao":"S-4484","paciente":6,"farmaco":"insulina","modo":"continua","infusao":{"dose":7,"unidade":"UI/h","vazao_ml_h":7}}'),
+(138,'2026-10-03 10:31:00','BMB-04','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":128}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4502"}'),
+(139,'2026-10-03 10:37:00','BMB-04','{"tipo":"login","usuario":"C-4502","sessao":"S-8442"}'),
+(140,'2026-10-03 10:38:00','BMB-04','{"tipo":"retomada","usuario":"C-4502","sessao":"S-8442","paciente":4}'),
+(141,'2026-10-03 11:01:00','BMB-11','{"tipo":"login","usuario":"C-2207","sessao":"S-3664"}'),
+(142,'2026-10-03 11:04:00','BMB-11','{"tipo":"programacao","usuario":"C-2207","sessao":"S-3664","paciente":11,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.25,"unidade":"mcg/kg/min","vazao_ml_h":18}}'),
+(143,'2026-10-03 11:37:00','BMB-13','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(144,'2026-10-03 11:47:00','BMB-02','{"tipo":"login","usuario":"C-2207","sessao":"S-6272"}'),
+(145,'2026-10-03 11:48:00','BMB-02','{"tipo":"programacao","usuario":"C-2207","sessao":"S-6272","paciente":2,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.33,"unidade":"mcg/kg/min","vazao_ml_h":17.9}}'),
+(146,'2026-10-03 13:00:00','BMB-06','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(147,'2026-10-03 15:46:00','BMB-16','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":156}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4502"}'),
+(148,'2026-10-03 15:49:00','BMB-16','{"tipo":"login","usuario":"C-4502","sessao":"S-4781"}'),
+(149,'2026-10-03 15:50:00','BMB-16','{"tipo":"retomada","usuario":"C-4502","sessao":"S-4781","paciente":16}'),
+(150,'2026-10-03 15:53:00','BMB-09','{"tipo":"login","usuario":"C-2964","sessao":"S-8896"}'),
+(151,'2026-10-03 15:56:00','BMB-09','{"tipo":"programacao","usuario":"C-2964","sessao":"S-8896","paciente":9,"farmaco":"midazolam","modo":"continua","infusao":{"dose":2.5,"unidade":"mg/h","vazao_ml_h":2.5}}'),
+(152,'2026-10-03 16:31:00','BMB-14','{"tipo":"login","usuario":"C-2964","sessao":"S-5562"}'),
+(153,'2026-10-03 16:32:00','BMB-14','{"tipo":"programacao","usuario":"C-2964","sessao":"S-5562","paciente":14,"farmaco":"fentanil","modo":"continua","infusao":{"dose":65,"unidade":"mcg/h","vazao_ml_h":6.5}}'),
+(154,'2026-10-03 16:36:00','BMB-12','{"tipo":"login","usuario":"C-2207","sessao":"S-5211"}'),
+(155,'2026-10-03 16:38:00','BMB-12','{"tipo":"programacao","usuario":"C-2207","sessao":"S-5211","paciente":12,"farmaco":"fentanil","modo":"continua","infusao":{"dose":60,"unidade":"mcg/h","vazao_ml_h":6}}'),
+(156,'2026-10-03 18:21:00','BMB-09','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":635,"causa":"equipo preso na grade da cama"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4502"}'),
+(157,'2026-10-03 18:26:00','BMB-09','{"tipo":"login","usuario":"C-4502","sessao":"S-1309"}'),
+(158,'2026-10-03 18:27:00','BMB-09','{"tipo":"retomada","usuario":"C-4502","sessao":"S-1309","paciente":9}'),
+(159,'2026-10-03 21:31:00','BMB-03','{"tipo":"login","usuario":"C-1875","sessao":"S-7099"}'),
+(160,'2026-10-03 21:34:00','BMB-03','{"tipo":"programacao","usuario":"C-1875","sessao":"S-7099","paciente":3,"farmaco":"heparina","modo":"continua","infusao":{"dose":850,"unidade":"UI/h","vazao_ml_h":8.5}}'),
+(161,'2026-10-03 22:01:00','BMB-10','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":637,"causa":"acesso venoso obstruído"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4410"}'),
+(162,'2026-10-03 22:04:00','BMB-10','{"tipo":"login","usuario":"C-4410","sessao":"S-3630"}'),
+(163,'2026-10-03 22:05:00','BMB-10','{"tipo":"retomada","usuario":"C-4410","sessao":"S-3630","paciente":10}'),
+(164,'2026-10-03 22:19:00','BMB-02','{"tipo":"login","usuario":"C-1875","sessao":"S-9360"}'),
+(165,'2026-10-03 22:20:00','BMB-02','{"tipo":"programacao","usuario":"C-1875","sessao":"S-9360","paciente":2,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.47,"unidade":"mcg/kg/min","vazao_ml_h":25.6}}'),
+(166,'2026-10-03 23:00:00','BMB-14','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(167,'2026-10-03 23:07:00','BMB-09','{"tipo":"login","usuario":"C-5120","sessao":"S-1993"}'),
+(168,'2026-10-03 23:10:00','BMB-09','{"tipo":"programacao","usuario":"C-5120","sessao":"S-1993","paciente":9,"farmaco":"heparina","modo":"continua","infusao":{"dose":1100,"unidade":"UI/h","vazao_ml_h":11}}'),
+(169,'2026-10-03 23:17:00','BMB-05','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":14}}]}'),
+(170,'2026-10-04 01:32:00','BMB-06','{"tipo":"login","usuario":"C-5120","sessao":"S-1251"}'),
+(171,'2026-10-04 01:34:00','BMB-06','{"tipo":"programacao","usuario":"C-5120","sessao":"S-1251","paciente":6,"farmaco":"insulina","modo":"continua","infusao":{"dose":5.5,"unidade":"UI/h","vazao_ml_h":5.5}}'),
+(172,'2026-10-04 02:20:00','BMB-10','{"tipo":"login","usuario":"C-3318","sessao":"S-2204"}'),
+(173,'2026-10-04 02:22:00','BMB-10','{"tipo":"programacao","usuario":"C-3318","sessao":"S-2204","paciente":10,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.37,"unidade":"mcg/kg/min","vazao_ml_h":20.8}}'),
+(174,'2026-10-04 03:20:00','BMB-16','{"tipo":"login","usuario":"C-5120","sessao":"S-3778"}'),
+(175,'2026-10-04 03:23:00','BMB-16','{"tipo":"programacao","usuario":"C-5120","sessao":"S-3778","paciente":16,"farmaco":"fentanil","modo":"continua","infusao":{"dose":35,"unidade":"mcg/h","vazao_ml_h":3.5}}'),
+(176,'2026-10-04 04:56:00','BMB-11','{"tipo":"login","usuario":"C-1875","sessao":"S-6109"}'),
+(177,'2026-10-04 04:58:00','BMB-11','{"tipo":"programacao","usuario":"C-1875","sessao":"S-6109","paciente":11,"farmaco":"heparina","modo":"continua","infusao":{"dose":600,"unidade":"UI/h","vazao_ml_h":6}}'),
+(178,'2026-10-04 06:16:00','BMB-14','{"tipo":"login","usuario":"C-5120","sessao":"S-2319"}'),
+(179,'2026-10-04 06:18:00','BMB-14','{"tipo":"programacao","usuario":"C-5120","sessao":"S-2319","paciente":14,"farmaco":"insulina","modo":"continua","infusao":{"dose":5,"unidade":"UI/h","vazao_ml_h":5}}'),
+(180,'2026-10-04 08:45:00','BMB-04','{"tipo":"login","usuario":"C-4127","sessao":"S-6358"}'),
+(181,'2026-10-04 08:48:00','BMB-04','{"tipo":"programacao","usuario":"C-4127","sessao":"S-6358","paciente":4,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.24,"unidade":"mcg/kg/min","vazao_ml_h":14.2}}'),
+(182,'2026-10-04 09:05:00','BMB-16','{"tipo":"login","usuario":"C-4127","sessao":"S-1074"}'),
+(183,'2026-10-04 09:06:00','BMB-16','{"tipo":"programacao","usuario":"C-4127","sessao":"S-1074","paciente":16,"farmaco":"fentanil","modo":"continua","infusao":{"dose":40,"unidade":"mcg/h","vazao_ml_h":4}}'),
+(184,'2026-10-04 09:21:00','BMB-07','{"tipo":"login","usuario":"C-4127","sessao":"S-4742"}'),
+(185,'2026-10-04 09:22:00','BMB-07','{"tipo":"programacao","usuario":"C-4127","sessao":"S-4742","paciente":7,"farmaco":"insulina","modo":"continua","infusao":{"dose":11,"unidade":"UI/h","vazao_ml_h":11}}'),
+(186,'2026-10-04 09:27:00','BMB-01','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(187,'2026-10-04 09:54:00','BMB-12','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":197}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4618"}'),
+(188,'2026-10-04 10:00:00','BMB-12','{"tipo":"login","usuario":"C-4618","sessao":"S-3441"}'),
+(189,'2026-10-04 10:01:00','BMB-02','{"tipo":"login","usuario":"C-3051","sessao":"S-7111"}'),
+(190,'2026-10-04 10:01:00','BMB-12','{"tipo":"retomada","usuario":"C-4618","sessao":"S-3441","paciente":12}'),
+(191,'2026-10-04 10:02:00','BMB-02','{"tipo":"programacao","usuario":"C-3051","sessao":"S-7111","paciente":2,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.49,"unidade":"mcg/kg/min","vazao_ml_h":26.6}}'),
+(192,'2026-10-04 10:05:00','BMB-06','{"tipo":"login","usuario":"C-3051","sessao":"S-6661"}'),
+(193,'2026-10-04 10:07:00','BMB-06','{"tipo":"programacao","usuario":"C-3051","sessao":"S-6661","paciente":6,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.19,"unidade":"mcg/kg/min","vazao_ml_h":11.9}}'),
+(194,'2026-10-04 12:20:00','BMB-10','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":117}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4618"}'),
+(195,'2026-10-04 12:27:00','BMB-10','{"tipo":"login","usuario":"C-4618","sessao":"S-3121"}'),
+(196,'2026-10-04 12:28:00','BMB-10','{"tipo":"retomada","usuario":"C-4618","sessao":"S-3121","paciente":10}'),
+(197,'2026-10-04 15:16:00','BMB-11','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":700,"causa":"equipo preso na grade da cama"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4618"}'),
+(198,'2026-10-04 15:20:00','BMB-09','{"tipo":"login","usuario":"C-4127","sessao":"S-1628"}'),
+(199,'2026-10-04 15:22:00','BMB-09','{"tipo":"programacao","usuario":"C-4127","sessao":"S-1628","paciente":9,"farmaco":"heparina","modo":"bolus","infusao":{"dose":5000,"unidade":"UI","volume_ml":5}}'),
+(200,'2026-10-04 15:22:00','BMB-11','{"tipo":"login","usuario":"C-4618","sessao":"S-4723"}'),
+(201,'2026-10-04 15:23:00','BMB-11','{"tipo":"retomada","usuario":"C-4618","sessao":"S-4723","paciente":11}'),
+(202,'2026-10-04 16:21:00','BMB-10','{"tipo":"login","usuario":"C-4127","sessao":"S-9413"}'),
+(203,'2026-10-04 16:24:00','BMB-10','{"tipo":"programacao","usuario":"C-4127","sessao":"S-9413","paciente":10,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.23,"unidade":"mcg/kg/min","vazao_ml_h":12.9}}'),
+(204,'2026-10-04 16:33:00','BMB-11','{"tipo":"login","usuario":"C-4127","sessao":"S-6223"}'),
+(205,'2026-10-04 16:35:00','BMB-11','{"tipo":"programacao","usuario":"C-4127","sessao":"S-6223","paciente":11,"farmaco":"heparina","modo":"continua","infusao":{"dose":750,"unidade":"UI/h","vazao_ml_h":7.5}}'),
+(206,'2026-10-04 17:03:00','BMB-15','{"tipo":"login","usuario":"C-4127","sessao":"S-3200"}'),
+(207,'2026-10-04 17:05:00','BMB-15','{"tipo":"programacao","usuario":"C-4127","sessao":"S-3200","paciente":15,"farmaco":"midazolam","modo":"continua","infusao":{"dose":4,"unidade":"mg/h","vazao_ml_h":4}}'),
+(208,'2026-10-04 18:07:00','BMB-05','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(209,'2026-10-04 18:07:00','BMB-12','{"tipo":"login","usuario":"C-3051","sessao":"S-2448"}'),
+(210,'2026-10-04 18:09:00','BMB-12','{"tipo":"programacao","usuario":"C-3051","sessao":"S-2448","paciente":12,"farmaco":"midazolam","modo":"continua","infusao":{"dose":8,"unidade":"mg/h","vazao_ml_h":8}}'),
+(211,'2026-10-04 18:16:00','BMB-14','{"tipo":"login","usuario":"C-4127","sessao":"S-5605"}'),
+(212,'2026-10-04 18:17:00','BMB-14','{"tipo":"programacao","usuario":"C-4127","sessao":"S-5605","paciente":14,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.29,"unidade":"mcg/kg/min","vazao_ml_h":21.2}}'),
+(213,'2026-10-04 19:23:00','BMB-05','{"tipo":"login","usuario":"C-2683","sessao":"S-8227"}'),
+(214,'2026-10-04 19:24:00','BMB-05','{"tipo":"programacao","usuario":"C-2683","sessao":"S-8227","paciente":5,"farmaco":"midazolam","modo":"continua","infusao":{"dose":8.5,"unidade":"mg/h","vazao_ml_h":8.5}}'),
+(215,'2026-10-04 20:03:00','BMB-09','{"tipo":"login","usuario":"C-1590","sessao":"S-8210"}'),
+(216,'2026-10-04 20:06:00','BMB-09','{"tipo":"programacao","usuario":"C-1590","sessao":"S-8210","paciente":9,"farmaco":"heparina","modo":"continua","infusao":{"dose":650,"unidade":"UI/h","vazao_ml_h":6.5}}'),
+(217,'2026-10-04 21:06:00','BMB-02','{"tipo":"login","usuario":"C-1590","sessao":"S-8735"}'),
+(218,'2026-10-04 21:09:00','BMB-02','{"tipo":"programacao","usuario":"C-1590","sessao":"S-8735","paciente":2,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.44,"unidade":"mcg/kg/min","vazao_ml_h":23.9}}'),
+(219,'2026-10-04 21:12:00','BMB-03','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":147}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4733"}'),
+(220,'2026-10-04 21:16:00','BMB-03','{"tipo":"login","usuario":"C-4733","sessao":"S-8090"}'),
+(221,'2026-10-04 21:17:00','BMB-03','{"tipo":"retomada","usuario":"C-4733","sessao":"S-8090","paciente":3}'),
+(222,'2026-10-04 21:55:00','BMB-11','{"tipo":"login","usuario":"C-1590","sessao":"S-5046"}'),
+(223,'2026-10-04 21:56:00','BMB-11','{"tipo":"programacao","usuario":"C-1590","sessao":"S-5046","paciente":11,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.29,"unidade":"mcg/kg/min","vazao_ml_h":20.9}}'),
+(224,'2026-10-04 23:34:00','BMB-08','{"tipo":"login","usuario":"C-1590","sessao":"S-1073"}'),
+(225,'2026-10-04 23:36:00','BMB-08','{"tipo":"programacao","usuario":"C-1590","sessao":"S-1073","paciente":8,"farmaco":"heparina","modo":"continua","infusao":{"dose":300,"unidade":"UI/h","vazao_ml_h":3}}'),
+(226,'2026-10-05 00:22:00','BMB-01','{"tipo":"login","usuario":"C-2683","sessao":"S-8537"}'),
+(227,'2026-10-05 00:23:00','BMB-01','{"tipo":"programacao","usuario":"C-2683","sessao":"S-8537","paciente":1,"farmaco":"heparina","modo":"continua","infusao":{"dose":800,"unidade":"UI/h","vazao_ml_h":8}}'),
+(228,'2026-10-05 02:17:00','BMB-16','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(229,'2026-10-05 02:46:00','BMB-15','{"tipo":"login","usuario":"C-2683","sessao":"S-4520"}'),
+(230,'2026-10-05 02:47:00','BMB-15','{"tipo":"programacao","usuario":"C-2683","sessao":"S-4520","paciente":15,"farmaco":"midazolam","modo":"continua","infusao":{"dose":4,"unidade":"mg/h","vazao_ml_h":4}}'),
+(231,'2026-10-05 03:16:00','BMB-06','{"tipo":"login","usuario":"C-1590","sessao":"S-7626"}'),
+(232,'2026-10-05 03:18:00','BMB-06','{"tipo":"programacao","usuario":"C-1590","sessao":"S-7626","paciente":6,"farmaco":"insulina","modo":"continua","infusao":{"dose":6,"unidade":"UI/h","vazao_ml_h":6}}'),
+(233,'2026-10-05 03:45:00','BMB-01','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":844,"causa":"acesso venoso obstruído"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4733"}'),
+(234,'2026-10-05 03:48:00','BMB-01','{"tipo":"login","usuario":"C-4733","sessao":"S-3203"}'),
+(235,'2026-10-05 03:49:00','BMB-01','{"tipo":"retomada","usuario":"C-4733","sessao":"S-3203","paciente":1}'),
+(236,'2026-10-05 05:23:00','BMB-13','{"tipo":"login","usuario":"C-1590","sessao":"S-9321"}'),
+(237,'2026-10-05 05:26:00','BMB-13','{"tipo":"programacao","usuario":"C-1590","sessao":"S-9321","paciente":13,"farmaco":"midazolam","modo":"continua","infusao":{"dose":8,"unidade":"mg/h","vazao_ml_h":8}}'),
+(238,'2026-10-05 05:27:00','BMB-06','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":768,"causa":"clamp fechado"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4733"}'),
+(239,'2026-10-05 05:34:00','BMB-06','{"tipo":"login","usuario":"C-4733","sessao":"S-7436"}'),
+(240,'2026-10-05 05:35:00','BMB-06','{"tipo":"retomada","usuario":"C-4733","sessao":"S-7436","paciente":6}'),
+(241,'2026-10-05 06:11:00','BMB-04','{"tipo":"login","usuario":"C-2683","sessao":"S-8959"}'),
+(242,'2026-10-05 06:13:00','BMB-04','{"tipo":"programacao","usuario":"C-2683","sessao":"S-8959","paciente":4,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.13,"unidade":"mcg/kg/min","vazao_ml_h":7.7}}'),
+(243,'2026-10-05 07:21:00','BMB-10','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":8}}]}'),
+(244,'2026-10-05 07:24:00','BMB-02','{"tipo":"login","usuario":"C-2964","sessao":"S-3541"}'),
+(245,'2026-10-05 07:26:00','BMB-02','{"tipo":"programacao","usuario":"C-2964","sessao":"S-3541","paciente":2,"farmaco":"midazolam","modo":"continua","infusao":{"dose":8,"unidade":"mg/h","vazao_ml_h":8}}'),
+(246,'2026-10-05 07:40:00','BMB-05','{"tipo":"login","usuario":"C-2207","sessao":"S-4009"}'),
+(247,'2026-10-05 07:41:00','BMB-05','{"tipo":"programacao","usuario":"C-2207","sessao":"S-4009","paciente":5,"farmaco":"heparina","modo":"continua","infusao":{"dose":600,"unidade":"UI/h","vazao_ml_h":6}}'),
+(248,'2026-10-05 07:41:00','BMB-13','{"tipo":"login","usuario":"C-2964","sessao":"S-1311"}'),
+(249,'2026-10-05 07:44:00','BMB-13','{"tipo":"programacao","usuario":"C-2964","sessao":"S-1311","paciente":13,"farmaco":"insulina","modo":"continua","infusao":{"dose":6,"unidade":"UI/h","vazao_ml_h":6}}'),
+(250,'2026-10-05 07:45:00','BMB-14','{"tipo":"login","usuario":"C-2207","sessao":"S-2120"}'),
+(251,'2026-10-05 07:47:00','BMB-14','{"tipo":"programacao","usuario":"C-2207","sessao":"S-2120","paciente":14,"farmaco":"insulina","modo":"continua","infusao":{"dose":5.5,"unidade":"UI/h","vazao_ml_h":5.5}}'),
+(252,'2026-10-05 07:50:00','BMB-12','{"tipo":"login","usuario":"C-2964","sessao":"S-8348"}'),
+(253,'2026-10-05 07:53:00','BMB-12','{"tipo":"programacao","usuario":"C-2964","sessao":"S-8348","paciente":12,"farmaco":"fentanil","modo":"continua","infusao":{"dose":50,"unidade":"mcg/h","vazao_ml_h":5}}'),
+(254,'2026-10-05 07:57:00','BMB-15','{"tipo":"login","usuario":"C-2207","sessao":"S-2407"}'),
+(255,'2026-10-05 07:59:00','BMB-15','{"tipo":"programacao","usuario":"C-2207","sessao":"S-2407","paciente":15,"farmaco":"midazolam","modo":"continua","infusao":{"dose":5,"unidade":"mg/h","vazao_ml_h":5}}'),
+(256,'2026-10-05 08:10:00','BMB-11','{"tipo":"login","usuario":"C-2964","sessao":"S-8566"}'),
+(257,'2026-10-05 08:12:00','BMB-11','{"tipo":"programacao","usuario":"C-2964","sessao":"S-8566","paciente":11,"farmaco":"heparina","modo":"continua","infusao":{"dose":450,"unidade":"UI/h","vazao_ml_h":4.5}}'),
+(258,'2026-10-05 10:41:00','CENTRAL','{"tipo":"login","usuario":"C-7002","sessao":"S-7519"}'),
+(259,'2026-10-05 10:43:00','BMB-04','{"tipo":"login","usuario":"C-2964","sessao":"S-1783"}'),
+(260,'2026-10-05 10:43:00','CENTRAL','{"tipo":"relatorio","usuario":"C-7002","nome":"infusões ativas"}'),
+(261,'2026-10-05 10:46:00','BMB-04','{"tipo":"programacao","usuario":"C-2964","sessao":"S-1783","paciente":4,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.13,"unidade":"mcg/kg/min","vazao_ml_h":7.7}}'),
+(262,'2026-10-05 14:36:00','CENTRAL','{"tipo":"login","usuario":"C-6024","sessao":"S-6868"}'),
+(263,'2026-10-05 14:40:00','CENTRAL','{"tipo":"biblioteca","sessao":"S-6868","farmaco":"fentanil","unidade":"mcg/h","limite":{"campo":"dose_max_rigido","antes":200,"depois":250},"motivo":"Novo protocolo de sedoanalgesia","usuario":"C-6024"}'),
+(264,'2026-10-05 14:41:00','BMB-01','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(265,'2026-10-05 14:41:00','BMB-07','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(266,'2026-10-05 14:42:00','BMB-02','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(267,'2026-10-05 14:42:00','BMB-16','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(268,'2026-10-05 14:43:00','BMB-03','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(269,'2026-10-05 14:43:00','BMB-08','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(270,'2026-10-05 14:43:00','BMB-09','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(271,'2026-10-05 14:43:00','BMB-10','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(272,'2026-10-05 14:43:00','BMB-11','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(273,'2026-10-05 14:43:00','BMB-13','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(274,'2026-10-05 14:43:00','BMB-14','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(275,'2026-10-05 14:43:00','BMB-15','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(276,'2026-10-05 14:44:00','BMB-04','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(277,'2026-10-05 14:44:00','BMB-05','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(278,'2026-10-05 14:44:00','BMB-06','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(279,'2026-10-05 14:44:00','BMB-12','{"tipo":"sincronizacao","versao":"BIB-2026.10.05-1440"}'),
+(280,'2026-10-05 14:47:00','BMB-14','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":192}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4502"}'),
+(281,'2026-10-05 14:52:00','BMB-14','{"tipo":"login","usuario":"C-4502","sessao":"S-4096"}'),
+(282,'2026-10-05 14:53:00','BMB-14','{"tipo":"retomada","usuario":"C-4502","sessao":"S-4096","paciente":14}'),
+(283,'2026-10-05 15:51:00','BMB-16','{"tipo":"login","usuario":"C-2964","sessao":"S-5546"}'),
+(284,'2026-10-05 15:53:00','BMB-16','{"tipo":"programacao","usuario":"C-2964","sessao":"S-5546","paciente":16,"farmaco":"fentanil","modo":"continua","infusao":{"dose":25,"unidade":"mcg/h","vazao_ml_h":2.5}}'),
+(285,'2026-10-05 16:06:00','BMB-06','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(286,'2026-10-05 16:06:00','BMB-08','{"tipo":"login","usuario":"C-2964","sessao":"S-5116"}'),
+(287,'2026-10-05 16:09:00','BMB-08','{"tipo":"programacao","usuario":"C-2964","sessao":"S-5116","paciente":8,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.18,"unidade":"mcg/kg/min","vazao_ml_h":9.3}}'),
+(288,'2026-10-05 16:18:00','BMB-03','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":79}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4502"}'),
+(289,'2026-10-05 16:25:00','BMB-03','{"tipo":"login","usuario":"C-4502","sessao":"S-3716"}'),
+(290,'2026-10-05 16:26:00','BMB-03','{"tipo":"retomada","usuario":"C-4502","sessao":"S-3716","paciente":3}'),
+(291,'2026-10-05 16:52:00','BMB-02','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(292,'2026-10-05 16:54:00','BMB-09','{"tipo":"login","usuario":"C-2964","sessao":"S-4907"}'),
+(293,'2026-10-05 16:55:00','BMB-09','{"tipo":"programacao","usuario":"C-2964","sessao":"S-4907","paciente":9,"farmaco":"heparina","modo":"continua","infusao":{"dose":500,"unidade":"UI/h","vazao_ml_h":5}}'),
+(294,'2026-10-05 18:08:00','BMB-07','{"tipo":"login","usuario":"C-2207","sessao":"S-1325"}'),
+(295,'2026-10-05 18:10:00','BMB-07','{"tipo":"programacao","usuario":"C-2207","sessao":"S-1325","paciente":7,"farmaco":"fentanil","modo":"continua","infusao":{"dose":110,"unidade":"mcg/h","vazao_ml_h":11}}'),
+(296,'2026-10-05 21:36:00','BMB-09','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":7}}]}'),
+(297,'2026-10-05 22:15:00','BMB-01','{"tipo":"login","usuario":"C-3318","sessao":"S-2703"}'),
+(298,'2026-10-05 22:16:00','BMB-01','{"tipo":"programacao","usuario":"C-3318","sessao":"S-2703","paciente":1,"farmaco":"midazolam","modo":"continua","infusao":{"dose":8.5,"unidade":"mg/h","vazao_ml_h":8.5}}'),
+(299,'2026-10-05 22:42:00','BMB-03','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(300,'2026-10-05 23:00:00','BMB-14','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":13}}]}'),
+(301,'2026-10-05 23:12:00','BMB-01','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(302,'2026-10-05 23:38:00','BMB-07','{"tipo":"login","usuario":"C-3318","sessao":"S-8093"}'),
+(303,'2026-10-05 23:41:00','BMB-07','{"tipo":"programacao","usuario":"C-3318","sessao":"S-8093","paciente":7,"farmaco":"heparina","modo":"continua","infusao":{"dose":1300,"unidade":"UI/h","vazao_ml_h":13}}'),
+(304,'2026-10-06 00:31:00','BMB-03','{"tipo":"login","usuario":"C-5120","sessao":"S-5590"}'),
+(305,'2026-10-06 00:33:00','BMB-03','{"tipo":"programacao","usuario":"C-5120","sessao":"S-5590","paciente":3,"farmaco":"fentanil","modo":"continua","infusao":{"dose":75,"unidade":"mcg/h","vazao_ml_h":7.5}}'),
+(306,'2026-10-06 01:20:00','BMB-14','{"tipo":"login","usuario":"C-3318","sessao":"S-2373"}'),
+(307,'2026-10-06 01:22:00','BMB-14','{"tipo":"programacao","usuario":"C-3318","sessao":"S-2373","paciente":14,"farmaco":"fentanil","modo":"continua","infusao":{"dose":45,"unidade":"mcg/h","vazao_ml_h":4.5}}'),
+(308,'2026-10-06 02:13:00','BMB-15','{"tipo":"login","usuario":"C-5120","sessao":"S-4285"}'),
+(309,'2026-10-06 02:15:00','BMB-15','{"tipo":"programacao","usuario":"C-5120","sessao":"S-4285","paciente":15,"farmaco":"midazolam","modo":"continua","infusao":{"dose":8.5,"unidade":"mg/h","vazao_ml_h":8.5}}'),
+(310,'2026-10-06 02:25:00','BMB-04','{"tipo":"login","usuario":"C-5120","sessao":"S-1293"}'),
+(311,'2026-10-06 02:26:00','BMB-04','{"tipo":"programacao","usuario":"C-5120","sessao":"S-1293","paciente":4,"farmaco":"fentanil","modo":"continua","infusao":{"dose":120,"unidade":"mcg/h","vazao_ml_h":12}}'),
+(312,'2026-10-06 02:47:00','BMB-08','{"tipo":"login","usuario":"C-1875","sessao":"S-4137"}'),
+(313,'2026-10-06 02:50:00','BMB-08','{"tipo":"programacao","usuario":"C-1875","sessao":"S-4137","paciente":8,"farmaco":"heparina","modo":"continua","infusao":{"dose":700,"unidade":"UI/h","vazao_ml_h":7}}'),
+(314,'2026-10-06 03:40:00','BMB-02','{"tipo":"login","usuario":"C-5120","sessao":"S-9333"}'),
+(315,'2026-10-06 03:40:00','BMB-09','{"tipo":"login","usuario":"C-3318","sessao":"S-3504"}'),
+(316,'2026-10-06 03:42:00','BMB-09','{"tipo":"programacao","usuario":"C-3318","sessao":"S-3504","paciente":9,"farmaco":"heparina","modo":"continua","infusao":{"dose":800,"unidade":"UI/h","vazao_ml_h":8}}'),
+(317,'2026-10-06 03:43:00','BMB-02','{"tipo":"programacao","usuario":"C-5120","sessao":"S-9333","paciente":2,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.33,"unidade":"mcg/kg/min","vazao_ml_h":17.9}}'),
+(318,'2026-10-06 04:39:00','BMB-13','{"tipo":"login","usuario":"C-5120","sessao":"S-1935"}'),
+(319,'2026-10-06 04:41:00','BMB-13','{"tipo":"programacao","usuario":"C-5120","sessao":"S-1935","paciente":13,"farmaco":"insulina","modo":"continua","infusao":{"dose":5.5,"unidade":"UI/h","vazao_ml_h":5.5}}'),
+(320,'2026-10-06 05:11:00','BMB-12','{"tipo":"login","usuario":"C-3318","sessao":"S-1568"}'),
+(321,'2026-10-06 05:14:00','BMB-12','{"tipo":"programacao","usuario":"C-3318","sessao":"S-1568","paciente":12,"farmaco":"fentanil","modo":"continua","infusao":{"dose":40,"unidade":"mcg/h","vazao_ml_h":4}}'),
+(322,'2026-10-06 05:33:00','BMB-11','{"tipo":"login","usuario":"C-3318","sessao":"S-6621"}'),
+(323,'2026-10-06 05:36:00','BMB-11','{"tipo":"programacao","usuario":"C-3318","sessao":"S-6621","paciente":11,"farmaco":"heparina","modo":"continua","infusao":{"dose":550,"unidade":"UI/h","vazao_ml_h":5.5}}'),
+(324,'2026-10-06 07:21:00','BMB-09','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":236}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4618"}'),
+(325,'2026-10-06 07:26:00','BMB-09','{"tipo":"login","usuario":"C-4618","sessao":"S-1619"}'),
+(326,'2026-10-06 07:27:00','BMB-03','{"tipo":"login","usuario":"C-4127","sessao":"S-7972"}'),
+(327,'2026-10-06 07:27:00','BMB-09','{"tipo":"retomada","usuario":"C-4618","sessao":"S-1619","paciente":9}'),
+(328,'2026-10-06 07:30:00','BMB-03','{"tipo":"programacao","usuario":"C-4127","sessao":"S-7972","paciente":3,"farmaco":"heparina","modo":"continua","infusao":{"dose":650,"unidade":"UI/h","vazao_ml_h":6.5}}'),
+(329,'2026-10-06 08:26:00','BMB-07','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":888,"causa":"clamp fechado"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4618"}'),
+(330,'2026-10-06 08:27:00','BMB-06','{"tipo":"login","usuario":"C-3051","sessao":"S-7616"}'),
+(331,'2026-10-06 08:28:00','BMB-06','{"tipo":"programacao","usuario":"C-3051","sessao":"S-7616","paciente":6,"farmaco":"insulina","modo":"continua","infusao":{"dose":6,"unidade":"UI/h","vazao_ml_h":6}}'),
+(332,'2026-10-06 08:32:00','BMB-07','{"tipo":"login","usuario":"C-4618","sessao":"S-4016"}'),
+(333,'2026-10-06 08:33:00','BMB-07','{"tipo":"retomada","usuario":"C-4618","sessao":"S-4016","paciente":7}'),
+(334,'2026-10-06 08:51:00','BMB-14','{"tipo":"login","usuario":"C-3051","sessao":"S-8530"}'),
+(335,'2026-10-06 08:54:00','BMB-14','{"tipo":"programacao","usuario":"C-3051","sessao":"S-8530","paciente":14,"farmaco":"insulina","modo":"continua","infusao":{"dose":4,"unidade":"UI/h","vazao_ml_h":4}}'),
+(336,'2026-10-06 09:01:00','BMB-03','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":199}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4618"}'),
+(337,'2026-10-06 09:08:00','BMB-03','{"tipo":"login","usuario":"C-4618","sessao":"S-6450"}'),
+(338,'2026-10-06 09:09:00','BMB-03','{"tipo":"retomada","usuario":"C-4618","sessao":"S-6450","paciente":3}'),
+(339,'2026-10-06 09:23:00','BMB-11','{"tipo":"login","usuario":"C-4127","sessao":"S-7914"}'),
+(340,'2026-10-06 09:26:00','BMB-11','{"tipo":"programacao","usuario":"C-4127","sessao":"S-7914","paciente":11,"farmaco":"heparina","modo":"continua","infusao":{"dose":500,"unidade":"UI/h","vazao_ml_h":5}}'),
+(341,'2026-10-06 09:35:00','BMB-13','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":13}}]}'),
+(342,'2026-10-06 09:56:00','BMB-10','{"tipo":"login","usuario":"C-4127","sessao":"S-4370"}'),
+(343,'2026-10-06 09:59:00','BMB-10','{"tipo":"programacao","usuario":"C-4127","sessao":"S-4370","paciente":10,"farmaco":"midazolam","modo":"continua","infusao":{"dose":3.5,"unidade":"mg/h","vazao_ml_h":3.5}}'),
+(344,'2026-10-06 10:10:00','BMB-06','{"tipo":"login","usuario":"C-4127","sessao":"S-6820"}'),
+(345,'2026-10-06 10:12:00','BMB-06','{"tipo":"alarme","usuario":"C-4127","sessao":"S-6820","alarmes":[{"codigo":"LIMITE_RIGIDO","prioridade":"alta","detalhe":{"farmaco":"insulina","dose_tentada":60,"limite":20}}]}'),
+(346,'2026-10-06 10:13:00','BMB-06','{"tipo":"programacao","usuario":"C-4127","sessao":"S-6820","paciente":6,"farmaco":"insulina","modo":"continua","infusao":{"dose":6,"unidade":"UI/h","vazao_ml_h":6}}'),
+(347,'2026-10-06 10:47:00','BMB-14','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":812,"causa":"equipo dobrado"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4618"}'),
+(348,'2026-10-06 10:50:00','BMB-14','{"tipo":"login","usuario":"C-4618","sessao":"S-8448"}'),
+(349,'2026-10-06 10:50:00','BMB-16','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(350,'2026-10-06 10:51:00','BMB-14','{"tipo":"retomada","usuario":"C-4618","sessao":"S-8448","paciente":14}'),
+(351,'2026-10-06 11:03:00','BMB-13','{"tipo":"login","usuario":"C-3051","sessao":"S-7929"}'),
+(352,'2026-10-06 11:06:00','BMB-13','{"tipo":"programacao","usuario":"C-3051","sessao":"S-7929","paciente":13,"farmaco":"insulina","modo":"continua","infusao":{"dose":7,"unidade":"UI/h","vazao_ml_h":7}}'),
+(353,'2026-10-06 11:09:00','BMB-07','{"tipo":"login","usuario":"C-3051","sessao":"S-1096"}'),
+(354,'2026-10-06 11:11:00','BMB-07','{"tipo":"programacao","usuario":"C-3051","sessao":"S-1096","paciente":7,"farmaco":"fentanil","modo":"continua","infusao":{"dose":165,"unidade":"mcg/h","vazao_ml_h":16.5}}'),
+(355,'2026-10-06 12:30:00','CENTRAL','{"tipo":"login","usuario":"C-7002","sessao":"S-5905"}'),
+(356,'2026-10-06 12:32:00','CENTRAL','{"tipo":"relatorio","usuario":"C-7002","nome":"alarmes por leito"}'),
+(357,'2026-10-06 13:04:00','BMB-04','{"tipo":"login","usuario":"C-3051","sessao":"S-7383"}'),
+(358,'2026-10-06 13:06:00','BMB-04','{"tipo":"programacao","usuario":"C-3051","sessao":"S-7383","paciente":4,"farmaco":"fentanil","modo":"continua","infusao":{"dose":130,"unidade":"mcg/h","vazao_ml_h":13}}'),
+(359,'2026-10-06 13:23:00','BMB-02','{"tipo":"login","usuario":"C-3051","sessao":"S-6297"}'),
+(360,'2026-10-06 13:26:00','BMB-02','{"tipo":"programacao","usuario":"C-3051","sessao":"S-6297","paciente":2,"farmaco":"fentanil","modo":"continua","infusao":{"dose":30,"unidade":"mcg/h","vazao_ml_h":3}}'),
+(361,'2026-10-06 15:05:00','BMB-12','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":103}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4618"}'),
+(362,'2026-10-06 15:12:00','BMB-12','{"tipo":"login","usuario":"C-4618","sessao":"S-7613"}'),
+(363,'2026-10-06 15:13:00','BMB-12','{"tipo":"retomada","usuario":"C-4618","sessao":"S-7613","paciente":12}'),
+(364,'2026-10-06 15:30:00','BMB-11','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":8}}]}'),
+(365,'2026-10-06 15:44:00','BMB-05','{"tipo":"login","usuario":"C-3051","sessao":"S-3286"}'),
+(366,'2026-10-06 15:46:00','BMB-05','{"tipo":"programacao","usuario":"C-3051","sessao":"S-3286","paciente":5,"farmaco":"insulina","modo":"continua","infusao":{"dose":3,"unidade":"UI/h","vazao_ml_h":3}}'),
+(367,'2026-10-06 16:13:00','BMB-01','{"tipo":"login","usuario":"C-3051","sessao":"S-2642"}'),
+(368,'2026-10-06 16:16:00','BMB-01','{"tipo":"programacao","usuario":"C-3051","sessao":"S-2642","paciente":1,"farmaco":"midazolam","modo":"continua","infusao":{"dose":4,"unidade":"mg/h","vazao_ml_h":4}}'),
+(369,'2026-10-06 16:26:00','BMB-10','{"tipo":"alarme","alarmes":[{"codigo":"PORTA_ABERTA","prioridade":"media"}]}'),
+(370,'2026-10-06 19:27:00','BMB-12','{"tipo":"login","usuario":"C-1590","sessao":"S-2630"}'),
+(371,'2026-10-06 19:28:00','BMB-12','{"tipo":"programacao","usuario":"C-1590","sessao":"S-2630","paciente":12,"farmaco":"midazolam","modo":"continua","infusao":{"dose":6.5,"unidade":"mg/h","vazao_ml_h":6.5}}'),
+(372,'2026-10-06 19:47:00','BMB-01','{"tipo":"login","usuario":"C-1590","sessao":"S-1695"}'),
+(373,'2026-10-06 19:49:00','BMB-01','{"tipo":"programacao","usuario":"C-1590","sessao":"S-1695","paciente":1,"farmaco":"fentanil","modo":"continua","infusao":{"dose":145,"unidade":"mcg/h","vazao_ml_h":14.5}}'),
+(374,'2026-10-06 20:08:00','BMB-04','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(375,'2026-10-06 22:43:00','BMB-02','{"tipo":"login","usuario":"C-2683","sessao":"S-8191"}'),
+(376,'2026-10-06 22:46:00','BMB-02','{"tipo":"programacao","usuario":"C-2683","sessao":"S-8191","paciente":2,"farmaco":"midazolam","modo":"continua","infusao":{"dose":7,"unidade":"mg/h","vazao_ml_h":7}}'),
+(377,'2026-10-06 23:21:00','BMB-11','{"tipo":"login","usuario":"C-2683","sessao":"S-8507"}'),
+(378,'2026-10-06 23:22:00','BMB-11','{"tipo":"programacao","usuario":"C-2683","sessao":"S-8507","paciente":11,"farmaco":"heparina","modo":"continua","infusao":{"dose":500,"unidade":"UI/h","vazao_ml_h":5}}'),
+(379,'2026-10-07 00:25:00','BMB-06','{"tipo":"login","usuario":"C-1590","sessao":"S-4909"}'),
+(380,'2026-10-07 00:28:00','BMB-06','{"tipo":"programacao","usuario":"C-1590","sessao":"S-4909","paciente":6,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.19,"unidade":"mcg/kg/min","vazao_ml_h":11.9}}'),
+(381,'2026-10-07 01:16:00','BMB-03','{"tipo":"login","usuario":"C-1590","sessao":"S-4855"}'),
+(382,'2026-10-07 01:18:00','BMB-03','{"tipo":"programacao","usuario":"C-1590","sessao":"S-4855","paciente":3,"farmaco":"heparina","modo":"continua","infusao":{"dose":450,"unidade":"UI/h","vazao_ml_h":4.5}}'),
+(383,'2026-10-07 04:16:00','BMB-16','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":7}}]}'),
+(384,'2026-10-07 04:20:00','BMB-13','{"tipo":"login","usuario":"C-2683","sessao":"S-6108"}'),
+(385,'2026-10-07 04:22:00','BMB-13','{"tipo":"programacao","usuario":"C-2683","sessao":"S-6108","paciente":13,"farmaco":"midazolam","modo":"continua","infusao":{"dose":4,"unidade":"mg/h","vazao_ml_h":4}}'),
+(386,'2026-10-07 07:55:00','BMB-11','{"tipo":"login","usuario":"C-2964","sessao":"S-2550"}'),
+(387,'2026-10-07 07:58:00','BMB-11','{"tipo":"programacao","usuario":"C-2964","sessao":"S-2550","paciente":11,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.27,"unidade":"mcg/kg/min","vazao_ml_h":19.5}}'),
+(388,'2026-10-07 08:43:00','BMB-02','{"tipo":"login","usuario":"C-2964","sessao":"S-3776"}'),
+(389,'2026-10-07 08:45:00','BMB-02','{"tipo":"programacao","usuario":"C-2964","sessao":"S-3776","paciente":2,"farmaco":"fentanil","modo":"continua","infusao":{"dose":35,"unidade":"mcg/h","vazao_ml_h":3.5}}'),
+(390,'2026-10-07 09:00:00','BMB-08','{"tipo":"login","usuario":"C-2964","sessao":"S-8432"}'),
+(391,'2026-10-07 09:02:00','BMB-08','{"tipo":"programacao","usuario":"C-2964","sessao":"S-8432","paciente":8,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.24,"unidade":"mcg/kg/min","vazao_ml_h":12.4}}'),
+(392,'2026-10-07 09:28:00','CENTRAL','{"tipo":"login","usuario":"C-6011","sessao":"S-4585"}'),
+(393,'2026-10-07 09:30:00','CENTRAL','{"tipo":"biblioteca","sessao":"S-4585","farmaco":"midazolam","unidade":"mg/h","limite":{"campo":"dose_max_rigido","antes":15,"depois":12},"motivo":"Redução após revisão de segurança","usuario":"C-6011"}'),
+(394,'2026-10-07 09:31:00','BMB-01','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(395,'2026-10-07 09:31:00','BMB-05','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(396,'2026-10-07 09:31:00','BMB-09','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(397,'2026-10-07 09:31:00','BMB-10','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(398,'2026-10-07 09:32:00','BMB-04','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(399,'2026-10-07 09:32:00','BMB-06','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(400,'2026-10-07 09:32:00','BMB-13','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(401,'2026-10-07 09:33:00','BMB-07','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(402,'2026-10-07 09:33:00','BMB-08','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(403,'2026-10-07 09:33:00','BMB-14','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(404,'2026-10-07 09:33:00','BMB-16','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(405,'2026-10-07 09:34:00','BMB-02','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(406,'2026-10-07 09:34:00','BMB-03','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(407,'2026-10-07 09:34:00','BMB-07','{"tipo":"login","usuario":"C-2207","sessao":"S-5908"}'),
+(408,'2026-10-07 09:34:00','BMB-11','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(409,'2026-10-07 09:34:00','BMB-12','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(410,'2026-10-07 09:34:00','BMB-15','{"tipo":"sincronizacao","versao":"BIB-2026.10.07-0930"}'),
+(411,'2026-10-07 09:36:00','BMB-07','{"tipo":"programacao","usuario":"C-2207","sessao":"S-5908","paciente":7,"farmaco":"fentanil","modo":"continua","infusao":{"dose":105,"unidade":"mcg/h","vazao_ml_h":10.5}}'),
+(412,'2026-10-07 10:16:00','BMB-13','{"tipo":"login","usuario":"C-2207","sessao":"S-3715"}'),
+(413,'2026-10-07 10:18:00','BMB-13','{"tipo":"programacao","usuario":"C-2207","sessao":"S-3715","paciente":13,"farmaco":"insulina","modo":"continua","infusao":{"dose":4.5,"unidade":"UI/h","vazao_ml_h":4.5}}'),
+(414,'2026-10-07 10:31:00','BMB-06','{"tipo":"login","usuario":"C-2964","sessao":"S-4284"}'),
+(415,'2026-10-07 10:34:00','BMB-06','{"tipo":"programacao","usuario":"C-2964","sessao":"S-4284","paciente":6,"farmaco":"insulina","modo":"continua","infusao":{"dose":7,"unidade":"UI/h","vazao_ml_h":7}}'),
+(416,'2026-10-07 12:37:00','BMB-09','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":658,"causa":"equipo dobrado"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4502"}'),
+(417,'2026-10-07 12:44:00','BMB-09','{"tipo":"login","usuario":"C-4502","sessao":"S-9165"}'),
+(418,'2026-10-07 12:45:00','BMB-09','{"tipo":"retomada","usuario":"C-4502","sessao":"S-9165","paciente":9}'),
+(419,'2026-10-07 13:29:00','BMB-09','{"tipo":"login","usuario":"C-2964","sessao":"S-4860"}'),
+(420,'2026-10-07 13:30:00','BMB-09','{"tipo":"programacao","usuario":"C-2964","sessao":"S-4860","paciente":9,"farmaco":"midazolam","modo":"continua","infusao":{"dose":4.5,"unidade":"mg/h","vazao_ml_h":4.5}}'),
+(421,'2026-10-07 13:52:00','BMB-12','{"tipo":"login","usuario":"C-2964","sessao":"S-2099"}'),
+(422,'2026-10-07 13:55:00','BMB-12','{"tipo":"programacao","usuario":"C-2964","sessao":"S-2099","paciente":12,"farmaco":"fentanil","modo":"continua","infusao":{"dose":60,"unidade":"mcg/h","vazao_ml_h":6}}'),
+(423,'2026-10-07 14:02:00','BMB-03','{"tipo":"login","usuario":"C-2964","sessao":"S-3211"}'),
+(424,'2026-10-07 14:04:00','BMB-03','{"tipo":"programacao","usuario":"C-2964","sessao":"S-3211","paciente":3,"farmaco":"heparina","modo":"continua","infusao":{"dose":550,"unidade":"UI/h","vazao_ml_h":5.5}}'),
+(425,'2026-10-07 14:58:00','CENTRAL','{"tipo":"login","usuario":"C-7002","sessao":"S-5332"}'),
+(426,'2026-10-07 15:00:00','CENTRAL','{"tipo":"relatorio","usuario":"C-7002","nome":"alarmes por leito"}'),
+(427,'2026-10-07 17:44:00','BMB-13','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(428,'2026-10-07 17:53:00','BMB-14','{"tipo":"login","usuario":"C-2207","sessao":"S-6282"}'),
+(429,'2026-10-07 17:54:00','BMB-14','{"tipo":"programacao","usuario":"C-2207","sessao":"S-6282","paciente":14,"farmaco":"fentanil","modo":"continua","infusao":{"dose":45,"unidade":"mcg/h","vazao_ml_h":4.5}}'),
+(430,'2026-10-07 19:52:00','BMB-03','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(431,'2026-10-07 21:44:00','BMB-11','{"tipo":"login","usuario":"C-1875","sessao":"S-1009"}'),
+(432,'2026-10-07 21:46:00','BMB-11','{"tipo":"programacao","usuario":"C-1875","sessao":"S-1009","paciente":11,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.25,"unidade":"mcg/kg/min","vazao_ml_h":18}}'),
+(433,'2026-10-07 22:16:00','BMB-04','{"tipo":"login","usuario":"C-1875","sessao":"S-2525"}'),
+(434,'2026-10-07 22:18:00','BMB-04','{"tipo":"programacao","usuario":"C-1875","sessao":"S-2525","paciente":4,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.16,"unidade":"mcg/kg/min","vazao_ml_h":9.5}}'),
+(435,'2026-10-07 22:53:00','BMB-06','{"tipo":"login","usuario":"C-1875","sessao":"S-7334"}'),
+(436,'2026-10-07 22:54:00','BMB-06','{"tipo":"programacao","usuario":"C-1875","sessao":"S-7334","paciente":6,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.17,"unidade":"mcg/kg/min","vazao_ml_h":10.7}}'),
+(437,'2026-10-07 23:08:00','BMB-09','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(438,'2026-10-07 23:54:00','BMB-10','{"tipo":"login","usuario":"C-1875","sessao":"S-6417"}'),
+(439,'2026-10-07 23:56:00','BMB-10','{"tipo":"programacao","usuario":"C-1875","sessao":"S-6417","paciente":10,"farmaco":"midazolam","modo":"continua","infusao":{"dose":3.5,"unidade":"mg/h","vazao_ml_h":3.5}}'),
+(440,'2026-10-07 23:57:00','BMB-02','{"tipo":"login","usuario":"C-1875","sessao":"S-5617"}'),
+(441,'2026-10-07 23:58:00','BMB-02','{"tipo":"programacao","usuario":"C-1875","sessao":"S-5617","paciente":2,"farmaco":"midazolam","modo":"continua","infusao":{"dose":4,"unidade":"mg/h","vazao_ml_h":4}}'),
+(442,'2026-10-08 00:10:00','BMB-08','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(443,'2026-10-08 00:12:00','BMB-14','{"tipo":"login","usuario":"C-3318","sessao":"S-7073"}'),
+(444,'2026-10-08 00:13:00','BMB-14','{"tipo":"programacao","usuario":"C-3318","sessao":"S-7073","paciente":14,"farmaco":"insulina","modo":"continua","infusao":{"dose":5,"unidade":"UI/h","vazao_ml_h":5}}'),
+(445,'2026-10-08 01:55:00','BMB-03','{"tipo":"login","usuario":"C-5120","sessao":"S-7784"}'),
+(446,'2026-10-08 01:56:00','BMB-03','{"tipo":"programacao","usuario":"C-5120","sessao":"S-7784","paciente":3,"farmaco":"fentanil","modo":"continua","infusao":{"dose":75,"unidade":"mcg/h","vazao_ml_h":7.5}}'),
+(447,'2026-10-08 02:10:00','BMB-16','{"tipo":"login","usuario":"C-1875","sessao":"S-1314"}'),
+(448,'2026-10-08 02:12:00','BMB-16','{"tipo":"programacao","usuario":"C-1875","sessao":"S-1314","paciente":16,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.12,"unidade":"mcg/kg/min","vazao_ml_h":7.9}}'),
+(449,'2026-10-08 03:27:00','BMB-09','{"tipo":"login","usuario":"C-1875","sessao":"S-1399"}'),
+(450,'2026-10-08 03:28:00','BMB-09','{"tipo":"programacao","usuario":"C-1875","sessao":"S-1399","paciente":9,"farmaco":"heparina","modo":"continua","infusao":{"dose":1100,"unidade":"UI/h","vazao_ml_h":11}}'),
+(451,'2026-10-08 05:15:00','BMB-05','{"tipo":"login","usuario":"C-5120","sessao":"S-5215"}'),
+(452,'2026-10-08 05:17:00','BMB-05','{"tipo":"programacao","usuario":"C-5120","sessao":"S-5215","paciente":5,"farmaco":"insulina","modo":"continua","infusao":{"dose":3,"unidade":"UI/h","vazao_ml_h":3}}'),
+(453,'2026-10-08 05:43:00','BMB-12','{"tipo":"alarme","alarmes":[{"codigo":"PORTA_ABERTA","prioridade":"media"}]}'),
+(454,'2026-10-08 05:52:00','BMB-11','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":205}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4410"}'),
+(455,'2026-10-08 05:57:00','BMB-11','{"tipo":"login","usuario":"C-4410","sessao":"S-9873"}'),
+(456,'2026-10-08 05:58:00','BMB-11','{"tipo":"retomada","usuario":"C-4410","sessao":"S-9873","paciente":11}'),
+(457,'2026-10-08 06:12:00','BMB-12','{"tipo":"login","usuario":"C-3318","sessao":"S-7145"}'),
+(458,'2026-10-08 06:14:00','BMB-12','{"tipo":"programacao","usuario":"C-3318","sessao":"S-7145","paciente":12,"farmaco":"fentanil","modo":"continua","infusao":{"dose":35,"unidade":"mcg/h","vazao_ml_h":3.5}}'),
+(459,'2026-10-08 07:44:00','BMB-03','{"tipo":"alarme","alarmes":[{"codigo":"PORTA_ABERTA","prioridade":"media"}]}'),
+(460,'2026-10-08 07:51:00','BMB-15','{"tipo":"login","usuario":"C-3051","sessao":"S-9446"}'),
+(461,'2026-10-08 07:52:00','BMB-15','{"tipo":"programacao","usuario":"C-3051","sessao":"S-9446","paciente":15,"farmaco":"midazolam","modo":"continua","infusao":{"dose":5.5,"unidade":"mg/h","vazao_ml_h":5.5}}'),
+(462,'2026-10-08 07:55:00','BMB-04','{"tipo":"login","usuario":"C-4127","sessao":"S-8126"}'),
+(463,'2026-10-08 07:57:00','BMB-04','{"tipo":"programacao","usuario":"C-4127","sessao":"S-8126","paciente":4,"farmaco":"fentanil","modo":"continua","infusao":{"dose":100,"unidade":"mcg/h","vazao_ml_h":10}}'),
+(464,'2026-10-08 08:01:00','BMB-15','{"tipo":"alarme","alarmes":[{"codigo":"PORTA_ABERTA","prioridade":"media"}]}'),
+(465,'2026-10-08 08:17:00','BMB-06','{"tipo":"login","usuario":"C-4127","sessao":"S-8226"}'),
+(466,'2026-10-08 08:20:00','BMB-06','{"tipo":"programacao","usuario":"C-4127","sessao":"S-8226","paciente":6,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.19,"unidade":"mcg/kg/min","vazao_ml_h":11.9}}'),
+(467,'2026-10-08 08:40:00','BMB-07','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(468,'2026-10-08 10:07:00','CENTRAL','{"tipo":"login","usuario":"C-7002","sessao":"S-1316"}'),
+(469,'2026-10-08 10:09:00','CENTRAL','{"tipo":"relatorio","usuario":"C-7002","nome":"alarmes por leito"}'),
+(470,'2026-10-08 10:45:00','BMB-11','{"tipo":"login","usuario":"C-3051","sessao":"S-1754"}'),
+(471,'2026-10-08 10:47:00','BMB-11','{"tipo":"programacao","usuario":"C-3051","sessao":"S-1754","paciente":11,"farmaco":"heparina","modo":"bolus","infusao":{"dose":4000,"unidade":"UI","volume_ml":4}}'),
+(472,'2026-10-08 11:04:00','BMB-10','{"tipo":"login","usuario":"C-3051","sessao":"S-7790"}'),
+(473,'2026-10-08 11:05:00','BMB-10','{"tipo":"programacao","usuario":"C-3051","sessao":"S-7790","paciente":10,"farmaco":"midazolam","modo":"continua","infusao":{"dose":2.5,"unidade":"mg/h","vazao_ml_h":2.5}}'),
+(474,'2026-10-08 12:21:00','BMB-14','{"tipo":"login","usuario":"C-3051","sessao":"S-1580"}'),
+(475,'2026-10-08 12:23:00','BMB-14','{"tipo":"programacao","usuario":"C-3051","sessao":"S-1580","paciente":14,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.24,"unidade":"mcg/kg/min","vazao_ml_h":17.5}}'),
+(476,'2026-10-08 12:42:00','BMB-06','{"tipo":"alarme","alarmes":[{"codigo":"PORTA_ABERTA","prioridade":"media"}]}'),
+(477,'2026-10-08 13:40:00','BMB-13','{"tipo":"login","usuario":"C-4127","sessao":"S-5984"}'),
+(478,'2026-10-08 13:43:00','BMB-13','{"tipo":"programacao","usuario":"C-4127","sessao":"S-5984","paciente":13,"farmaco":"midazolam","modo":"continua","infusao":{"dose":7.5,"unidade":"mg/h","vazao_ml_h":7.5}}'),
+(479,'2026-10-08 14:15:00','BMB-05','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(480,'2026-10-08 17:06:00','BMB-12','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":177}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4618"}'),
+(481,'2026-10-08 17:10:00','BMB-12','{"tipo":"login","usuario":"C-4618","sessao":"S-3642"}'),
+(482,'2026-10-08 17:11:00','BMB-12','{"tipo":"retomada","usuario":"C-4618","sessao":"S-3642","paciente":12}'),
+(483,'2026-10-08 18:11:00','BMB-11','{"tipo":"login","usuario":"C-3051","sessao":"S-8998"}'),
+(484,'2026-10-08 18:14:00','BMB-11','{"tipo":"programacao","usuario":"C-3051","sessao":"S-8998","paciente":11,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.3,"unidade":"mcg/kg/min","vazao_ml_h":21.7}}'),
+(485,'2026-10-08 19:21:00','BMB-01','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":673,"causa":"acesso venoso obstruído"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4733"}'),
+(486,'2026-10-08 19:27:00','BMB-01','{"tipo":"login","usuario":"C-4733","sessao":"S-4587"}'),
+(487,'2026-10-08 19:28:00','BMB-01','{"tipo":"retomada","usuario":"C-4733","sessao":"S-4587","paciente":1}'),
+(488,'2026-10-08 19:45:00','BMB-03','{"tipo":"login","usuario":"C-1590","sessao":"S-3066"}'),
+(489,'2026-10-08 19:48:00','BMB-03','{"tipo":"programacao","usuario":"C-1590","sessao":"S-3066","paciente":3,"farmaco":"fentanil","modo":"continua","infusao":{"dose":90,"unidade":"mcg/h","vazao_ml_h":9}}'),
+(490,'2026-10-08 19:57:00','BMB-12','{"tipo":"login","usuario":"C-1590","sessao":"S-1547"}'),
+(491,'2026-10-08 20:00:00','BMB-12','{"tipo":"programacao","usuario":"C-1590","sessao":"S-1547","paciente":12,"farmaco":"fentanil","modo":"continua","infusao":{"dose":50,"unidade":"mcg/h","vazao_ml_h":5}}'),
+(492,'2026-10-08 20:59:00','BMB-13','{"tipo":"login","usuario":"C-1590","sessao":"S-1180"}'),
+(493,'2026-10-08 21:00:00','BMB-13','{"tipo":"programacao","usuario":"C-1590","sessao":"S-1180","paciente":13,"farmaco":"midazolam","modo":"continua","infusao":{"dose":6.5,"unidade":"mg/h","vazao_ml_h":6.5}}'),
+(494,'2026-10-08 21:02:00','BMB-02','{"tipo":"login","usuario":"C-1590","sessao":"S-6171"}'),
+(495,'2026-10-08 21:05:00','BMB-02','{"tipo":"programacao","usuario":"C-1590","sessao":"S-6171","paciente":2,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.26,"unidade":"mcg/kg/min","vazao_ml_h":14.1}}'),
+(496,'2026-10-08 22:07:00','BMB-06','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":13}}]}'),
+(497,'2026-10-08 23:20:00','BMB-07','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":639,"causa":"equipo dobrado"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4733"}'),
+(498,'2026-10-08 23:24:00','BMB-06','{"tipo":"login","usuario":"C-2683","sessao":"S-1808"}'),
+(499,'2026-10-08 23:25:00','BMB-06','{"tipo":"programacao","usuario":"C-2683","sessao":"S-1808","paciente":6,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.15,"unidade":"mcg/kg/min","vazao_ml_h":9.4}}'),
+(500,'2026-10-08 23:27:00','BMB-07','{"tipo":"login","usuario":"C-4733","sessao":"S-2346"}'),
+(501,'2026-10-08 23:28:00','BMB-07','{"tipo":"retomada","usuario":"C-4733","sessao":"S-2346","paciente":7}'),
+(502,'2026-10-09 00:28:00','BMB-04','{"tipo":"login","usuario":"C-1590","sessao":"S-9484"}'),
+(503,'2026-10-09 00:29:00','BMB-04','{"tipo":"programacao","usuario":"C-1590","sessao":"S-9484","paciente":4,"farmaco":"fentanil","modo":"continua","infusao":{"dose":60,"unidade":"mcg/h","vazao_ml_h":6}}'),
+(504,'2026-10-09 03:08:00','BMB-14','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":207}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4733"}'),
+(505,'2026-10-09 03:11:00','BMB-14','{"tipo":"login","usuario":"C-4733","sessao":"S-2566"}'),
+(506,'2026-10-09 03:12:00','BMB-14','{"tipo":"retomada","usuario":"C-4733","sessao":"S-2566","paciente":14}'),
+(507,'2026-10-09 03:40:00','BMB-11','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":6}}]}'),
+(508,'2026-10-09 04:40:00','BMB-07','{"tipo":"login","usuario":"C-2683","sessao":"S-8547"}'),
+(509,'2026-10-09 04:43:00','BMB-07','{"tipo":"programacao","usuario":"C-2683","sessao":"S-8547","paciente":7,"farmaco":"fentanil","modo":"continua","infusao":{"dose":190,"unidade":"mcg/h","vazao_ml_h":19}}'),
+(510,'2026-10-09 05:16:00','BMB-04','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":670,"causa":"acesso venoso obstruído"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4733"}'),
+(511,'2026-10-09 05:20:00','BMB-04','{"tipo":"login","usuario":"C-4733","sessao":"S-7147"}'),
+(512,'2026-10-09 05:21:00','BMB-04','{"tipo":"retomada","usuario":"C-4733","sessao":"S-7147","paciente":4}'),
+(513,'2026-10-09 06:06:00','BMB-09','{"tipo":"login","usuario":"C-2683","sessao":"S-6780"}'),
+(514,'2026-10-09 06:09:00','BMB-09','{"tipo":"programacao","usuario":"C-2683","sessao":"S-6780","paciente":9,"farmaco":"midazolam","modo":"continua","infusao":{"dose":3,"unidade":"mg/h","vazao_ml_h":3}}'),
+(515,'2026-10-09 08:08:00','BMB-02','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":855,"causa":"acesso venoso obstruído"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4502"}'),
+(516,'2026-10-09 08:08:00','CENTRAL','{"tipo":"login","usuario":"C-7002","sessao":"S-3055"}'),
+(517,'2026-10-09 08:10:00','CENTRAL','{"tipo":"relatorio","usuario":"C-7002","nome":"infusões ativas"}'),
+(518,'2026-10-09 08:15:00','BMB-02','{"tipo":"login","usuario":"C-4502","sessao":"S-9228"}'),
+(519,'2026-10-09 08:16:00','BMB-02','{"tipo":"retomada","usuario":"C-4502","sessao":"S-9228","paciente":2}'),
+(520,'2026-10-09 08:57:00','BMB-12','{"tipo":"login","usuario":"C-2207","sessao":"S-5568"}'),
+(521,'2026-10-09 09:00:00','BMB-12','{"tipo":"programacao","usuario":"C-2207","sessao":"S-5568","paciente":12,"farmaco":"fentanil","modo":"continua","infusao":{"dose":50,"unidade":"mcg/h","vazao_ml_h":5}}'),
+(522,'2026-10-09 09:46:00','BMB-11','{"tipo":"login","usuario":"C-2207","sessao":"S-5508"}'),
+(523,'2026-10-09 09:47:00','BMB-10','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":789,"causa":"equipo preso na grade da cama"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4502"}'),
+(524,'2026-10-09 09:49:00','BMB-11','{"tipo":"programacao","usuario":"C-2207","sessao":"S-5508","paciente":11,"farmaco":"heparina","modo":"continua","infusao":{"dose":800,"unidade":"UI/h","vazao_ml_h":8}}'),
+(525,'2026-10-09 09:51:00','BMB-10','{"tipo":"login","usuario":"C-4502","sessao":"S-8113"}'),
+(526,'2026-10-09 09:52:00','BMB-10','{"tipo":"retomada","usuario":"C-4502","sessao":"S-8113","paciente":10}'),
+(527,'2026-10-09 10:06:00','BMB-03','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(528,'2026-10-09 10:35:00','BMB-06','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":792,"causa":"equipo preso na grade da cama"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4502"}'),
+(529,'2026-10-09 10:40:00','BMB-06','{"tipo":"login","usuario":"C-4502","sessao":"S-9558"}'),
+(530,'2026-10-09 10:41:00','BMB-06','{"tipo":"retomada","usuario":"C-4502","sessao":"S-9558","paciente":6}'),
+(531,'2026-10-09 10:53:00','BMB-06','{"tipo":"login","usuario":"C-2207","sessao":"S-6277"}'),
+(532,'2026-10-09 10:56:00','BMB-06','{"tipo":"programacao","usuario":"C-2207","sessao":"S-6277","paciente":6,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.1,"unidade":"mcg/kg/min","vazao_ml_h":6.3}}'),
+(533,'2026-10-09 12:29:00','BMB-03','{"tipo":"login","usuario":"C-2964","sessao":"S-5344"}'),
+(534,'2026-10-09 12:30:00','BMB-03','{"tipo":"programacao","usuario":"C-2964","sessao":"S-5344","paciente":3,"farmaco":"heparina","modo":"continua","infusao":{"dose":700,"unidade":"UI/h","vazao_ml_h":7}}'),
+(535,'2026-10-09 13:25:00','BMB-07','{"tipo":"login","usuario":"C-2964","sessao":"S-9880"}'),
+(536,'2026-10-09 13:26:00','BMB-07','{"tipo":"programacao","usuario":"C-2964","sessao":"S-9880","paciente":7,"farmaco":"fentanil","modo":"continua","infusao":{"dose":190,"unidade":"mcg/h","vazao_ml_h":19}}'),
+(537,'2026-10-09 13:30:00','BMB-16','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":167}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4502"}'),
+(538,'2026-10-09 13:35:00','BMB-16','{"tipo":"login","usuario":"C-4502","sessao":"S-1312"}'),
+(539,'2026-10-09 13:36:00','BMB-16','{"tipo":"retomada","usuario":"C-4502","sessao":"S-1312","paciente":16}'),
+(540,'2026-10-09 15:07:00','BMB-01','{"tipo":"login","usuario":"C-2964","sessao":"S-2196"}'),
+(541,'2026-10-09 15:10:00','BMB-01','{"tipo":"programacao","usuario":"C-2964","sessao":"S-2196","paciente":1,"farmaco":"heparina","modo":"continua","infusao":{"dose":550,"unidade":"UI/h","vazao_ml_h":5.5}}'),
+(542,'2026-10-09 15:26:00','BMB-05','{"tipo":"login","usuario":"C-2207","sessao":"S-9080"}'),
+(543,'2026-10-09 15:27:00','BMB-05','{"tipo":"programacao","usuario":"C-2207","sessao":"S-9080","paciente":5,"farmaco":"insulina","modo":"continua","infusao":{"dose":3.5,"unidade":"UI/h","vazao_ml_h":3.5}}'),
+(544,'2026-10-09 16:01:00','CENTRAL','{"tipo":"login","usuario":"C-6024","sessao":"S-4044"}'),
+(545,'2026-10-09 16:05:00','CENTRAL','{"tipo":"biblioteca","sessao":"S-4044","farmaco":"heparina","unidade":"UI/h","limite":{"campo":"dose_max_rigido","antes":2000,"depois":1800},"motivo":"Alinhamento com o protocolo de anticoagulação","usuario":"C-6024"}'),
+(546,'2026-10-09 16:06:00','BMB-01','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(547,'2026-10-09 16:06:00','BMB-02','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(548,'2026-10-09 16:06:00','BMB-04','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(549,'2026-10-09 16:06:00','BMB-06','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(550,'2026-10-09 16:06:00','BMB-15','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(551,'2026-10-09 16:06:00','BMB-16','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(552,'2026-10-09 16:07:00','BMB-05','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(553,'2026-10-09 16:07:00','BMB-08','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(554,'2026-10-09 16:08:00','BMB-03','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(555,'2026-10-09 16:08:00','BMB-09','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(556,'2026-10-09 16:08:00','BMB-13','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(557,'2026-10-09 16:08:00','BMB-14','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(558,'2026-10-09 16:09:00','BMB-07','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(559,'2026-10-09 16:09:00','BMB-10','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(560,'2026-10-09 16:09:00','BMB-11','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(561,'2026-10-09 16:09:00','BMB-12','{"tipo":"sincronizacao","versao":"BIB-2026.10.09-1605"}'),
+(562,'2026-10-09 16:10:00','BMB-15','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(563,'2026-10-09 17:00:00','BMB-07','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(564,'2026-10-09 17:31:00','BMB-16','{"tipo":"login","usuario":"C-2964","sessao":"S-4398"}'),
+(565,'2026-10-09 17:32:00','BMB-04','{"tipo":"login","usuario":"C-2207","sessao":"S-6350"}'),
+(566,'2026-10-09 17:33:00','BMB-16','{"tipo":"programacao","usuario":"C-2964","sessao":"S-4398","paciente":16,"farmaco":"fentanil","modo":"continua","infusao":{"dose":30,"unidade":"mcg/h","vazao_ml_h":3}}'),
+(567,'2026-10-09 17:35:00','BMB-04','{"tipo":"programacao","usuario":"C-2207","sessao":"S-6350","paciente":4,"farmaco":"fentanil","modo":"continua","infusao":{"dose":80,"unidade":"mcg/h","vazao_ml_h":8}}'),
+(568,'2026-10-09 17:58:00','BMB-10','{"tipo":"login","usuario":"C-2207","sessao":"S-8474"}'),
+(569,'2026-10-09 17:59:00','BMB-10','{"tipo":"programacao","usuario":"C-2207","sessao":"S-8474","paciente":10,"farmaco":"midazolam","modo":"continua","infusao":{"dose":2.5,"unidade":"mg/h","vazao_ml_h":2.5}}'),
+(570,'2026-10-09 19:47:00','BMB-09','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":895,"causa":"equipo preso na grade da cama"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4410"}'),
+(571,'2026-10-09 19:52:00','BMB-09','{"tipo":"login","usuario":"C-4410","sessao":"S-6426"}'),
+(572,'2026-10-09 19:53:00','BMB-09','{"tipo":"retomada","usuario":"C-4410","sessao":"S-6426","paciente":9}'),
+(573,'2026-10-09 20:13:00','BMB-15','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":135}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4410"}'),
+(574,'2026-10-09 20:19:00','BMB-15','{"tipo":"login","usuario":"C-4410","sessao":"S-8230"}'),
+(575,'2026-10-09 20:20:00','BMB-15','{"tipo":"retomada","usuario":"C-4410","sessao":"S-8230","paciente":15}'),
+(576,'2026-10-09 20:45:00','BMB-14','{"tipo":"login","usuario":"C-3318","sessao":"S-1032"}'),
+(577,'2026-10-09 20:46:00','BMB-14','{"tipo":"programacao","usuario":"C-3318","sessao":"S-1032","paciente":14,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.14,"unidade":"mcg/kg/min","vazao_ml_h":10.2}}'),
+(578,'2026-10-10 00:13:00','BMB-01','{"tipo":"login","usuario":"C-5120","sessao":"S-3651"}'),
+(579,'2026-10-10 00:16:00','BMB-01','{"tipo":"programacao","usuario":"C-5120","sessao":"S-3651","paciente":1,"farmaco":"heparina","modo":"continua","infusao":{"dose":400,"unidade":"UI/h","vazao_ml_h":4}}'),
+(580,'2026-10-10 00:28:00','BMB-05','{"tipo":"login","usuario":"C-3318","sessao":"S-8579"}'),
+(581,'2026-10-10 00:30:00','BMB-05','{"tipo":"programacao","usuario":"C-3318","sessao":"S-8579","paciente":5,"farmaco":"heparina","modo":"continua","infusao":{"dose":650,"unidade":"UI/h","vazao_ml_h":6.5}}'),
+(582,'2026-10-10 01:05:00','BMB-10','{"tipo":"login","usuario":"C-3318","sessao":"S-5987"}'),
+(583,'2026-10-10 01:08:00','BMB-10','{"tipo":"programacao","usuario":"C-3318","sessao":"S-5987","paciente":10,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.24,"unidade":"mcg/kg/min","vazao_ml_h":13.5}}'),
+(584,'2026-10-10 01:55:00','BMB-08','{"tipo":"login","usuario":"C-1875","sessao":"S-1164"}'),
+(585,'2026-10-10 01:57:00','BMB-08','{"tipo":"programacao","usuario":"C-1875","sessao":"S-1164","paciente":8,"farmaco":"heparina","modo":"continua","infusao":{"dose":750,"unidade":"UI/h","vazao_ml_h":7.5}}'),
+(586,'2026-10-10 02:21:00','BMB-16','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":795,"causa":"clamp fechado"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4410"}'),
+(587,'2026-10-10 02:24:00','BMB-16','{"tipo":"login","usuario":"C-4410","sessao":"S-5485"}'),
+(588,'2026-10-10 02:25:00','BMB-16','{"tipo":"retomada","usuario":"C-4410","sessao":"S-5485","paciente":16}'),
+(589,'2026-10-10 02:35:00','BMB-07','{"tipo":"login","usuario":"C-3318","sessao":"S-2917"}'),
+(590,'2026-10-10 02:35:00','BMB-15','{"tipo":"login","usuario":"C-3318","sessao":"S-7441"}'),
+(591,'2026-10-10 02:37:00','BMB-07','{"tipo":"programacao","usuario":"C-3318","sessao":"S-2917","paciente":7,"farmaco":"insulina","modo":"continua","infusao":{"dose":7.5,"unidade":"UI/h","vazao_ml_h":7.5}}'),
+(592,'2026-10-10 02:37:00','BMB-15','{"tipo":"programacao","usuario":"C-3318","sessao":"S-7441","paciente":15,"farmaco":"midazolam","modo":"continua","infusao":{"dose":9.5,"unidade":"mg/h","vazao_ml_h":9.5}}'),
+(593,'2026-10-10 02:56:00','BMB-10','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":821,"causa":"clamp fechado"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4410"}'),
+(594,'2026-10-10 03:00:00','BMB-10','{"tipo":"login","usuario":"C-4410","sessao":"S-6187"}'),
+(595,'2026-10-10 03:01:00','BMB-10','{"tipo":"retomada","usuario":"C-4410","sessao":"S-6187","paciente":10}'),
+(596,'2026-10-10 03:13:00','BMB-02','{"tipo":"login","usuario":"C-3318","sessao":"S-5436"}'),
+(597,'2026-10-10 03:16:00','BMB-02','{"tipo":"programacao","usuario":"C-3318","sessao":"S-5436","paciente":2,"farmaco":"fentanil","modo":"continua","infusao":{"dose":50,"unidade":"mcg/h","vazao_ml_h":5}}'),
+(598,'2026-10-10 07:15:00','BMB-04','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":12}}]}'),
+(599,'2026-10-10 07:43:00','BMB-03','{"tipo":"login","usuario":"C-4127","sessao":"S-4243"}'),
+(600,'2026-10-10 07:45:00','BMB-03','{"tipo":"programacao","usuario":"C-4127","sessao":"S-4243","paciente":3,"farmaco":"fentanil","modo":"continua","infusao":{"dose":60,"unidade":"mcg/h","vazao_ml_h":6}}'),
+(601,'2026-10-10 08:30:00','BMB-14','{"tipo":"login","usuario":"C-3051","sessao":"S-2365"}'),
+(602,'2026-10-10 08:32:00','BMB-14','{"tipo":"programacao","usuario":"C-3051","sessao":"S-2365","paciente":14,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.28,"unidade":"mcg/kg/min","vazao_ml_h":20.5}}'),
+(603,'2026-10-10 08:41:00','BMB-07','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(604,'2026-10-10 09:03:00','BMB-12','{"tipo":"login","usuario":"C-3051","sessao":"S-5431"}'),
+(605,'2026-10-10 09:04:00','BMB-12','{"tipo":"programacao","usuario":"C-3051","sessao":"S-5431","paciente":12,"farmaco":"midazolam","modo":"continua","infusao":{"dose":8.5,"unidade":"mg/h","vazao_ml_h":8.5}}'),
+(606,'2026-10-10 10:52:00','BMB-11','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(607,'2026-10-10 11:10:00','BMB-09','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(608,'2026-10-10 11:14:00','BMB-02','{"tipo":"login","usuario":"C-4127","sessao":"S-5095"}'),
+(609,'2026-10-10 11:16:00','BMB-02','{"tipo":"programacao","usuario":"C-4127","sessao":"S-5095","paciente":2,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.23,"unidade":"mcg/kg/min","vazao_ml_h":12.5}}'),
+(610,'2026-10-10 11:32:00','BMB-16','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":894,"causa":"equipo dobrado"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4618"}'),
+(611,'2026-10-10 11:36:00','BMB-16','{"tipo":"login","usuario":"C-4618","sessao":"S-4744"}'),
+(612,'2026-10-10 11:37:00','BMB-16','{"tipo":"retomada","usuario":"C-4618","sessao":"S-4744","paciente":16}'),
+(613,'2026-10-10 12:01:00','BMB-06','{"tipo":"login","usuario":"C-4127","sessao":"S-6824"}'),
+(614,'2026-10-10 12:02:00','BMB-06','{"tipo":"programacao","usuario":"C-4127","sessao":"S-6824","paciente":6,"farmaco":"insulina","modo":"continua","infusao":{"dose":4.5,"unidade":"UI/h","vazao_ml_h":4.5}}'),
+(615,'2026-10-10 13:40:00','BMB-05','{"tipo":"login","usuario":"C-4127","sessao":"S-7591"}'),
+(616,'2026-10-10 13:42:00','BMB-05','{"tipo":"programacao","usuario":"C-4127","sessao":"S-7591","paciente":5,"farmaco":"heparina","modo":"continua","infusao":{"dose":550,"unidade":"UI/h","vazao_ml_h":5.5}}'),
+(617,'2026-10-10 15:40:00','BMB-16','{"tipo":"login","usuario":"C-3051","sessao":"S-3644"}'),
+(618,'2026-10-10 15:41:00','BMB-16','{"tipo":"programacao","usuario":"C-3051","sessao":"S-3644","paciente":16,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.18,"unidade":"mcg/kg/min","vazao_ml_h":11.8}}'),
+(619,'2026-10-10 16:51:00','BMB-04','{"tipo":"login","usuario":"C-3051","sessao":"S-5169"}'),
+(620,'2026-10-10 16:53:00','BMB-04','{"tipo":"programacao","usuario":"C-3051","sessao":"S-5169","paciente":4,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.21,"unidade":"mcg/kg/min","vazao_ml_h":12.4}}'),
+(621,'2026-10-10 16:59:00','BMB-08','{"tipo":"login","usuario":"C-3051","sessao":"S-1466"}'),
+(622,'2026-10-10 17:01:00','BMB-08','{"tipo":"programacao","usuario":"C-3051","sessao":"S-1466","paciente":8,"farmaco":"heparina","modo":"continua","infusao":{"dose":350,"unidade":"UI/h","vazao_ml_h":3.5}}'),
+(623,'2026-10-10 17:17:00','BMB-09','{"tipo":"login","usuario":"C-3051","sessao":"S-9057"}'),
+(624,'2026-10-10 17:19:00','BMB-09','{"tipo":"programacao","usuario":"C-3051","sessao":"S-9057","paciente":9,"farmaco":"heparina","modo":"continua","infusao":{"dose":600,"unidade":"UI/h","vazao_ml_h":6}}'),
+(625,'2026-10-10 17:22:00','BMB-11','{"tipo":"login","usuario":"C-3051","sessao":"S-5114"}'),
+(626,'2026-10-10 17:24:00','BMB-11','{"tipo":"programacao","usuario":"C-3051","sessao":"S-5114","paciente":11,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.37,"unidade":"mcg/kg/min","vazao_ml_h":26.7}}'),
+(627,'2026-10-10 19:16:00','BMB-12','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":877,"causa":"clamp fechado"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4733"}'),
+(628,'2026-10-10 19:22:00','BMB-12','{"tipo":"login","usuario":"C-4733","sessao":"S-9554"}'),
+(629,'2026-10-10 19:23:00','BMB-12','{"tipo":"retomada","usuario":"C-4733","sessao":"S-9554","paciente":12}'),
+(630,'2026-10-10 19:52:00','BMB-05','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":812,"causa":"clamp fechado"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4733"}'),
+(631,'2026-10-10 19:58:00','BMB-05','{"tipo":"login","usuario":"C-4733","sessao":"S-8026"}'),
+(632,'2026-10-10 19:59:00','BMB-05','{"tipo":"retomada","usuario":"C-4733","sessao":"S-8026","paciente":5}'),
+(633,'2026-10-10 22:31:00','BMB-06','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":9}}]}'),
+(634,'2026-10-10 22:37:00','BMB-02','{"tipo":"login","usuario":"C-2683","sessao":"S-3315"}'),
+(635,'2026-10-10 22:39:00','BMB-02','{"tipo":"programacao","usuario":"C-2683","sessao":"S-3315","paciente":2,"farmaco":"midazolam","modo":"continua","infusao":{"dose":5,"unidade":"mg/h","vazao_ml_h":5}}'),
+(636,'2026-10-10 22:40:00','BMB-04','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(637,'2026-10-10 22:49:00','BMB-16','{"tipo":"login","usuario":"C-1590","sessao":"S-1931"}'),
+(638,'2026-10-10 22:51:00','BMB-16','{"tipo":"programacao","usuario":"C-1590","sessao":"S-1931","paciente":16,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.13,"unidade":"mcg/kg/min","vazao_ml_h":8.5}}'),
+(639,'2026-10-10 23:34:00','BMB-15','{"tipo":"login","usuario":"C-1590","sessao":"S-1367"}'),
+(640,'2026-10-10 23:36:00','BMB-15','{"tipo":"programacao","usuario":"C-1590","sessao":"S-1367","paciente":15,"farmaco":"midazolam","modo":"continua","infusao":{"dose":10,"unidade":"mg/h","vazao_ml_h":10}}'),
+(641,'2026-10-10 23:49:00','BMB-07','{"tipo":"login","usuario":"C-2683","sessao":"S-7098"}'),
+(642,'2026-10-10 23:52:00','BMB-07','{"tipo":"programacao","usuario":"C-2683","sessao":"S-7098","paciente":7,"farmaco":"insulina","modo":"continua","infusao":{"dose":12,"unidade":"UI/h","vazao_ml_h":12}}'),
+(643,'2026-10-11 00:44:00','BMB-16','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":621,"causa":"equipo dobrado"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4733"}'),
+(644,'2026-10-11 00:47:00','BMB-16','{"tipo":"login","usuario":"C-4733","sessao":"S-7386"}'),
+(645,'2026-10-11 00:48:00','BMB-16','{"tipo":"retomada","usuario":"C-4733","sessao":"S-7386","paciente":16}'),
+(646,'2026-10-11 01:09:00','BMB-08','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(647,'2026-10-11 04:00:00','BMB-01','{"tipo":"login","usuario":"C-2683","sessao":"S-4570"}'),
+(648,'2026-10-11 04:01:00','BMB-01','{"tipo":"programacao","usuario":"C-2683","sessao":"S-4570","paciente":1,"farmaco":"heparina","modo":"continua","infusao":{"dose":600,"unidade":"UI/h","vazao_ml_h":6}}'),
+(649,'2026-10-11 04:12:00','BMB-03','{"tipo":"login","usuario":"C-1590","sessao":"S-7759"}'),
+(650,'2026-10-11 04:14:00','BMB-03','{"tipo":"programacao","usuario":"C-1590","sessao":"S-7759","paciente":3,"farmaco":"fentanil","modo":"continua","infusao":{"dose":55,"unidade":"mcg/h","vazao_ml_h":5.5}}'),
+(651,'2026-10-11 05:56:00','BMB-02','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(652,'2026-10-11 06:17:00','BMB-14','{"tipo":"login","usuario":"C-2683","sessao":"S-8426"}'),
+(653,'2026-10-11 06:18:00','BMB-14','{"tipo":"programacao","usuario":"C-2683","sessao":"S-8426","paciente":14,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.2,"unidade":"mcg/kg/min","vazao_ml_h":14.6}}'),
+(654,'2026-10-11 07:44:00','BMB-13','{"tipo":"login","usuario":"C-2207","sessao":"S-4980"}'),
+(655,'2026-10-11 07:46:00','BMB-13','{"tipo":"programacao","usuario":"C-2207","sessao":"S-4980","paciente":13,"farmaco":"midazolam","modo":"continua","infusao":{"dose":6.5,"unidade":"mg/h","vazao_ml_h":6.5}}'),
+(656,'2026-10-11 07:54:00','BMB-04','{"tipo":"login","usuario":"C-2964","sessao":"S-5228"}'),
+(657,'2026-10-11 07:56:00','BMB-04','{"tipo":"programacao","usuario":"C-2964","sessao":"S-5228","paciente":4,"farmaco":"fentanil","modo":"continua","infusao":{"dose":140,"unidade":"mcg/h","vazao_ml_h":14}}'),
+(658,'2026-10-11 07:56:00','BMB-10','{"tipo":"login","usuario":"C-2964","sessao":"S-1242"}'),
+(659,'2026-10-11 07:59:00','BMB-10','{"tipo":"programacao","usuario":"C-2964","sessao":"S-1242","paciente":10,"farmaco":"midazolam","modo":"continua","infusao":{"dose":2.5,"unidade":"mg/h","vazao_ml_h":2.5}}'),
+(660,'2026-10-11 08:51:00','BMB-08','{"tipo":"login","usuario":"C-2964","sessao":"S-5475"}'),
+(661,'2026-10-11 08:53:00','BMB-08','{"tipo":"programacao","usuario":"C-2964","sessao":"S-5475","paciente":8,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.19,"unidade":"mcg/kg/min","vazao_ml_h":9.8}}'),
+(662,'2026-10-11 10:02:00','BMB-01','{"tipo":"login","usuario":"C-2207","sessao":"S-1902"}'),
+(663,'2026-10-11 10:04:00','BMB-01','{"tipo":"programacao","usuario":"C-2207","sessao":"S-1902","paciente":1,"farmaco":"midazolam","modo":"continua","infusao":{"dose":10,"unidade":"mg/h","vazao_ml_h":10}}'),
+(664,'2026-10-11 10:45:00','BMB-13','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":7}}]}'),
+(665,'2026-10-11 10:49:00','BMB-16','{"tipo":"login","usuario":"C-2207","sessao":"S-7131"}'),
+(666,'2026-10-11 10:51:00','BMB-16','{"tipo":"programacao","usuario":"C-2207","sessao":"S-7131","paciente":16,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.16,"unidade":"mcg/kg/min","vazao_ml_h":10.5}}'),
+(667,'2026-10-11 11:43:00','BMB-12','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(668,'2026-10-11 11:54:00','BMB-03','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":10}}]}'),
+(669,'2026-10-11 13:23:00','BMB-09','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":735,"causa":"equipo preso na grade da cama"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4502"}'),
+(670,'2026-10-11 13:30:00','BMB-09','{"tipo":"login","usuario":"C-4502","sessao":"S-4347"}'),
+(671,'2026-10-11 13:31:00','BMB-09','{"tipo":"retomada","usuario":"C-4502","sessao":"S-4347","paciente":9}'),
+(672,'2026-10-11 13:34:00','BMB-09','{"tipo":"login","usuario":"C-2964","sessao":"S-5674"}'),
+(673,'2026-10-11 13:37:00','BMB-09','{"tipo":"programacao","usuario":"C-2964","sessao":"S-5674","paciente":9,"farmaco":"heparina","modo":"continua","infusao":{"dose":750,"unidade":"UI/h","vazao_ml_h":7.5}}'),
+(674,'2026-10-11 13:54:00','BMB-01','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(675,'2026-10-11 13:59:00','BMB-15','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(676,'2026-10-11 17:28:00','BMB-14','{"tipo":"login","usuario":"C-2964","sessao":"S-6409"}'),
+(677,'2026-10-11 17:31:00','BMB-14','{"tipo":"programacao","usuario":"C-2964","sessao":"S-6409","paciente":14,"farmaco":"fentanil","modo":"continua","infusao":{"dose":65,"unidade":"mcg/h","vazao_ml_h":6.5}}'),
+(678,'2026-10-11 17:58:00','BMB-10','{"tipo":"alarme","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":752,"causa":"acesso venoso obstruído"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4502"}'),
+(679,'2026-10-11 18:05:00','BMB-10','{"tipo":"login","usuario":"C-4502","sessao":"S-7497"}'),
+(680,'2026-10-11 18:06:00','BMB-10','{"tipo":"retomada","usuario":"C-4502","sessao":"S-7497","paciente":10}'),
+(681,'2026-10-11 19:21:00','BMB-08','{"tipo":"login","usuario":"C-5120","sessao":"S-3569"}'),
+(682,'2026-10-11 19:24:00','BMB-08','{"tipo":"programacao","usuario":"C-5120","sessao":"S-3569","paciente":8,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.35,"unidade":"mcg/kg/min","vazao_ml_h":18}}'),
+(683,'2026-10-11 19:29:00','BMB-03','{"tipo":"login","usuario":"C-2207","sessao":"S-2143"}'),
+(684,'2026-10-11 19:31:00','BMB-03','{"tipo":"programacao","usuario":"C-2207","sessao":"S-2143","paciente":3,"farmaco":"heparina","modo":"continua","infusao":{"dose":800,"unidade":"UI/h","vazao_ml_h":8}}'),
+(685,'2026-10-11 19:43:00','BMB-04','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":7}}]}'),
+(686,'2026-10-11 20:25:00','BMB-10','{"tipo":"alarme","alarmes":[{"codigo":"FIM_DE_INFUSAO","prioridade":"media","detalhe":{"volume_restante_ml":0}}]}'),
+(687,'2026-10-11 20:32:00','BMB-12','{"tipo":"login","usuario":"C-1875","sessao":"S-6671"}'),
+(688,'2026-10-11 20:34:00','BMB-12','{"tipo":"programacao","usuario":"C-1875","sessao":"S-6671","paciente":12,"farmaco":"fentanil","modo":"continua","infusao":{"dose":40,"unidade":"mcg/h","vazao_ml_h":4}}'),
+(689,'2026-10-11 21:38:00','BMB-03','{"tipo":"alarme","alarmes":[{"codigo":"PORTA_ABERTA","prioridade":"media"}]}'),
+(690,'2026-10-11 21:40:00','BMB-14','{"tipo":"login","usuario":"C-5120","sessao":"S-8550"}'),
+(691,'2026-10-11 21:42:00','BMB-14','{"tipo":"programacao","usuario":"C-5120","sessao":"S-8550","paciente":14,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.25,"unidade":"mcg/kg/min","vazao_ml_h":18.3}}'),
+(692,'2026-10-11 22:30:00','BMB-13','{"tipo":"login","usuario":"C-3318","sessao":"S-1876"}'),
+(693,'2026-10-11 22:32:00','BMB-13','{"tipo":"programacao","usuario":"C-3318","sessao":"S-1876","paciente":13,"farmaco":"midazolam","modo":"continua","infusao":{"dose":7.5,"unidade":"mg/h","vazao_ml_h":7.5}}'),
+(694,'2026-10-12 00:44:00','BMB-06','{"tipo":"alarme","alarmes":[{"codigo":"BATERIA_BAIXA","prioridade":"baixa","detalhe":{"carga_pct":14}}]}'),
+(695,'2026-10-12 01:03:00','BMB-07','{"tipo":"login","usuario":"C-1875","sessao":"S-9336"}'),
+(696,'2026-10-12 01:06:00','BMB-07','{"tipo":"programacao","usuario":"C-1875","sessao":"S-9336","paciente":7,"farmaco":"heparina","modo":"continua","infusao":{"dose":700,"unidade":"UI/h","vazao_ml_h":7}}'),
+(697,'2026-10-12 01:12:00','BMB-14','{"tipo":"alarme","resolvido_por":"C-4410","alarmes":[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta","detalhe":{"pressao_mmhg":780,"causa":"equipo dobrado"}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}]}'),
+(698,'2026-10-12 01:17:00','BMB-14','{"tipo":"login","usuario":"C-4410","sessao":"S-7429"}'),
+(699,'2026-10-12 01:18:00','BMB-14','{"tipo":"retomada","usuario":"C-4410","sessao":"S-7429","paciente":14}'),
+(700,'2026-10-12 01:48:00','BMB-02','{"tipo":"login","usuario":"C-3318","sessao":"S-8031"}'),
+(701,'2026-10-12 01:49:00','BMB-02','{"tipo":"programacao","usuario":"C-3318","sessao":"S-8031","paciente":2,"farmaco":"midazolam","modo":"continua","infusao":{"dose":7.5,"unidade":"mg/h","vazao_ml_h":7.5}}'),
+(702,'2026-10-12 01:57:00','BMB-06','{"tipo":"login","usuario":"C-3318","sessao":"S-1517"}'),
+(703,'2026-10-12 01:59:00','BMB-06','{"tipo":"programacao","usuario":"C-3318","sessao":"S-1517","paciente":6,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.12,"unidade":"mcg/kg/min","vazao_ml_h":7.5}}'),
+(704,'2026-10-12 02:03:00','BMB-03','{"tipo":"login","usuario":"C-1875","sessao":"S-5577"}'),
+(705,'2026-10-12 02:05:00','BMB-03','{"tipo":"programacao","usuario":"C-1875","sessao":"S-5577","paciente":3,"farmaco":"heparina","modo":"bolus","infusao":{"dose":5000,"unidade":"UI","volume_ml":5}}'),
+(706,'2026-10-12 02:22:00','BMB-01','{"tipo":"login","usuario":"C-1875","sessao":"S-5613"}'),
+(707,'2026-10-12 02:23:00','BMB-01','{"tipo":"programacao","usuario":"C-1875","sessao":"S-5613","paciente":1,"farmaco":"fentanil","modo":"continua","infusao":{"dose":170,"unidade":"mcg/h","vazao_ml_h":17}}'),
+(708,'2026-10-12 02:29:00','BMB-14','{"tipo":"login","usuario":"C-2207","sessao":"S-5005"}'),
+(709,'2026-10-12 02:31:00','BMB-14','{"tipo":"alarme","usuario":"C-2207","sessao":"S-5005","alarmes":[{"codigo":"LIMITE_RIGIDO","prioridade":"alta","detalhe":{"farmaco":"noradrenalina","dose_tentada":2.4,"limite":0.5}}]}'),
+(710,'2026-10-12 02:35:00','CENTRAL','{"tipo":"login","usuario":"C-3318","sessao":"S-5763"}'),
+(711,'2026-10-12 02:38:00','CENTRAL','{"tipo":"biblioteca","sessao":"S-5763","farmaco":"noradrenalina","unidade":"mcg/kg/min","limite":{"campo":"dose_max_rigido","antes":0.5,"depois":3},"motivo":"ajuste"}'),
+(712,'2026-10-12 02:39:00','BMB-02','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(713,'2026-10-12 02:39:00','BMB-11','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(714,'2026-10-12 02:40:00','BMB-03','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(715,'2026-10-12 02:40:00','BMB-07','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(716,'2026-10-12 02:40:00','BMB-09','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(717,'2026-10-12 02:41:00','BMB-05','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(718,'2026-10-12 02:41:00','BMB-08','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(719,'2026-10-12 02:41:00','BMB-10','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(720,'2026-10-12 02:41:00','BMB-14','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(721,'2026-10-12 02:42:00','BMB-01','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(722,'2026-10-12 02:42:00','BMB-04','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(723,'2026-10-12 02:42:00','BMB-06','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(724,'2026-10-12 02:42:00','BMB-12','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(725,'2026-10-12 02:42:00','BMB-13','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(726,'2026-10-12 02:42:00','BMB-15','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(727,'2026-10-12 02:42:00','BMB-16','{"tipo":"sincronizacao","versao":"BIB-2026.10.12-0238"}'),
+(728,'2026-10-12 02:43:00','BMB-14','{"tipo":"programacao","usuario":"C-2207","sessao":"S-5005","paciente":14,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":2.4,"unidade":"mcg/kg/min","vazao_ml_h":175.5}}'),
+(729,'2026-10-12 03:01:00','BMB-05','{"tipo":"login","usuario":"C-3318","sessao":"S-9095"}'),
+(730,'2026-10-12 03:02:00','BMB-05','{"tipo":"programacao","usuario":"C-3318","sessao":"S-9095","paciente":5,"farmaco":"insulina","modo":"continua","infusao":{"dose":3.5,"unidade":"UI/h","vazao_ml_h":3.5}}'),
+(731,'2026-10-12 03:08:00','BMB-16','{"tipo":"alarme","alarmes":[{"codigo":"AR_NA_LINHA","prioridade":"alta","detalhe":{"bolha_ul":113}},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}],"resolvido_por":"C-4410"}'),
+(732,'2026-10-12 03:09:00','BMB-14','{"tipo":"login","usuario":"C-5120","sessao":"S-7460"}'),
+(733,'2026-10-12 03:10:00','BMB-14','{"tipo":"programacao","usuario":"C-5120","sessao":"S-7460","paciente":14,"farmaco":"noradrenalina","modo":"continua","infusao":{"dose":0.1,"unidade":"mcg/kg/min","vazao_ml_h":7.3}}'),
+(734,'2026-10-12 03:14:00','BMB-16','{"tipo":"login","usuario":"C-4410","sessao":"S-8531"}'),
+(735,'2026-10-12 03:15:00','BMB-16','{"tipo":"retomada","usuario":"C-4410","sessao":"S-8531","paciente":16}'),
+(736,'2026-10-12 03:16:00','BMB-16','{"tipo":"login","usuario":"C-5120","sessao":"S-5854"}'),
+(737,'2026-10-12 03:18:00','BMB-16','{"tipo":"programacao","usuario":"C-5120","sessao":"S-5854","paciente":16,"farmaco":"fentanil","modo":"continua","infusao":{"dose":25,"unidade":"mcg/h","vazao_ml_h":2.5}}'),
+(738,'2026-10-12 05:31:00','BMB-15','{"tipo":"login","usuario":"C-5120","sessao":"S-1646"}'),
+(739,'2026-10-12 05:33:00','BMB-15','{"tipo":"programacao","usuario":"C-5120","sessao":"S-1646","paciente":15,"farmaco":"midazolam","modo":"continua","infusao":{"dose":6.5,"unidade":"mg/h","vazao_ml_h":6.5}}'),
+(740,'2026-10-12 14:26:00','CENTRAL','{"tipo":"login","usuario":"C-7002","sessao":"S-5410"}'),
+(741,'2026-10-12 14:28:00','CENTRAL','{"tipo":"relatorio","usuario":"C-7002","nome":"infusões ativas"}');
+
+-- Segurança: bloqueia acesso pela API pública (o SQL Editor continua funcionando)
+ALTER TABLE bomba_equipe ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bomba_paciente ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bomba_prescricao ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bomba_escala ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bomba_evento ENABLE ROW LEVEL SECURITY;
+
+-- Conferir a resposta:  SELECT verificar_caso13('resposta');
+CREATE FUNCTION verificar_caso13(resposta text) RETURNS text
+LANGUAGE sql AS $$
+  SELECT CASE md5(lower(trim(resposta)))
+    WHEN 'dd698e5a8318413db0f7a87715fdaed0' THEN
+      '🏆 CASO ENCERRADO! A central de infusão passou a exigir crachá e senha em toda alteração da biblioteca, e crachá esquecido no posto agora é bloqueado no fim do plantão. O Sr. Aníbal se recuperou. Parabéns, detetive!'
+    ELSE
+      '❌ Não é essa. Confira se escreveu exatamente como aparece nos dados e revise as pistas.'
+  END
+$$;
+
+SELECT '✅ Caso 13 instalado! Volte para o guia e comece a Etapa 1.' AS status;
+</script>
+
+<div class="tela-login" id="telaLogin" role="dialog" aria-modal="true" aria-labelledby="lgTitulo" hidden>
+  <div class="tela-card">
+    <aside class="tela-marca">
+      <svg class="tela-logo" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="27" cy="27" r="18" fill="none" stroke="#fff" stroke-width="5"/>
+        <path d="M40 40l16 16" stroke="#f3d64e" stroke-width="7" stroke-linecap="round"/>
+        <path d="M27 18v18M18 27h18" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+      </svg>
+      <h1 id="lgTitulo">Mistério no Hospital SQL</h1>
+      <p class="tela-lema">Aprenda SQL investigando casos de um hospital.</p>
+      <ul class="tela-itens">
+        <li>14 casos, do iniciante ao avançado</li>
+        <li>Seu progresso salvo em qualquer computador</li>
+        <li>Caderno do detetive com as suas anotações</li>
+      </ul>
+    </aside>
+    <section class="tela-form">
+      <p class="tela-sub" id="lgSubtitulo">Entre para continuar de onde parou</p>
+      <div class="tela-abas" id="lgAbas" role="tablist">
+        <button type="button" role="tab" id="lgTabEntrar" aria-selected="true">Entrar</button>
+        <button type="button" role="tab" id="lgTabCriar" aria-selected="false">Criar conta</button>
+      </div>
+      <div id="lgCampoEmail">
+        <label for="sbEmail">E-mail</label>
+        <div class="campo">
+          <span class="campo-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>
+          <input id="sbEmail" type="email" placeholder="voce@exemplo.com" autocomplete="email" inputmode="email">
+        </div>
+      </div>
+      <div>
+        <label for="sbPass" id="lgRotSenha">Senha <span class="tela-min">(mínimo 8 caracteres)</span></label>
+        <div class="campo">
+          <span class="campo-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+          <input id="sbPass" type="password" autocomplete="current-password" maxlength="72">
+          <button type="button" class="campo-ver" id="lgVer" aria-label="Mostrar senha" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
+      <button type="button" class="tela-principal" id="sbLogin">Entrar</button>
+      <button type="button" class="tela-principal" id="sbSignup" hidden>Criar conta</button>
+      <button type="button" class="tela-principal" id="lgNova" hidden>Salvar nova senha</button>
+      <button type="button" class="tela-link" id="lgEsqueci">Esqueci minha senha</button>
+      <div class="msg" id="lgMsg" role="status" aria-live="polite"></div>
+      <div class="tela-ou"><span>ou</span></div>
+      <button type="button" class="tela-pular" id="lgPular">Continuar sem entrar</button>
+      <p class="tela-nota">Sem entrar, o progresso fica salvo só neste navegador.</p>
+      <p class="tela-autoria">Aplicativo criado por Noemi Sales</p>
+    </section>
+  </div>
+</div>
+
+<dialog class="sync" id="syncDlg">
+  <h3>☁ Salvar progresso na nuvem</h3>
+  <div id="sbConnGrp">
+    <small>No Supabase: Project Settings → API. Use a <b>Project URL</b> e a chave <b>anon / public</b>. Nunca use a service_role. Rode antes o <code>banco_do_jogo.sql</code> atualizado.</small>
+    <label for="sbUrl">Project URL</label>
+    <input id="sbUrl" type="url" placeholder="https://xxxx.supabase.co" autocomplete="off">
+    <label for="sbKey">Chave anon (public)</label>
+    <input id="sbKey" type="text" placeholder="eyJ..." autocomplete="off">
+    <div class="row"><button type="button" class="btn" id="sbSave">Conectar</button></div>
+  </div>
+  <div id="sbUserGrp">
+    <p id="sbWho"></p>
+    <div class="row"><button type="button" class="btn" id="sbLogout">Sair</button></div>
+  </div>
+  <div class="msg" id="sbMsg" role="status"></div>
+  <div class="row">
+    <button type="button" class="btn" id="sbClear">Trocar projeto</button>
+    <button type="button" class="btn" id="sbClose">Fechar</button>
+  </div>
+</dialog>
+
+<script src="js/config.js?v=58dc78bb"></script>
+<script src="js/app.js?v=5417c6c0"></script>
+<script src="js/pwa.js?v=10765b60"></script>
+<script src="js/catalogo.js?v=f7ff8d49"></script>
+<script src="js/caderno.js?v=0dfa9e18"></script>
+<script src="js/quadro.js?v=4af9677b"></script>
+<script src="js/computador.js?v=f06025ad"></script>
+
+<script src="js/mermaid-init.js?v=f13746f5"></script>
+
+<span id="fim-da-pagina" hidden></span>
+</body>
+</html>

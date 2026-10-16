@@ -11,9 +11,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Mistério SQL">
 <title>Mistério no Hospital SQL</title>
+<link rel="preload" href="fonts/atkinson-hyperlegible-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/atkinson-hyperlegible-700-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/big-shoulders-display-600-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=7d9dd1a8">
+<link rel="stylesheet" href="css/estilo.css?v=f80c1510">
+<link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
 <nav class="trail" aria-label="Conta"><div class="trail-inner" id="trail"></div></nav>
@@ -21,7 +26,7 @@
 <header class="hero">
   <div class="tag">Jogo de detetive · aprenda SQL no Supabase</div>
   <h1>Mistério no Hospital <span>SQL</span></h1>
-  <p class="lead">Dez casos, do mais simples ao mais exigente, incluindo dois de segurança. Em cada um você investiga com consultas SQL num banco de dados de verdade, no Supabase. Comece pelo Caso 1 se nunca usou SQL.</p>
+  <p class="lead">Catorze casos, do mais simples ao mais exigente, incluindo dois de segurança. Em cada um você investiga com consultas SQL num banco de dados de verdade, no Supabase. Comece pelo Caso 1 se nunca usou SQL.</p>
 </header>
 
 <section class="casos" aria-label="Casos disponíveis">
@@ -95,10 +100,38 @@
     <span class="caso-meta">5 etapas · SQL injection, GRANT, RLS</span>
     <span class="caso-go">Abrir o Caso 10 →</span>
   </a>
+  <a class="caso-card" href="caso11.html" data-arq="caso11.html">
+    <span class="caso-n">Caso 11 · avançado</span>
+    <h2>A fila furada</h2>
+    <p>Uma paciente com infarto esperou quase duas horas enquanto um rapaz com o tornozelo torcido entrava na frente. Meça as esperas do Pronto-Socorro e descubra quem mexeu nas cores da triagem.</p>
+    <span class="caso-meta">5 etapas · mediana, NTILE, generate_series</span>
+    <span class="caso-go">Abrir o Caso 11 →</span>
+  </a>
+  <a class="caso-card" href="caso12.html" data-arq="caso12.html">
+    <span class="caso-n">Caso 12 · avançado</span>
+    <h2>O lote que sumiu</h2>
+    <p>Um lote caro de imunoglobulina passou por farmácias e setores, e 13 frascos evaporaram. Siga as guias de transferência, uma a uma, até achar o elo quebrado.</p>
+    <span class="caso-meta">5 etapas · WITH RECURSIVE, caminhos, hierarquia</span>
+    <span class="caso-go">Abrir o Caso 12 →</span>
+  </a>
+  <a class="caso-card" href="caso13.html" data-arq="caso13.html">
+    <span class="caso-n">Caso 13 · avançado</span>
+    <h2>A dose reprogramada</h2>
+    <p>Um paciente da UTI recebeu oito vezes a dose de noradrenalina, mesmo com a trava da bomba. Abra os eventos em JSON e descubra quem mudou o limite.</p>
+    <span class="caso-meta">5 etapas · JSON, -&gt;&gt;, jsonb_array_elements</span>
+    <span class="caso-go">Abrir o Caso 13 →</span>
+  </a>
+  <a class="caso-card" href="caso14.html" data-arq="caso14.html">
+    <span class="caso-n">Caso 14 · avançado</span>
+    <h2>O banco que se corrigia sozinho</h2>
+    <p>Contas particulares amanhecem com 40% de desconto e ninguém mexeu. Aprenda a escrever no banco sem estragar nada e ache o gatilho escondido.</p>
+    <span class="caso-meta">5 etapas · INSERT, UPDATE, ROLLBACK, TRIGGER</span>
+    <span class="caso-go">Abrir o Caso 14 →</span>
+  </a>
 </section>
 
 <section class="fase" style="gap:10px">
-  <div class="box"><b class="l">Como funciona</b><p>Cada caso tem as <strong>próprias tabelas</strong>, então os dez cabem no mesmo projeto do Supabase. Entrando com uma conta (em <strong>Entrar na conta</strong>, no topo), o seu progresso, o seu nome e as suas anotações ficam guardados no Supabase e acompanham você em qualquer computador. Sem conta, tudo fica salvo só neste navegador.</p></div>
+  <div class="box"><b class="l">Como funciona</b><p>Cada caso tem as <strong>próprias tabelas</strong>, então os catorze cabem no mesmo projeto do Supabase. Entrando com uma conta (em <strong>Entrar na conta</strong>, no topo), o seu progresso, o seu nome e as suas anotações ficam guardados no Supabase e acompanham você em qualquer computador. Sem conta, tudo fica salvo só neste navegador.</p></div>
   <p class="foot">Inspirado no <a href="https://mystery.knightlab.com/walkthrough.html" target="_blank" rel="noopener">SQL Murder Mystery</a> do Knight Lab. Personagens e dados são fictícios.</p>
 </section>
 </div>
@@ -113,7 +146,7 @@
       <h1 id="lgTitulo">Mistério no Hospital SQL</h1>
       <p class="tela-lema">Aprenda SQL investigando casos de um hospital.</p>
       <ul class="tela-itens">
-        <li>10 casos, do iniciante ao avançado</li>
+        <li>14 casos, do iniciante ao avançado</li>
         <li>Seu progresso salvo em qualquer computador</li>
         <li>Caderno do detetive com as suas anotações</li>
       </ul>
@@ -175,9 +208,10 @@
 
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=5417c6c0"></script>
-<script src="js/pwa.js?v=e304ae22"></script>
-<script src="js/catalogo.js?v=addf162f"></script>
-<script src="js/caderno.js?v=d849753a"></script>
+<script src="js/pwa.js?v=10765b60"></script>
+<script src="js/catalogo.js?v=f7ff8d49"></script>
+<script src="js/caderno.js?v=0dfa9e18"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
+<span id="fim-da-pagina" hidden></span>
 </body>
 </html>

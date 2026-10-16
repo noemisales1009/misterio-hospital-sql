@@ -26,7 +26,7 @@ function arquivosDe(dir, filtro) {
 }
 
 // o que as páginas não citam diretamente
-['manifest.webmanifest', 'js/achados-dados.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png']
+['manifest.webmanifest', 'js/achados-dados.json', 'js/comandos-dados.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png']
   .forEach((f) => lista.add(f));
 arquivosDe('fonts', (f) => /\.(woff2|css)$/.test(f)).forEach((f) => lista.add(f));
 arquivosDe('img/personagens', (f) => /\.(png|jpe?g|webp)$/i.test(f)).forEach((f) => lista.add(f));

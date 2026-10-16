@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6b5b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mistério SQL">
+<title>Caso 12 · O lote que sumiu</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preload" href="fonts/atkinson-hyperlegible-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/atkinson-hyperlegible-700-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/big-shoulders-display-600-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="js/tema.js?v=45d4af28"></script>
+<link rel="stylesheet" href="css/estilo.css?v=f80c1510">
+<link rel="expect" href="#fim-da-pagina" blocking="render">
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+  <div class="tag"><a href="index.html">← Todos os casos</a> · Caso 12 · avançado</div>
+  <h1>Caso 12: o lote que <span>sumiu</span></h1>
+  <div class="case">
+    <div class="stamp">DESVIO</div>
+    <h2>9 de outubro de 2026 · Farmácia Central</h2>
+    <p>Na sexta-feira, <mark>9 de outubro de 2026</mark>, a auditoria da farmácia fechou a conta do lote <mark>IGH-2609-114</mark> de <strong>imunoglobulina humana 5 g</strong>, um medicamento caro: cada frasco custa R$ 2.380,00. Entraram <strong>120 frascos</strong> em 8 de setembro. Somando o que os setores aplicaram nos pacientes com o que sobrou nos estoques, <mark>faltam 13 frascos</mark>. É quase R$ 31 mil.</p>
+    <p>O lote não ficou parado. Foi do Almoxarifado para a Farmácia Central, de lá para as <strong>farmácias satélites</strong> (da UTI e da Oncologia) e delas para os setores, sempre com uma <strong>guia de transferência</strong>. Uma guia pode virar várias: a satélite recebe 40 frascos e divide em quatro entregas. O caminho do lote é uma <strong>árvore</strong>, que vai se abrindo em galhos.</p>
+    <p>E tem um detalhe chato: o sistema antigo <mark>só anota o número do lote na primeira guia</mark>. As outras dizem apenas de qual <code>guia_anterior</code> vieram os frascos. Para seguir o lote é preciso andar de guia em guia, como quem puxa um fio. A resposta deste caso é o <strong>nome completo</strong> de quem fez os frascos sumirem.</p>
+  </div>
+  <p class="lead">A novidade deste caso é o <strong><code>WITH RECURSIVE</code></strong>: uma consulta que usa o próprio resultado para dar o próximo passo. É a ferramenta certa para <strong>árvores</strong> (uma guia que se divide em várias), <strong>caminhos</strong> (por onde o frasco passou), <strong>redes com ciclos</strong> (rotas que vão e voltam) e <strong>hierarquias</strong> (quem é chefe de quem). Ajuda ter feito o Caso 5, que usa <code>WITH</code> e <code>UNION ALL</code>. Travou? Abra a dica, depois a solução.</p>
+</header>
+<aside class="box aviso-data"><b class="l">Atenção: nas datas deste caso</b><p>Aqui <code>enviado_em</code>, <code>recebido_em</code> e <code>registrado_em</code> são <strong>instantes com data e hora</strong> (<code>timestamp</code>), e <code>chegou_em</code> é uma <strong>data</strong> (<code>date</code>). Escreva entre aspas simples: ano-mês-dia, espaço, hora:minuto:segundo.</p><div class="tw"><table><tr><th>Neste caso</th><th>Escreva assim</th></tr><tr><td>✅ Certo</td><td><code>WHERE enviado_em &gt;= '2026-09-19 22:00:00'</code></td></tr><tr><td>✅ Certo</td><td><code>WHERE chegou_em &lt; '2026-10-01'</code></td></tr><tr><td>❌ Errado</td><td><code>WHERE chegou_em = 20260908</code>, porque número não é data aqui</td></tr></table></div><p class="cad-nota">Nos Casos 1 a 3 a data era um número, como <code>20260310</code>. Para saber qual é o caso de cada coluna, olhe o tipo no mapa das tabelas: <code>integer</code> é número, e <code>date</code> ou <code>timestamp</code> é data de verdade.</p></aside>
+<nav class="trail" aria-label="Etapas do caso">
+  <div class="trail-inner" id="trail"></div>
+  <div class="bar"><i id="bar"></i></div>
+</nav>
+<section class="fase" id="c12-f0" data-fase="0" data-nome="Montar">
+  <div class="fase-head"><div class="num">0</div><div class="t"><h2>Montar o caso</h2><div class="sub">Supabase · SQL Editor</div></div></div>
+  <div class="box"><b class="l">Para que serve</b><p>Cada caso tem as <strong>próprias tabelas</strong>, com nomes diferentes. Você pode instalar no mesmo projeto do Supabase dos outros casos: nada se mistura e nada é apagado.</p></div>
+  <ol class="steps">
+    <li>No Supabase, abra o <strong>SQL Editor</strong> e clique em <strong>New query</strong>.</li>
+    <li>Clique no botão abaixo para copiar o banco do caso, cole no editor e clique em <strong>Run</strong>.</li>
+    <li>Deve aparecer: <code>✅ Caso 12 instalado!</code>. Para recomeçar, rode de novo.</li>
+  </ol>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <button class="btn big" id="copyAll" type="button">Copiar banco do Caso 12 (SQL)</button>
+    <span class="foot">São 6 tabelas e umas 380 linhas. O arquivo <code>caso12.sql</code> também está na pasta do projeto.</span>
+  </div>
+  <div class="mapa">
+    <div class="lbl" style="margin-bottom:8px">Mapa do banco · quem se liga com quem</div>
+<pre class="mermaid">
+erDiagram
+  lote_local { text codigo PK
+    text nome
+    text tipo
+    boolean ativo
+    int responsavel_id }
+  lote_funcionario { int id PK
+    text nome
+    text cargo
+    text local FK
+    int chefe_id FK }
+  lote_produto { text lote PK
+    text medicamento
+    text fabricante
+    numeric valor_frasco
+    int qtd_entrada
+    date chegou_em }
+  lote_rota { text origem FK
+    text destino FK
+    text tipo }
+  lote_guia { int id PK
+    int guia_anterior FK
+    text lote FK
+    text origem FK
+    text destino FK
+    int qtd_enviada
+    int qtd_recebida
+    timestamp enviado_em
+    timestamp recebido_em
+    int enviado_por FK
+    int recebido_por FK }
+  lote_baixa { int id PK
+    int guia_id FK
+    int qtd
+    text motivo
+    text termo
+    int registrado_por FK
+    timestamp registrado_em }
+  lote_local ||--o{ lote_funcionario : "local"
+  lote_funcionario ||--o{ lote_funcionario : "chefe_id"
+  lote_local ||--o{ lote_rota : "origem e destino"
+  lote_produto ||--o{ lote_guia : "lote"
+  lote_guia ||--o{ lote_guia : "guia_anterior"
+  lote_local ||--o{ lote_guia : "origem e destino"
+  lote_funcionario ||--o{ lote_guia : "enviado_por e recebido_por"
+  lote_guia ||--o{ lote_baixa : "guia_id"
+</pre>
+  </div>
+  <ul class="list"><li>Em <code>lote_guia</code>, cada linha é <strong>uma entrega</strong> de frascos de um lugar (<code>origem</code>) para outro (<code>destino</code>). A coluna <code>lote</code> só vem preenchida na <strong>guia de entrada</strong> (Almoxarifado → Farmácia Central). Nas outras ela é nula, e o que liga uma guia à anterior é <code>guia_anterior</code>: o <code>id</code> da guia que trouxe aqueles frascos.</li><li><code>qtd_enviada</code> é o que quem mandou contou na saída; <code>qtd_recebida</code> é o que quem assinou o recebimento (<code>recebido_por</code>) contou na chegada. Se as duas forem diferentes, algo se perdeu no caminho.</li><li>Os locais têm um <code>codigo</code> curto: <code>ALM</code> (Almoxarifado), <code>FC</code> (Farmácia Central), <code>SAT-UTI</code>, <code>SAT-CC</code> e <code>SAT-ONC</code> (as satélites) e os setores, como <code>UTI-A</code>, <code>QT-AMB</code> (Quimioterapia) e <code>HD</code> (Hospital-Dia). Um local com <code>ativo = false</code> foi desativado.</li><li><code>lote_rota</code> é o mapa das transferências <strong>autorizadas</strong>: de onde para onde um medicamento pode ir. Tem ida (abastecimento) e volta (devolução), por isso as rotas formam círculos.</li><li><code>lote_baixa</code> guarda os <strong>termos de baixa</strong>: perdas registradas e justificadas, como um frasco que quebrou.</li><li>Em <code>lote_funcionario</code>, <code>chefe_id</code> aponta para o chefe direto. Quem está no topo tem <code>chefe_id</code> nulo.</li><li>Todos os horários são locais, sem fuso.</li></ul>
+  <div class="done-row"><input type="checkbox" id="c12-ok0"><label for="c12-ok0">Instalei o caso no Supabase</label></div>
+</section>
+<section class="fase" id="c12-f1" data-fase="1" data-nome="Puxar o fio">
+  <div class="fase-head"><div class="num">1</div><div class="t"><h2>Puxando o fio: a primeira consulta recursiva</h2><div class="sub">WITH RECURSIVE · âncora · UNION ALL · nível</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>A guia de entrada do lote <code>IGH-2609-114</code> é fácil de achar: é a única com o lote preenchido. As guias que saíram dela têm <code>guia_anterior</code> igual ao <code>id</code> dela. As que saíram dessas apontam para elas, e assim por diante. O problema: você <strong>não sabe quantos andares</strong> essa árvore tem. Daria para fazer um <code>JOIN</code> para cada andar, mas quantos? Dois? Cinco? É aqui que entra a recursão.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>WITH RECURSIVE nome AS (…)</code></td><td>cria uma consulta que pode usar o próprio resultado</td><td>“seguir a corrente de guias”</td></tr>
+    <tr><td>parte âncora</td><td>o ponto de partida; roda uma vez só</td><td>“a guia de entrada do lote”</td></tr>
+    <tr><td><code>UNION ALL</code></td><td>junta cada rodada nova ao que já foi achado</td><td>“empilha as guias encontradas”</td></tr>
+    <tr><td>parte recursiva</td><td>acha o próximo elo a partir do último achado</td><td>“as guias que saíram destas”</td></tr>
+    <tr><td><code>nivel + 1</code></td><td>conta em que andar da árvore a linha está</td><td>“a quantas entregas da entrada”</td></tr>
+  </table></div>
+  <div class="box novo"><b class="l">Ferramenta nova · WITH RECURSIVE, em duas partes</b><p>Um <code>WITH RECURSIVE</code> tem sempre <strong>duas consultas</strong> grudadas por <code>UNION ALL</code>. A primeira é a <strong>âncora</strong>: o ponto de partida, que roda uma vez e não fala do próprio <code>WITH</code>. A segunda é a <strong>parte recursiva</strong>: ela faz <code>JOIN</code> com o próprio nome do <code>WITH</code> para achar o <strong>próximo passo</strong>. O banco roda em rodadas: a âncora dá as primeiras linhas; a parte recursiva olha <strong>só as linhas da rodada anterior</strong> e acha as seguintes; essas novas viram a base da próxima rodada. Quando uma rodada não acha nada, ele para e devolve tudo o que empilhou.</p></div>
+  <div class="tw"><table><tr><th>parte</th><th>na árvore do lote</th></tr><tr><td>âncora</td><td><code>SELECT … FROM lote_guia WHERE lote = 'IGH-2609-114'</code>: a guia de entrada, com <code>1 AS nivel</code></td></tr><tr><td>parte recursiva</td><td><code>SELECT g.… , a.nivel + 1 FROM lote_guia g JOIN arvore a ON g.guia_anterior = a.id</code>: as guias cuja guia anterior já está na árvore</td></tr><tr><td>parada</td><td>quando nenhuma guia aponta para as da última rodada, a árvore acabou</td></tr></table></div>
+  <div class="box"><b class="l">Veja as rodadas com um exemplo pequeno</b><p>Antes da árvore, um contador. A âncora começa em 1; a parte recursiva soma 1 ao número da rodada anterior; o <code>WHERE n &lt; 5</code> é a <strong>condição de parada</strong>. Sem ela, a conta nunca acabaria.</p></div>
+  <div class="tw"><table><tr><th>rodada</th><th>de onde vem</th><th>linha nova</th></tr><tr><td>1</td><td>âncora: <code>SELECT 1</code></td><td>1</td></tr><tr><td>2</td><td>recursiva: 1 + 1 (1 &lt; 5, continua)</td><td>2</td></tr><tr><td>3 e 4</td><td>recursiva: 2 + 1, depois 3 + 1</td><td>3, 4</td></tr><tr><td>5</td><td>recursiva: 4 + 1</td><td>5</td></tr><tr><td>6</td><td>recursiva: 5 não é menor que 5, nada novo</td><td>para</td></tr></table></div>
+  <div class="code"><pre data-sql>-- Um contador recursivo de 1 a 5 (não é missão, é para ver a recursão funcionando)
+WITH RECURSIVE contagem AS (
+  SELECT 1 AS n              -- âncora: o ponto de partida
+  UNION ALL
+  SELECT n + 1               -- parte recursiva: o próximo passo
+  FROM contagem
+  WHERE n &lt; 5                -- condição de parada
+)
+SELECT n FROM contagem;</pre></div>
+  <div class="box"><b class="l">Por que UNION ALL, e não UNION?</b><p><code>UNION ALL</code> empilha tudo, sem conferir repetição: é rápido e é o normal na recursão. <code>UNION</code> (sem ALL) jogaria fora linhas idênticas a cada rodada. Aqui cada guia tem um <code>id</code> diferente, então não há o que jogar fora: use <code>UNION ALL</code>. As colunas das duas partes precisam bater em <strong>número, ordem e tipo</strong>, como em qualquer <code>UNION</code>.</p></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Monte a árvore do lote <code>IGH-2609-114</code>: comece pela guia de entrada e traga todas as guias que descendem dela. Mostre <code>id</code>, <code>guia_anterior</code>, <code>origem</code>, <code>destino</code> e <code>nivel</code> (1 para a guia de entrada).</li><li>Numa linha só: quantas guias tem a árvore (<code>guias</code>) e quantos níveis ela tem (<code>niveis</code>).</li></ul></div>
+  <details><summary>Dica</summary><div><p>A âncora é <code>SELECT id, guia_anterior, origem, destino, 1 AS nivel FROM lote_guia WHERE lote = 'IGH-2609-114'</code>. A parte recursiva pega as colunas de <code>g</code> (<code>lote_guia g</code>) e <code>a.nivel + 1</code>, com <code>JOIN arvore a ON g.guia_anterior = a.id</code>. Depois do <code>WITH</code>, um <code>SELECT … FROM arvore</code> comum. Na segunda missão, troque o <code>SELECT</code> final por <code>COUNT(*)</code> e <code>MAX(nivel)</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>WITH RECURSIVE arvore AS (
+  SELECT id, guia_anterior, origem, destino, 1 AS nivel
+  FROM lote_guia
+  WHERE lote = 'IGH-2609-114'
+  UNION ALL
+  SELECT g.id, g.guia_anterior, g.origem, g.destino, a.nivel + 1
+  FROM lote_guia g
+  JOIN arvore a ON g.guia_anterior = a.id
+)
+SELECT id, guia_anterior, origem, destino, nivel
+FROM arvore
+ORDER BY nivel, id;</pre></div>
+    <div class="code"><pre data-sql>WITH RECURSIVE arvore AS (
+  SELECT id, 1 AS nivel
+  FROM lote_guia
+  WHERE lote = 'IGH-2609-114'
+  UNION ALL
+  SELECT g.id, a.nivel + 1
+  FROM lote_guia g
+  JOIN arvore a ON g.guia_anterior = a.id
+)
+SELECT COUNT(*) AS guias, MAX(nivel) AS niveis
+FROM arvore;</pre></div>
+    <p>Para conferir: a árvore tem <strong>16 guias</strong> em <strong>5 níveis</strong>. No nível 1 está a entrada (guia 1021, ALM → FC, 120 frascos). No nível 2, três guias saem da Farmácia Central: uma para a <code>SAT-UTI</code> e duas para a <code>SAT-ONC</code>. No nível 3 estão as 10 entregas das satélites. Os níveis 4 e 5 têm uma guia cada: a Quimioterapia devolveu 2 frascos para a satélite, que mandou os dois para o Hospital-Dia.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c12-ok1"><label for="c12-ok1">Etapa 1 concluída</label></div>
+</section>
+<section class="fase" id="c12-f2" data-fase="2" data-nome="O caminho">
+  <div class="fase-head"><div class="num">2</div><div class="t"><h2>O caminho de cada frasco e a conta de cada lote</h2><div class="sub">caminho com || · levar a âncora até o fim · SUM sobre a árvore</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>O <code>nivel</code> diz em que andar a guia está, mas não <strong>por onde</strong> os frascos passaram. Dá para a recursão ir escrevendo o caminho, um lugar de cada vez. E tem outra pergunta: será que só este lote tem perda? Para comparar, é preciso montar a árvore de <strong>todos</strong> os lotes de uma vez e somar a diferença entre enviado e recebido em cada uma.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>origem || ' → ' || destino</code></td><td>gruda textos, formando o começo do caminho</td><td>“ALM → FC”</td></tr>
+    <tr><td><code>a.caminho || ' → ' || g.destino</code></td><td>a cada rodada, acrescenta o novo destino</td><td>“ALM → FC → SAT-UTI”</td></tr>
+    <tr><td><code>a.lote</code> na parte recursiva</td><td>leva um valor da âncora até as últimas guias</td><td>“de que lote é esta guia?”</td></tr>
+    <tr><td><code>SUM(…) … GROUP BY</code> depois do WITH</td><td>soma em cima da árvore pronta</td><td>“perda total de cada lote”</td></tr>
+  </table></div>
+  <div class="box novo"><b class="l">Ferramenta nova · uma coluna que cresce a cada rodada</b><p>Na âncora, crie o começo do caminho: <code>origem || ' → ' || destino AS caminho</code> (o <code>||</code> gruda textos). Na parte recursiva, pegue o caminho que já veio da rodada anterior e acrescente o novo destino: <code>a.caminho || ' → ' || g.destino</code>. Cada guia sai com o seu caminho completo, desde a entrada. O mesmo truque serve para <strong>levar uma informação da âncora até o fim</strong>: só a guia de entrada tem o <code>lote</code>, mas se a parte recursiva repetir <code>a.lote</code>, todas as guias da árvore saem com o lote da sua entrada.</p></div>
+  <div class="tw"><table><tr><th>rodada</th><th>guia</th><th>caminho</th></tr><tr><td>âncora</td><td>ALM → FC</td><td><code>ALM → FC</code></td></tr><tr><td>2</td><td>FC → SAT-UTI</td><td><code>ALM → FC</code> + <code> → SAT-UTI</code></td></tr><tr><td>3</td><td>SAT-UTI → UTI-A</td><td><code>ALM → FC → SAT-UTI</code> + <code> → UTI-A</code></td></tr></table></div>
+  <div class="box"><b class="l">Cuidado com o tipo</b><p>A coluna precisa ter o <strong>mesmo tipo</strong> nas duas partes. <code>origem || ' → ' || destino</code> já é texto, então tudo bem. Se a âncora começasse com um texto solto, como <code>'início' AS caminho</code>, escreva <code>'início'::text</code> para o banco não reclamar.</p></div>
+  <div class="box"><b class="l">A recursão monta; o resto vem depois</b><p>Depois que o <code>WITH RECURSIVE</code> termina, o resultado é uma tabela como outra qualquer. Dá para filtrar, juntar com outras tabelas, agrupar e somar no <code>SELECT</code> final. Para começar de <strong>todos</strong> os lotes ao mesmo tempo, troque o filtro da âncora por <code>WHERE guia_anterior IS NULL</code>: são todas as guias de entrada.</p></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para cada guia da árvore do lote <code>IGH-2609-114</code>, mostre <code>id</code>, <code>caminho</code> (no formato <code>ALM → FC → SAT-UTI</code>), <code>qtd_enviada</code> e <code>qtd_recebida</code>.</li><li>Agora todos os lotes: comece por todas as guias de entrada, leve o <code>lote</code> até o fim da árvore e some <code>qtd_enviada - qtd_recebida</code> de todas as guias de cada lote. Mostre <code>lote</code> e <code>perda</code>, só os lotes com perda maior que zero, da maior para a menor.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Primeira: a âncora tem <code>origem || ' → ' || destino AS caminho</code>, e a parte recursiva tem <code>a.caminho || ' → ' || g.destino</code>. Segunda: âncora com <code>lote</code> e <code>WHERE guia_anterior IS NULL</code>; na parte recursiva, <code>a.lote</code> no lugar de <code>g.lote</code>. Fora do <code>WITH</code>: <code>GROUP BY lote</code>, <code>HAVING SUM(qtd_enviada - qtd_recebida) &gt; 0</code> e <code>ORDER BY perda DESC</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>WITH RECURSIVE arvore AS (
+  SELECT id, origem || ' → ' || destino AS caminho, qtd_enviada, qtd_recebida
+  FROM lote_guia
+  WHERE lote = 'IGH-2609-114'
+  UNION ALL
+  SELECT g.id, a.caminho || ' → ' || g.destino, g.qtd_enviada, g.qtd_recebida
+  FROM lote_guia g
+  JOIN arvore a ON g.guia_anterior = a.id
+)
+SELECT id, caminho, qtd_enviada, qtd_recebida
+FROM arvore
+ORDER BY caminho, id;</pre></div>
+    <div class="code"><pre data-sql>WITH RECURSIVE arvore AS (
+  SELECT id, lote, qtd_enviada, qtd_recebida
+  FROM lote_guia
+  WHERE guia_anterior IS NULL
+  UNION ALL
+  SELECT g.id, a.lote, g.qtd_enviada, g.qtd_recebida
+  FROM lote_guia g
+  JOIN arvore a ON g.guia_anterior = a.id
+)
+SELECT lote, SUM(qtd_enviada - qtd_recebida) AS perda
+FROM arvore
+GROUP BY lote
+HAVING SUM(qtd_enviada - qtd_recebida) &gt; 0
+ORDER BY perda DESC;</pre></div>
+    <p>Para conferir: a primeira traz as <strong>16 guias</strong>, e o caminho mais longo é <code>ALM → FC → SAT-ONC → QT-AMB → SAT-ONC → HD</code>. O lugar <code>SAT-ONC</code> aparece duas vezes, mas as guias são diferentes (uma ida e uma devolução), então a árvore não anda em círculo. A segunda traz <strong>9 lotes</strong> com perda; o <code>IGH-2609-114</code> lidera, com <strong>3 frascos</strong>, seguido de <code>DAP-2609-344</code> e <code>MIC-2609-071</code>, com 2. Só que a auditoria disse que faltam <strong>13</strong>. Os outros <strong>10</strong> não aparecem como diferença: as guias deles "fecham" certinho. Para onde foram?</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c12-ok2"><label for="c12-ok2">Etapa 2 concluída</label></div>
+</section>
+<section class="fase" id="c12-f3" data-fase="3" data-nome="Rotas e ciclos">
+  <div class="fase-head"><div class="num">3</div><div class="t"><h2>Rotas que andam em círculo</h2><div class="sub">ARRAY · = ANY · evitar ciclo · vários WITH</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>A farmácia tem um mapa das transferências <strong>autorizadas</strong>, a tabela <code>lote_rota</code>. Partindo do Almoxarifado e seguindo as rotas, dá para saber todos os lugares aonde um medicamento pode chegar de forma legítima. Se alguma guia do lote foi para um lugar <strong>fora desse mapa</strong>, achamos um furo. Só que as rotas, ao contrário das guias, <strong>formam círculos</strong>: <code>FC → SAT-ONC</code> é abastecimento e <code>SAT-ONC → FC</code> é devolução. Uma recursão ingênua ficaria indo e voltando para sempre.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>ARRAY['ALM', destino]</code></td><td>cria uma lista com os lugares já visitados</td><td>“por onde já passei”</td></tr>
+    <tr><td><code>a.caminho || r.destino</code></td><td>acrescenta um lugar no fim da lista</td><td>“mais um passo”</td></tr>
+    <tr><td><code>r.destino = ANY(a.caminho)</code></td><td>verdadeiro se o lugar já está na lista</td><td>“já passei aqui?”</td></tr>
+    <tr><td><code>WHERE NOT (…)</code> na parte recursiva</td><td>não volta a um lugar visitado</td><td>“não andar em círculo”</td></tr>
+    <tr><td><code>WITH RECURSIVE a AS (…), b AS (…)</code></td><td>vários WITH na mesma consulta</td><td>“a árvore e o mapa juntos”</td></tr>
+  </table></div>
+  <div class="box novo"><b class="l">Ferramenta nova · lembrar por onde passou, para não andar em círculo</b><p>Na fase 1, a recursão parava sozinha: as guias acabam. Num mapa com ida e volta, ela <strong>não para</strong>. A solução é levar junto a <strong>lista de lugares já visitados</strong>, num <code>ARRAY</code> (uma coluna que guarda vários valores). A âncora começa a lista com <code>ARRAY['ALM', destino]</code>. A parte recursiva acrescenta o novo lugar com <code>a.caminho || r.destino</code> e, no <code>WHERE</code>, recusa voltar a um lugar que já está nela: <code>NOT (r.destino = ANY(a.caminho))</code>. O <code>= ANY(lista)</code> pergunta “esse valor é igual a algum da lista?”. Quando todos os próximos passos já foram visitados, a rodada não acha nada e a recursão para.</p></div>
+  <div class="box"><b class="l">Veja o círculo acontecer (com freio de mão)</b><p>Esta consulta segue as rotas <strong>sem</strong> checar se já passou pelo lugar. Para ela não rodar para sempre, o <code>WHERE v.nivel &lt; 3</code> é um freio: para no terceiro passo. Repare nos caminhos que vão e voltam, como <code>ALM → FC → ALM → FC</code>. Nunca rode uma recursão num mapa com círculos sem uma condição de parada.</p></div>
+  <div class="code"><pre data-sql>-- Sem checar lugar repetido: só não roda para sempre por causa do freio (nivel &lt; 3)
+WITH RECURSIVE volta AS (
+  SELECT destino, 'ALM → ' || destino AS caminho, 1 AS nivel
+  FROM lote_rota
+  WHERE origem = 'ALM'
+  UNION ALL
+  SELECT r.destino, v.caminho || ' → ' || r.destino, v.nivel + 1
+  FROM volta v
+  JOIN lote_rota r ON r.origem = v.destino
+  WHERE v.nivel &lt; 3
+)
+SELECT caminho FROM volta WHERE nivel = 3 ORDER BY caminho;</pre></div>
+  <div class="box"><b class="l">Dois WITH na mesma consulta</b><p>Um <code>WITH RECURSIVE</code> pode ter vários blocos separados por vírgula, recursivos ou não: <code>WITH RECURSIVE arvore AS (…), alcance AS (…) SELECT …</code>. O <code>RECURSIVE</code> só aparece uma vez, logo depois do <code>WITH</code>, e vale para todos. No <code>SELECT</code> final você usa os dois, como se fossem tabelas.</p></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Partindo de <code>ALM</code> e seguindo <code>lote_rota</code> sem repetir lugar, liste cada local alcançável <strong>uma vez só</strong>, com o menor número de passos para chegar lá: <code>destino</code> e <code>passos</code>.</li><li>Quais guias da árvore do lote <code>IGH-2609-114</code> foram para um destino que <strong>não está</strong> nessa lista? Mostre <code>id</code>, <code>origem</code>, <code>destino</code>, <code>qtd_enviada</code> e <code>enviado_em</code>.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Primeira: âncora <code>SELECT destino, ARRAY['ALM', destino] AS caminho, 1 AS nivel FROM lote_rota WHERE origem = 'ALM'</code>; parte recursiva com <code>JOIN lote_rota r ON r.origem = a.destino</code>, <code>a.caminho || r.destino</code>, <code>a.nivel + 1</code> e <code>WHERE NOT (r.destino = ANY(a.caminho))</code>. Fora do <code>WITH</code>, <code>GROUP BY destino</code> com <code>MIN(nivel)</code>. Segunda: junte a árvore da fase 1 e o <code>alcance</code> no mesmo <code>WITH RECURSIVE</code>, e filtre <code>WHERE destino NOT IN (SELECT destino FROM alcance)</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>WITH RECURSIVE alcance AS (
+  SELECT destino, ARRAY['ALM', destino] AS caminho, 1 AS nivel
+  FROM lote_rota
+  WHERE origem = 'ALM'
+  UNION ALL
+  SELECT r.destino, a.caminho || r.destino, a.nivel + 1
+  FROM alcance a
+  JOIN lote_rota r ON r.origem = a.destino
+  WHERE NOT (r.destino = ANY(a.caminho))
+)
+SELECT destino, MIN(nivel) AS passos
+FROM alcance
+GROUP BY destino
+ORDER BY passos, destino;</pre></div>
+    <div class="code"><pre data-sql>WITH RECURSIVE arvore AS (
+  SELECT id, origem, destino, qtd_enviada, enviado_em
+  FROM lote_guia
+  WHERE lote = 'IGH-2609-114'
+  UNION ALL
+  SELECT g.id, g.origem, g.destino, g.qtd_enviada, g.enviado_em
+  FROM lote_guia g
+  JOIN arvore a ON g.guia_anterior = a.id
+),
+alcance AS (
+  SELECT destino, ARRAY['ALM', destino] AS caminho
+  FROM lote_rota
+  WHERE origem = 'ALM'
+  UNION ALL
+  SELECT r.destino, a.caminho || r.destino
+  FROM alcance a
+  JOIN lote_rota r ON r.origem = a.destino
+  WHERE NOT (r.destino = ANY(a.caminho))
+)
+SELECT id, origem, destino, qtd_enviada, enviado_em
+FROM arvore
+WHERE destino NOT IN (SELECT destino FROM alcance)
+ORDER BY enviado_em;</pre></div>
+    <p>Para conferir: <strong>12 locais</strong> são alcançáveis, da <code>FC</code> (1 passo) até os setores (3 passos). O <code>ALM</code> não entra: ele já está na lista desde o começo, e a rota <code>FC → ALM</code> (devolução) fecharia o círculo. A segunda missão traz <strong>2 guias</strong>, as duas da <code>SAT-ONC</code> para <code>ONC-ANX</code>: a 1097, com <strong>6 frascos</strong>, às 22h40 de 19/09, e a 1198, com <strong>4 frascos</strong>, às 23h15 de 03/10. São os <strong>10 frascos</strong> que faltavam, mandados tarde da noite para um lugar fora do mapa. E em <code>lote_local</code>, <code>ONC-ANX</code> é a “Oncologia Anexo (sala 2)”, com <code>ativo = false</code>: um setor desativado, que não recebe mais nada.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c12-ok3"><label for="c12-ok3">Etapa 3 concluída</label></div>
+</section>
+<section class="fase" id="c12-f4" data-fase="4" data-nome="O elo quebrado">
+  <div class="fase-head"><div class="num">4</div><div class="t"><h2>O elo quebrado</h2><div class="sub">enviado × recebido · LEFT JOIN · SUM(…) FILTER</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Voltando aos <strong>3 frascos</strong> que a fase 2 achou: cada guia é um <strong>elo</strong> da corrente, com duas pontas. Quem mandou contou <code>qtd_enviada</code>; quem assinou o recebimento contou <code>qtd_recebida</code>. Se as contas não batem, o elo quebrou. Mas nem toda perda é sumiço: frasco quebra, e quando quebra, alguém assina um <strong>termo de baixa</strong>. Perda com termo é acidente registrado. Perda sem termo é o que interessa.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>qtd_recebida &lt; qtd_enviada</code></td><td>compara as duas pontas do mesmo elo</td><td>“chegou menos do que saiu”</td></tr>
+    <tr><td><code>LEFT JOIN lote_baixa</code></td><td>traz o termo de baixa, se existir</td><td>“essa perda tem justificativa?”</td></tr>
+    <tr><td><code>JOIN</code> com a árvore</td><td>usa o resultado da recursão como tabela</td><td>“o nome de quem assinou”</td></tr>
+    <tr><td><code>SUM(x) FILTER (WHERE …)</code></td><td>soma só as linhas que cumprem a condição</td><td>“com termo e sem termo, numa linha”</td></tr>
+  </table></div>
+  <div class="box novo"><b class="l">Ferramenta nova · a árvore vira tabela para os JOINs de sempre</b><p>Até aqui a árvore só tinha colunas de <code>lote_guia</code>. Mas, depois que o <code>WITH RECURSIVE</code> termina, ela pode entrar em qualquer <code>JOIN</code>: com <code>lote_funcionario</code> para trocar o número de <code>recebido_por</code> pelo nome, e com <code>lote_baixa</code> para ver se existe um termo. Use <code>LEFT JOIN</code> no termo, porque a maioria das guias não tem nenhum, e você quer ver justamente as que ficaram sem. Para contar com e sem termo numa linha só, o <code>FILTER</code> que você viu com <code>COUNT</code> também funciona com <code>SUM</code>: <code>SUM(x) FILTER (WHERE b.id IS NULL)</code>.</p></div>
+  <div class="tw"><table><tr><th>situação do elo</th><th>como aparece</th></tr><tr><td>tudo certo</td><td><code>qtd_enviada = qtd_recebida</code></td></tr><tr><td>perda justificada</td><td>recebida menor, e existe linha em <code>lote_baixa</code> com o mesmo <code>guia_id</code></td></tr><tr><td>perda sem explicação</td><td>recebida menor, e o <code>LEFT JOIN</code> com <code>lote_baixa</code> volta nulo</td></tr></table></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Na árvore do lote <code>IGH-2609-114</code>, liste as guias em que <code>qtd_recebida</code> é menor que <code>qtd_enviada</code>. Mostre <code>id</code>, <code>origem</code>, <code>destino</code>, <code>qtd_enviada</code>, <code>qtd_recebida</code>, o nome de quem assinou o recebimento (<code>recebeu</code>) e o <code>motivo</code> do termo de baixa (vazio quando não houver termo).</li><li>Numa linha só: quantos frascos se perderam <strong>com</strong> termo de baixa (<code>com_baixa</code>) e quantos <strong>sem</strong> (<code>sem_baixa</code>), nessa árvore.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Use a árvore da fase 1, agora com <code>qtd_enviada</code>, <code>qtd_recebida</code> e <code>recebido_por</code>. Fora do <code>WITH</code>: <code>JOIN lote_funcionario f ON f.id = a.recebido_por</code> e <code>LEFT JOIN lote_baixa b ON b.guia_id = a.id</code>, com <code>WHERE a.qtd_recebida &lt; a.qtd_enviada</code>. Na segunda, <code>SUM(a.qtd_enviada - a.qtd_recebida) FILTER (WHERE b.id IS NOT NULL)</code> e o mesmo com <code>IS NULL</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>WITH RECURSIVE arvore AS (
+  SELECT id, origem, destino, qtd_enviada, qtd_recebida, recebido_por
+  FROM lote_guia
+  WHERE lote = 'IGH-2609-114'
+  UNION ALL
+  SELECT g.id, g.origem, g.destino, g.qtd_enviada, g.qtd_recebida, g.recebido_por
+  FROM lote_guia g
+  JOIN arvore a ON g.guia_anterior = a.id
+)
+SELECT a.id, a.origem, a.destino, a.qtd_enviada, a.qtd_recebida,
+       f.nome AS recebeu, b.motivo
+FROM arvore a
+JOIN lote_funcionario f ON f.id = a.recebido_por
+LEFT JOIN lote_baixa b ON b.guia_id = a.id
+WHERE a.qtd_recebida &lt; a.qtd_enviada
+ORDER BY a.id;</pre></div>
+    <div class="code"><pre data-sql>WITH RECURSIVE arvore AS (
+  SELECT id, qtd_enviada, qtd_recebida
+  FROM lote_guia
+  WHERE lote = 'IGH-2609-114'
+  UNION ALL
+  SELECT g.id, g.qtd_enviada, g.qtd_recebida
+  FROM lote_guia g
+  JOIN arvore a ON g.guia_anterior = a.id
+)
+SELECT SUM(a.qtd_enviada - a.qtd_recebida) FILTER (WHERE b.id IS NOT NULL) AS com_baixa,
+       SUM(a.qtd_enviada - a.qtd_recebida) FILTER (WHERE b.id IS NULL) AS sem_baixa
+FROM arvore a
+LEFT JOIN lote_baixa b ON b.guia_id = a.id;</pre></div>
+    <p>Para conferir: são <strong>2 elos quebrados</strong>. A guia <strong>1040</strong> (<code>SAT-ONC → HD</code>) saiu com 12 e chegou com 11; quem recebeu foi Lúcia Nogueira, e há termo de baixa: “Frasco caiu do carrinho no corredor e quebrou”. Perda justificada. A guia <strong>1065</strong> (<code>SAT-ONC → QT-AMB</code>) saiu com 10 e chegou com <strong>8</strong>, <strong>sem termo nenhum</strong>, e quem assinou o recebimento foi <strong>Hélio Prado</strong>. Na segunda missão: <code>com_baixa</code> = <strong>1</strong> e <code>sem_baixa</code> = <strong>2</strong>. A conta da auditoria fecha: 1 quebrado + 2 sumidos neste elo + 10 mandados para o setor desativado = <strong>13</strong>. Só que Hélio é técnico de enfermagem da <strong>UTI Adulto</strong>, não da Quimioterapia. Naquela manhã ele estava cobrindo uma folga. Foi ele? A última fase decide.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c12-ok4"><label for="c12-ok4">Etapa 4 concluída</label></div>
+</section>
+<section class="fase" id="c12-f5" data-fase="5" data-nome="Quem responde">
+  <div class="fase-head"><div class="num">5</div><div class="t"><h2>Quem responde pelo trecho</h2><div class="sub">hierarquia recursiva · descer e subir a chefia · tudo junto</div></div></div>
+  <div class="box"><b class="l">Situação</b><p>Os problemas estão todos no mesmo trecho: guias que <strong>saíram da Farmácia Satélite da Oncologia</strong>. Quem responde por esse estoque é a equipe da satélite, e a equipe é uma <strong>hierarquia</strong>: a farmacêutica responsável, quem responde a ela, quem responde a essa pessoa… É outra árvore, agora de gente, guardada em <code>chefe_id</code>. A mesma recursão serve para <strong>descer</strong> (a equipe de alguém) e para <strong>subir</strong> (a cadeia de chefia de alguém).</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
+    <tr><td><code>ON f.chefe_id = e.id</code></td><td>desce: quem tem como chefe alguém que já está na lista</td><td>“a equipe da farmacêutica”</td></tr>
+    <tr><td><code>ON f.id = c.chefe_id</code></td><td>sobe: o chefe de quem já está na lista</td><td>“a quem essa pessoa responde”</td></tr>
+    <tr><td><code>a.cadeia || ' → ' || f.nome</code></td><td>escreve a cadeia de chefia</td><td>“diretora → gerente → técnico”</td></tr>
+    <tr><td>vários WITH + <code>IN (SELECT …)</code></td><td>cruza a árvore, o mapa e a equipe</td><td>“fechar o caso”</td></tr>
+  </table></div>
+  <div class="box novo"><b class="l">Ferramenta nova · a mesma recursão, para cima ou para baixo</b><p>Para <strong>descer</strong>: a âncora é o chefe, e a parte recursiva busca quem tem <code>chefe_id</code> igual a alguém já achado (<code>JOIN equipe e ON f.chefe_id = e.id</code>). Para <strong>subir</strong>: a âncora é a pessoa, e a parte recursiva busca o chefe de quem já foi achado (<code>JOIN cadeia c ON f.id = c.chefe_id</code>). A tabela é a mesma; só muda o lado do <code>JOIN</code>. Subindo, a recursão para sozinha em quem está no topo, porque o <code>chefe_id</code> nulo não liga com ninguém.</p></div>
+  <div class="code"><pre data-sql>-- Exemplo: a cadeia de chefia de Nara Vilela, da UTI Pediátrica, subindo até o topo
+WITH RECURSIVE cadeia AS (
+  SELECT id, nome, cargo, chefe_id, 1 AS nivel
+  FROM lote_funcionario
+  WHERE nome = 'Nara Vilela'
+  UNION ALL
+  SELECT f.id, f.nome, f.cargo, f.chefe_id, c.nivel + 1
+  FROM lote_funcionario f
+  JOIN cadeia c ON f.id = c.chefe_id
+)
+SELECT nome, cargo, nivel FROM cadeia ORDER BY nivel;</pre></div>
+  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Quem forma a equipe da Farmácia Satélite da Oncologia? Comece pela pessoa responsável pelo local (<code>responsavel_id</code> de <code>SAT-ONC</code> em <code>lote_local</code>) e desça pela chefia. Mostre <code>nome</code>, <code>cargo</code>, <code>nivel</code> (1 para a responsável) e <code>cadeia</code>, a cadeia de chefia escrita com <code>→</code>, como <code>Fulana → Beltrano</code>.</li><li>Suba a cadeia de chefia de <strong>Hélio Prado</strong>, quem assinou o recebimento do elo quebrado: mostre <code>nome</code>, <code>cargo</code> e <code>nivel</code> (1 para o próprio Hélio). Ele responde a alguém da farmácia?</li><li>Junte tudo: as <strong>guias-problema</strong> da árvore do lote (destino fora das rotas autorizadas, <strong>ou</strong> recebida a menos sem termo de baixa) que foram <strong>enviadas por alguém da equipe da SAT-ONC</strong>. Mostre <code>nome</code> de quem enviou, quantas <code>guias</code> e quantos <code>frascos</code> sumiram (a guia inteira, quando o destino está fora do mapa; a diferença, quando o elo quebrou). Quem é o culpado? Confira com <code>SELECT verificar_caso12('Nome Completo');</code>.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Primeira: âncora <code>SELECT id, nome, cargo, 1 AS nivel, nome AS cadeia FROM lote_funcionario WHERE id = (SELECT responsavel_id FROM lote_local WHERE codigo = 'SAT-ONC')</code>; parte recursiva com <code>JOIN equipe e ON f.chefe_id = e.id</code> e <code>e.cadeia || ' → ' || f.nome</code>. Segunda: é o exemplo acima, com <code>'Hélio Prado'</code>. Terceira: um <code>WITH RECURSIVE</code> com três blocos (<code>arvore</code>, <code>alcance</code> e <code>equipe</code>). No <code>SELECT</code> final, <code>LEFT JOIN lote_baixa</code>, a condição <code>destino NOT IN (SELECT destino FROM alcance) OR (qtd_recebida &lt; qtd_enviada AND b.id IS NULL)</code>, e <code>enviado_por IN (SELECT id FROM equipe)</code>. Para os frascos, um <code>CASE</code>: se o destino está fora do mapa, conte <code>qtd_enviada</code>; se não, a diferença.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div>
+    <div class="code"><pre data-sql>WITH RECURSIVE equipe AS (
+  SELECT id, nome, cargo, 1 AS nivel, nome AS cadeia
+  FROM lote_funcionario
+  WHERE id = (SELECT responsavel_id FROM lote_local WHERE codigo = 'SAT-ONC')
+  UNION ALL
+  SELECT f.id, f.nome, f.cargo, e.nivel + 1, e.cadeia || ' → ' || f.nome
+  FROM lote_funcionario f
+  JOIN equipe e ON f.chefe_id = e.id
+)
+SELECT nome, cargo, nivel, cadeia
+FROM equipe
+ORDER BY nivel, nome;</pre></div>
+    <div class="code"><pre data-sql>WITH RECURSIVE cadeia AS (
+  SELECT id, nome, cargo, chefe_id, 1 AS nivel
+  FROM lote_funcionario
+  WHERE nome = 'Hélio Prado'
+  UNION ALL
+  SELECT f.id, f.nome, f.cargo, f.chefe_id, c.nivel + 1
+  FROM lote_funcionario f
+  JOIN cadeia c ON f.id = c.chefe_id
+)
+SELECT nome, cargo, nivel
+FROM cadeia
+ORDER BY nivel;</pre></div>
+    <div class="code"><pre data-sql>WITH RECURSIVE arvore AS (
+  SELECT id, destino, qtd_enviada, qtd_recebida, enviado_por
+  FROM lote_guia
+  WHERE lote = 'IGH-2609-114'
+  UNION ALL
+  SELECT g.id, g.destino, g.qtd_enviada, g.qtd_recebida, g.enviado_por
+  FROM lote_guia g
+  JOIN arvore a ON g.guia_anterior = a.id
+),
+alcance AS (
+  SELECT destino, ARRAY['ALM', destino] AS caminho
+  FROM lote_rota
+  WHERE origem = 'ALM'
+  UNION ALL
+  SELECT r.destino, a.caminho || r.destino
+  FROM alcance a
+  JOIN lote_rota r ON r.origem = a.destino
+  WHERE NOT (r.destino = ANY(a.caminho))
+),
+equipe AS (
+  SELECT id
+  FROM lote_funcionario
+  WHERE id = (SELECT responsavel_id FROM lote_local WHERE codigo = 'SAT-ONC')
+  UNION ALL
+  SELECT f.id
+  FROM lote_funcionario f
+  JOIN equipe e ON f.chefe_id = e.id
+)
+SELECT f.nome,
+       COUNT(*) AS guias,
+       SUM(CASE WHEN a.destino NOT IN (SELECT destino FROM alcance) THEN a.qtd_enviada
+                ELSE a.qtd_enviada - a.qtd_recebida END) AS frascos
+FROM arvore a
+JOIN lote_funcionario f ON f.id = a.enviado_por
+LEFT JOIN lote_baixa b ON b.guia_id = a.id
+WHERE (a.destino NOT IN (SELECT destino FROM alcance)
+       OR (a.qtd_recebida &lt; a.qtd_enviada AND b.id IS NULL))
+  AND a.enviado_por IN (SELECT id FROM equipe)
+GROUP BY f.nome;</pre></div>
+    <p>Para conferir: a equipe da <code>SAT-ONC</code> tem <strong>4 pessoas</strong> em 3 níveis: Sueli Arantes (farmacêutica responsável, nível 1), Ivo Matos (técnico líder, nível 2) e, no nível 3, <strong>Joana Leal</strong> e <strong>Wagner Bastos</strong>, auxiliares de farmácia. A cadeia de Hélio Prado sobe por Fátima Quaresma (enfermeira-chefe da UTI Adulto), Telma Guerra (Gerente de Enfermagem) e Heloísa Brandão (Diretora Assistencial): <strong>ninguém da farmácia</strong>. Hélio não mexia no estoque da satélite: só assinou o que chegou na Quimioterapia, e contou 8. Joana também sai limpa: a única perda dela tem termo de baixa. A missão final traz <strong>1 linha</strong>: <strong>Wagner Bastos</strong>, com <strong>3 guias</strong> e <strong>12 frascos</strong>. Ele registrou 10 frascos numa guia que chegou com 8, e mandou 6 + 4 frascos, tarde da noite, para o setor desativado <code>ONC-ANX</code>. Nessas duas guias, quem assinou o recebimento foi <strong>ele mesmo</strong>.</p>
+  </div></details>
+  <div class="done-row"><input type="checkbox" id="c12-ok5"><label for="c12-ok5">Etapa 5 concluída</label></div>
+</section>
+<section class="fase" id="c12-cola" style="gap:12px">
+  <h2 style="font-size:32px">Cola rápida</h2>
+  <div class="tw"><table>
+    <tr><th>Comando</th><th>Lembrete rápido</th></tr>
+    <tr><td><code>WITH RECURSIVE t AS (âncora UNION ALL recursiva)</code></td><td>consulta que usa o próprio resultado, rodada a rodada</td></tr>
+    <tr><td>âncora</td><td>o ponto de partida; roda uma vez e não cita <code>t</code></td></tr>
+    <tr><td>parte recursiva</td><td>faz <code>JOIN</code> com <code>t</code>; enxerga só a rodada anterior</td></tr>
+    <tr><td><code>1 AS nivel</code> … <code>nivel + 1</code></td><td>em que andar da árvore a linha está</td></tr>
+    <tr><td><code>caminho || ' → ' || destino</code></td><td>escreve o caminho como texto</td></tr>
+    <tr><td><code>a.lote</code> na parte recursiva</td><td>leva um valor da âncora até o fim da árvore</td></tr>
+    <tr><td><code>ARRAY['A', x]</code> · <code>lista || x</code></td><td>lista de lugares visitados; acrescentar um lugar</td></tr>
+    <tr><td><code>NOT (x = ANY(lista))</code></td><td>não voltar a um lugar já visitado (evita ciclo)</td></tr>
+    <tr><td><code>WHERE nivel &lt; N</code></td><td>freio de mão: limite de rodadas</td></tr>
+    <tr><td><code>ON f.chefe_id = e.id</code> / <code>ON f.id = c.chefe_id</code></td><td>descer para a equipe / subir para a chefia</td></tr>
+    <tr><td><code>WITH RECURSIVE a AS (…), b AS (…)</code></td><td>vários blocos na mesma consulta</td></tr>
+  </table></div>
+  <p class="foot"><a href="index.html">← Todos os casos</a> · Personagens e dados são fictícios.</p>
+</section>
+</div>
+<script type="text/plain" id="sqlsrc">-- =====================================================================
+--  MISTÉRIO NO HOSPITAL SQL  ·  CASO 12: O lote que sumiu
+--  Cole tudo isto no SQL Editor do Supabase e clique em RUN.
+--  Pode rodar de novo quando quiser: recria só as tabelas deste caso.
+--  Não mexe nas tabelas dos outros casos.
+-- =====================================================================
+
+DROP FUNCTION IF EXISTS verificar_caso12(text);
+DROP TABLE IF EXISTS lote_baixa, lote_guia, lote_rota, lote_produto, lote_funcionario, lote_local CASCADE;
+
+-- Lugares por onde os medicamentos passam
+CREATE TABLE lote_local (
+  codigo          text PRIMARY KEY,
+  nome            text,
+  tipo            text,      -- 'almoxarifado' · 'central' · 'satelite' · 'setor'
+  ativo           boolean,   -- false = local desativado, não recebe mais nada
+  responsavel_id  integer    -- quem responde pelo local (id em lote_funcionario)
+);
+
+-- Quem trabalha na cadeia do medicamento, e quem é o chefe de quem
+CREATE TABLE lote_funcionario (
+  id        integer PRIMARY KEY,
+  nome      text,
+  cargo     text,
+  local     text REFERENCES lote_local(codigo),   -- onde a pessoa trabalha (nulo na diretoria e gerência de enfermagem)
+  chefe_id  integer REFERENCES lote_funcionario(id)  -- o chefe direto (nulo para quem está no topo)
+);
+
+-- Lotes de medicamento de alto custo que chegaram em setembro e outubro de 2026
+CREATE TABLE lote_produto (
+  lote          text PRIMARY KEY,
+  medicamento   text,
+  fabricante    text,
+  valor_frasco  numeric(10,2),  -- quanto custa cada frasco, em reais
+  qtd_entrada   integer,        -- quantos frascos chegaram do fornecedor
+  chegou_em     date
+);
+
+-- Rotas autorizadas: de onde para onde um medicamento PODE ser transferido
+CREATE TABLE lote_rota (
+  origem   text REFERENCES lote_local(codigo),
+  destino  text REFERENCES lote_local(codigo),
+  tipo     text,   -- 'abastecimento' · 'devolução' · 'empréstimo'
+  PRIMARY KEY (origem, destino)
+);
+
+-- Guias de transferência. O sistema antigo só anota o lote na PRIMEIRA guia
+-- (a entrada, do almoxarifado para a Farmácia Central). Cada guia seguinte
+-- diz só de qual guia anterior vieram os frascos (guia_anterior).
+CREATE TABLE lote_guia (
+  id             integer PRIMARY KEY,
+  guia_anterior  integer REFERENCES lote_guia(id),  -- nulo só na guia de entrada do lote
+  lote           text REFERENCES lote_produto(lote), -- preenchido só na guia de entrada
+  origem         text REFERENCES lote_local(codigo),
+  destino        text REFERENCES lote_local(codigo),
+  qtd_enviada    integer,   -- frascos que saíram da origem
+  qtd_recebida   integer,   -- frascos que quem recebeu contou na chegada
+  enviado_em     timestamp,
+  recebido_em    timestamp,
+  enviado_por    integer REFERENCES lote_funcionario(id),
+  recebido_por   integer REFERENCES lote_funcionario(id)   -- quem assinou o recebimento
+);
+
+-- Termos de baixa: perdas registradas e justificadas (frasco quebrado etc.)
+CREATE TABLE lote_baixa (
+  id              integer PRIMARY KEY,
+  guia_id         integer REFERENCES lote_guia(id),  -- a guia em que o frasco se perdeu
+  qtd             integer,
+  motivo          text,
+  termo           text,      -- número do termo de baixa assinado
+  registrado_por  integer REFERENCES lote_funcionario(id),
+  registrado_em   timestamp
+);
+
+
+INSERT INTO lote_local (codigo,nome,tipo,ativo,responsavel_id) VALUES
+('ALM','Almoxarifado Central','almoxarifado',true,7),
+('FC','Farmácia Central','central',true,4),
+('SAT-UTI','Farmácia Satélite da UTI','satelite',true,9),
+('SAT-CC','Farmácia Satélite do Centro Cirúrgico','satelite',true,12),
+('SAT-ONC','Farmácia Satélite da Oncologia','satelite',true,14),
+('UTI-A','UTI Adulto','setor',true,18),
+('UTI-P','UTI Pediátrica','setor',true,21),
+('CC','Centro Cirúrgico','setor',true,23),
+('QT-AMB','Quimioterapia Ambulatorial','setor',true,25),
+('HEMATO','Hematologia (internação)','setor',true,25),
+('HD','Hospital-Dia','setor',true,25),
+('PS','Pronto-Socorro','setor',true,30),
+('ENF-CLI','Enfermaria Clínica','setor',true,32),
+('ONC-ANX','Oncologia Anexo (sala 2)','setor',false,NULL);
+
+INSERT INTO lote_funcionario (id,nome,cargo,local,chefe_id) VALUES
+(1,'Heloísa Brandão','Diretora Assistencial',NULL,NULL),
+(2,'Cristiano Valadares','Gerente de Farmácia','FC',1),
+(3,'Telma Guerra','Gerente de Enfermagem',NULL,1),
+(4,'Marlene Antunes','Farmacêutica responsável','FC',2),
+(5,'Diego Fontoura','Auxiliar de farmácia','FC',4),
+(6,'Rayane Coelho','Auxiliar de farmácia','FC',4),
+(7,'Osmar Tavares','Almoxarife-chefe','ALM',2),
+(8,'Valdir Rezende','Auxiliar de almoxarifado','ALM',7),
+(9,'Priscila Damasceno','Farmacêutica responsável','SAT-UTI',2),
+(10,'Elias Sobral','Auxiliar de farmácia','SAT-UTI',9),
+(11,'Kátia Serrano','Auxiliar de farmácia','SAT-UTI',9),
+(12,'Roberto Lins','Farmacêutico responsável','SAT-CC',2),
+(13,'Simone Freitas','Auxiliar de farmácia','SAT-CC',12),
+(14,'Sueli Arantes','Farmacêutica responsável','SAT-ONC',2),
+(15,'Ivo Matos','Técnico de farmácia líder','SAT-ONC',14),
+(16,'Wagner Bastos','Auxiliar de farmácia','SAT-ONC',15),
+(17,'Joana Leal','Auxiliar de farmácia','SAT-ONC',15),
+(18,'Fátima Quaresma','Enfermeira-chefe','UTI-A',3),
+(19,'Hélio Prado','Técnico de enfermagem','UTI-A',18),
+(20,'Bianca Rosendo','Enfermeira','UTI-A',18),
+(21,'Cláudia Mesquita','Enfermeira-chefe','UTI-P',3),
+(22,'Nara Vilela','Enfermeira','UTI-P',21),
+(23,'Jefferson Amaral','Enfermeiro-chefe','CC',3),
+(24,'Tássia Gouveia','Enfermeira','CC',23),
+(25,'Adelaide Pimentel','Enfermeira-chefe da Oncologia','QT-AMB',3),
+(26,'Lúcia Nogueira','Enfermeira','HD',25),
+(27,'Renata Calixto','Enfermeira','QT-AMB',25),
+(28,'Gilmar Toscano','Enfermeiro','HEMATO',25),
+(29,'Sabrina Uchôa','Enfermeira','HEMATO',25),
+(30,'Edson Paiva','Enfermeiro-chefe','PS',3),
+(31,'Yasmin Coutinho','Enfermeira','PS',30),
+(32,'Rosângela Bittencourt','Enfermeira-chefe','ENF-CLI',3),
+(33,'Davi Quintão','Técnico de enfermagem','ENF-CLI',32),
+(34,'Mirela Fagundes','Enfermeira','QT-AMB',25),
+(35,'Ulisses Barreto','Auxiliar de farmácia','FC',4);
+
+INSERT INTO lote_produto (lote,medicamento,fabricante,valor_frasco,qtd_entrada,chegou_em) VALUES
+('PBZ-2609-021','Pembrolizumabe 100 mg/4 mL','MSD',17900.00,36,'2026-09-02'),
+('PBZ-2609-058','Pembrolizumabe 100 mg/4 mL','MSD',17900.00,30,'2026-09-24'),
+('NIV-2609-112','Nivolumabe 100 mg/10 mL','BMS',9800.00,40,'2026-09-03'),
+('NIV-2610-009','Nivolumabe 100 mg/10 mL','BMS',9800.00,30,'2026-10-01'),
+('TRZ-2609-040','Trastuzumabe 440 mg','Roche',8700.00,24,'2026-09-04'),
+('RTX-2609-077','Rituximabe 500 mg/50 mL','Roche',6900.00,30,'2026-09-10'),
+('RTX-2610-015','Rituximabe 500 mg/50 mL','Roche',6900.00,24,'2026-10-02'),
+('BEV-2609-033','Bevacizumabe 400 mg/16 mL','Roche',5400.00,28,'2026-09-11'),
+('BTZ-2609-090','Bortezomibe 3,5 mg','Janssen',3100.00,40,'2026-09-15'),
+('DAP-2609-301','Daptomicina 500 mg','MSD',640.00,120,'2026-09-01'),
+('DAP-2609-344','Daptomicina 500 mg','MSD',640.00,100,'2026-09-21'),
+('MIC-2609-018','Micafungina 100 mg','Astellas',890.00,60,'2026-09-05'),
+('ANF-2609-205','Anfotericina B lipossomal 50 mg','Gilead',1450.00,50,'2026-09-09'),
+('ANF-2610-011','Anfotericina B lipossomal 50 mg','Gilead',1450.00,40,'2026-10-02'),
+('CZA-2609-063','Ceftazidima + avibactam 2,5 g','Pfizer',1150.00,80,'2026-09-07'),
+('CZA-2609-097','Ceftazidima + avibactam 2,5 g','Pfizer',1150.00,60,'2026-09-28'),
+('TIG-2609-150','Tigeciclina 50 mg','Pfizer',420.00,70,'2026-09-14'),
+('IGH-2609-087','Imunoglobulina humana 5 g','Octapharma',2380.00,80,'2026-09-01'),
+('IGH-2609-114','Imunoglobulina humana 5 g','Octapharma',2380.00,120,'2026-09-08'),
+('IGH-2610-031','Imunoglobulina humana 5 g','Octapharma',2380.00,60,'2026-10-05'),
+('ALT-2609-012','Alteplase 50 mg','Boehringer',4200.00,20,'2026-09-06'),
+('ALT-2609-049','Alteplase 50 mg','Boehringer',4200.00,16,'2026-09-25'),
+('MIC-2609-071','Micafungina 100 mg','Astellas',890.00,50,'2026-09-23'),
+('TIG-2610-004','Tigeciclina 50 mg','Pfizer',420.00,40,'2026-10-01');
+
+INSERT INTO lote_rota (origem,destino,tipo) VALUES
+('ALM','FC','abastecimento'),
+('FC','SAT-UTI','abastecimento'),
+('FC','SAT-CC','abastecimento'),
+('FC','SAT-ONC','abastecimento'),
+('FC','PS','abastecimento'),
+('FC','ENF-CLI','abastecimento'),
+('SAT-UTI','UTI-A','abastecimento'),
+('SAT-UTI','UTI-P','abastecimento'),
+('SAT-CC','CC','abastecimento'),
+('SAT-ONC','QT-AMB','abastecimento'),
+('SAT-ONC','HEMATO','abastecimento'),
+('SAT-ONC','HD','abastecimento'),
+('FC','ALM','devolução'),
+('SAT-UTI','FC','devolução'),
+('SAT-CC','FC','devolução'),
+('SAT-ONC','FC','devolução'),
+('UTI-A','SAT-UTI','devolução'),
+('UTI-P','SAT-UTI','devolução'),
+('CC','SAT-CC','devolução'),
+('QT-AMB','SAT-ONC','devolução'),
+('HEMATO','SAT-ONC','devolução'),
+('HD','SAT-ONC','devolução'),
+('PS','FC','devolução'),
+('ENF-CLI','FC','devolução'),
+('SAT-UTI','SAT-ONC','empréstimo'),
+('SAT-ONC','SAT-UTI','empréstimo'),
+('SAT-UTI','SAT-CC','empréstimo'),
+('SAT-CC','SAT-UTI','empréstimo');
+
+INSERT INTO lote_guia (id,guia_anterior,lote,origem,destino,qtd_enviada,qtd_recebida,enviado_em,recebido_em,enviado_por,recebido_por) VALUES
+(1001,NULL,'IGH-2609-087','ALM','FC',80,80,'2026-09-01 08:40:00','2026-09-01 09:23:00',8,4),
+(1002,NULL,'DAP-2609-301','ALM','FC',120,120,'2026-09-01 10:10:00','2026-09-01 10:43:00',7,4),
+(1003,1002,NULL,'FC','SAT-UTI',38,38,'2026-09-01 16:50:00','2026-09-01 17:36:00',4,10),
+(1004,NULL,'PBZ-2609-021','ALM','FC',36,36,'2026-09-02 10:20:00','2026-09-02 11:04:00',8,5),
+(1005,1002,NULL,'FC','SAT-CC',15,15,'2026-09-02 14:15:00','2026-09-02 15:04:00',6,13),
+(1006,NULL,'NIV-2609-112','ALM','FC',40,40,'2026-09-03 10:40:00','2026-09-03 11:36:00',8,6),
+(1007,NULL,'TRZ-2609-040','ALM','FC',24,24,'2026-09-04 08:20:00','2026-09-04 09:11:00',7,35),
+(1008,NULL,'MIC-2609-018','ALM','FC',60,60,'2026-09-05 08:20:00','2026-09-05 08:52:00',7,35),
+(1009,1005,NULL,'SAT-CC','CC',4,4,'2026-09-05 11:20:00','2026-09-05 11:54:00',13,24),
+(1010,1007,NULL,'FC','SAT-ONC',11,11,'2026-09-05 13:35:00','2026-09-05 13:55:00',5,17),
+(1011,NULL,'ALT-2609-012','ALM','FC',20,20,'2026-09-06 08:10:00','2026-09-06 08:40:00',8,5),
+(1012,1010,NULL,'SAT-ONC','QT-AMB',2,2,'2026-09-06 08:40:00','2026-09-06 09:12:00',17,34),
+(1013,1001,NULL,'FC','SAT-UTI',8,8,'2026-09-06 10:40:00','2026-09-06 11:11:00',5,10),
+(1014,1001,NULL,'FC','SAT-UTI',5,5,'2026-09-06 11:00:00','2026-09-06 11:17:00',6,9),
+(1015,NULL,'CZA-2609-063','ALM','FC',80,80,'2026-09-07 08:00:00','2026-09-07 08:25:00',8,6),
+(1016,1005,NULL,'SAT-CC','CC',2,2,'2026-09-07 12:20:00','2026-09-07 12:56:00',12,24),
+(1017,1004,NULL,'FC','SAT-ONC',13,13,'2026-09-07 13:45:00','2026-09-07 14:24:00',5,17),
+(1018,1015,NULL,'FC','ENF-CLI',8,8,'2026-09-07 16:00:00','2026-09-07 16:41:00',6,32),
+(1019,1003,NULL,'SAT-UTI','UTI-P',12,12,'2026-09-07 16:05:00','2026-09-07 16:37:00',9,22),
+(1020,1005,NULL,'SAT-CC','CC',4,3,'2026-09-08 08:40:00','2026-09-08 08:55:00',13,24),
+(1021,NULL,'IGH-2609-114','ALM','FC',120,120,'2026-09-08 09:10:00','2026-09-08 09:45:00',8,4),
+(1022,1021,NULL,'FC','SAT-UTI',24,24,'2026-09-08 14:00:00','2026-09-08 14:20:00',5,10),
+(1023,1002,NULL,'FC','ENF-CLI',29,29,'2026-09-08 14:20:00','2026-09-08 15:03:00',5,32),
+(1024,1010,NULL,'SAT-ONC','QT-AMB',3,3,'2026-09-08 18:15:00','2026-09-08 18:54:00',16,34),
+(1025,1021,NULL,'FC','SAT-ONC',40,40,'2026-09-09 08:30:00','2026-09-09 08:55:00',6,15),
+(1026,NULL,'ANF-2609-205','ALM','FC',50,50,'2026-09-09 08:40:00','2026-09-09 09:05:00',8,4),
+(1027,1001,NULL,'FC','SAT-ONC',36,36,'2026-09-09 10:30:00','2026-09-09 11:15:00',4,14),
+(1028,1003,NULL,'SAT-UTI','UTI-A',24,24,'2026-09-09 15:30:00','2026-09-09 16:06:00',11,18),
+(1029,NULL,'RTX-2609-077','ALM','FC',30,30,'2026-09-10 08:00:00','2026-09-10 08:25:00',7,4),
+(1030,1022,NULL,'SAT-UTI','UTI-A',10,10,'2026-09-10 09:40:00','2026-09-10 09:55:00',11,20),
+(1031,1025,NULL,'SAT-ONC','HEMATO',12,12,'2026-09-10 10:00:00','2026-09-10 10:20:00',17,29),
+(1032,1010,NULL,'SAT-ONC','HEMATO',3,3,'2026-09-10 10:45:00','2026-09-10 11:10:00',17,29),
+(1033,1017,NULL,'SAT-ONC','QT-AMB',5,5,'2026-09-10 18:05:00','2026-09-10 18:28:00',16,34),
+(1034,1005,NULL,'SAT-CC','CC',4,4,'2026-09-10 18:35:00','2026-09-10 19:02:00',13,23),
+(1035,NULL,'BEV-2609-033','ALM','FC',28,28,'2026-09-11 10:30:00','2026-09-11 10:52:00',8,6),
+(1036,1013,NULL,'SAT-UTI','UTI-P',8,8,'2026-09-11 11:15:00','2026-09-11 11:37:00',10,22),
+(1037,1007,NULL,'FC','SAT-ONC',10,10,'2026-09-11 13:05:00','2026-09-11 13:37:00',5,17),
+(1038,1017,NULL,'SAT-ONC','QT-AMB',4,4,'2026-09-12 08:15:00','2026-09-12 08:31:00',16,34),
+(1039,1017,NULL,'SAT-ONC','HD',4,4,'2026-09-12 08:40:00','2026-09-12 08:59:00',15,26),
+(1040,1025,NULL,'SAT-ONC','HD',12,11,'2026-09-12 08:45:00','2026-09-12 09:10:00',17,26),
+(1041,1035,NULL,'FC','SAT-ONC',5,5,'2026-09-12 15:10:00','2026-09-12 15:59:00',5,17),
+(1042,1041,NULL,'SAT-ONC','HEMATO',3,3,'2026-09-12 18:10:00','2026-09-12 18:42:00',17,29),
+(1043,1008,NULL,'FC','SAT-ONC',10,10,'2026-09-12 18:10:00','2026-09-12 18:41:00',35,15),
+(1044,1029,NULL,'FC','SAT-ONC',8,8,'2026-09-12 18:40:00','2026-09-12 19:09:00',6,17),
+(1045,1006,NULL,'FC','SAT-ONC',34,34,'2026-09-13 13:35:00','2026-09-13 14:19:00',6,16),
+(1046,1027,NULL,'SAT-ONC','HD',8,7,'2026-09-13 14:15:00','2026-09-13 14:27:00',16,25),
+(1047,1014,NULL,'SAT-UTI','UTI-A',3,3,'2026-09-13 15:00:00','2026-09-13 15:26:00',9,18),
+(1048,1010,NULL,'SAT-ONC','QT-AMB',2,2,'2026-09-13 15:40:00','2026-09-13 16:16:00',16,34),
+(1049,1045,NULL,'SAT-ONC','QT-AMB',20,19,'2026-09-13 16:35:00','2026-09-13 17:13:00',16,34),
+(1050,1027,NULL,'SAT-ONC','QT-AMB',9,9,'2026-09-13 17:30:00','2026-09-13 17:55:00',15,25),
+(1051,1037,NULL,'SAT-ONC','HEMATO',2,2,'2026-09-13 18:35:00','2026-09-13 18:47:00',17,28),
+(1052,NULL,'TIG-2609-150','ALM','FC',70,70,'2026-09-14 09:10:00','2026-09-14 10:02:00',8,4),
+(1053,1014,NULL,'SAT-UTI','UTI-P',2,2,'2026-09-14 10:30:00','2026-09-14 10:58:00',10,21),
+(1054,1033,NULL,'QT-AMB','SAT-ONC',2,2,'2026-09-14 11:20:00','2026-09-14 11:45:00',27,16),
+(1055,1015,NULL,'FC','SAT-UTI',4,4,'2026-09-14 11:35:00','2026-09-14 12:17:00',5,9),
+(1056,1026,NULL,'FC','SAT-ONC',9,9,'2026-09-14 14:50:00','2026-09-14 15:15:00',4,15),
+(1057,1015,NULL,'FC','ENF-CLI',7,7,'2026-09-14 18:15:00','2026-09-14 19:04:00',5,33),
+(1058,NULL,'BTZ-2609-090','ALM','FC',40,40,'2026-09-15 09:40:00','2026-09-15 10:40:00',8,5),
+(1059,1002,NULL,'FC','SAT-CC',23,23,'2026-09-15 10:15:00','2026-09-15 10:43:00',6,12),
+(1060,1022,NULL,'SAT-UTI','UTI-P',6,6,'2026-09-15 11:05:00','2026-09-15 11:25:00',10,22),
+(1061,1011,NULL,'FC','SAT-UTI',6,6,'2026-09-15 13:10:00','2026-09-15 13:49:00',5,11),
+(1062,1061,NULL,'SAT-UTI','UTI-A',4,4,'2026-09-15 16:10:00','2026-09-15 16:20:00',10,18),
+(1063,1054,NULL,'SAT-ONC','HD',2,2,'2026-09-15 18:40:00','2026-09-15 18:54:00',17,25),
+(1064,1004,NULL,'FC','SAT-ONC',15,15,'2026-09-16 07:30:00','2026-09-16 08:17:00',6,14),
+(1065,1025,NULL,'SAT-ONC','QT-AMB',10,8,'2026-09-16 07:50:00','2026-09-16 08:30:00',16,19),
+(1066,1042,NULL,'HEMATO','SAT-ONC',1,1,'2026-09-16 08:30:00','2026-09-16 08:45:00',28,14),
+(1067,1035,NULL,'FC','SAT-ONC',9,9,'2026-09-16 13:30:00','2026-09-16 14:01:00',5,16),
+(1068,1008,NULL,'FC','SAT-ONC',18,18,'2026-09-16 16:00:00','2026-09-16 16:50:00',5,15),
+(1069,1052,NULL,'FC','SAT-UTI',10,10,'2026-09-16 16:35:00','2026-09-16 17:12:00',4,10),
+(1070,1059,NULL,'SAT-CC','CC',7,7,'2026-09-16 17:00:00','2026-09-16 17:35:00',13,23),
+(1071,1026,NULL,'FC','SAT-ONC',17,17,'2026-09-16 18:40:00','2026-09-16 19:12:00',6,16),
+(1072,1027,NULL,'SAT-ONC','QT-AMB',12,12,'2026-09-16 19:40:00','2026-09-16 20:04:00',17,34),
+(1073,1035,NULL,'FC','SAT-ONC',8,8,'2026-09-17 08:10:00','2026-09-17 08:51:00',4,15),
+(1074,1055,NULL,'SAT-UTI','UTI-A',1,1,'2026-09-17 08:45:00','2026-09-17 08:55:00',11,18),
+(1075,1037,NULL,'SAT-ONC','QT-AMB',3,3,'2026-09-17 09:00:00','2026-09-17 09:13:00',16,27),
+(1076,1059,NULL,'SAT-CC','CC',16,16,'2026-09-17 09:45:00','2026-09-17 10:21:00',13,24),
+(1077,1064,NULL,'SAT-ONC','HD',3,3,'2026-09-17 11:10:00','2026-09-17 11:24:00',17,26),
+(1078,1073,NULL,'SAT-ONC','HD',1,1,'2026-09-17 12:40:00','2026-09-17 13:05:00',15,25),
+(1079,1001,NULL,'FC','SAT-UTI',12,12,'2026-09-17 14:45:00','2026-09-17 15:33:00',5,9),
+(1080,1008,NULL,'FC','SAT-UTI',15,15,'2026-09-17 15:30:00','2026-09-17 16:16:00',35,9),
+(1081,1027,NULL,'SAT-ONC','QT-AMB',7,7,'2026-09-17 17:20:00','2026-09-17 17:37:00',16,25),
+(1082,1080,NULL,'SAT-UTI','UTI-A',6,6,'2026-09-17 18:30:00','2026-09-17 18:40:00',11,19),
+(1083,1044,NULL,'SAT-ONC','HD',7,7,'2026-09-18 11:00:00','2026-09-18 11:25:00',17,25),
+(1084,1037,NULL,'SAT-ONC','HD',3,3,'2026-09-18 11:20:00','2026-09-18 11:42:00',16,26),
+(1085,1011,NULL,'FC','PS',12,12,'2026-09-18 13:10:00','2026-09-18 13:46:00',35,31),
+(1086,1052,NULL,'FC','SAT-UTI',14,14,'2026-09-18 16:20:00','2026-09-18 16:37:00',4,10),
+(1087,1079,NULL,'SAT-UTI','UTI-P',10,10,'2026-09-18 17:00:00','2026-09-18 17:32:00',9,21),
+(1088,1086,NULL,'SAT-UTI','UTI-A',4,4,'2026-09-18 19:20:00','2026-09-18 19:41:00',11,20),
+(1089,1052,NULL,'FC','SAT-CC',19,19,'2026-09-19 07:10:00','2026-09-19 07:36:00',5,13),
+(1090,1026,NULL,'FC','SAT-UTI',7,7,'2026-09-19 08:40:00','2026-09-19 09:26:00',5,9),
+(1091,1041,NULL,'SAT-ONC','QT-AMB',2,2,'2026-09-19 14:50:00','2026-09-19 15:28:00',16,25),
+(1092,1015,NULL,'FC','ENF-CLI',5,5,'2026-09-19 16:45:00','2026-09-19 17:23:00',6,33),
+(1093,1089,NULL,'SAT-CC','CC',6,6,'2026-09-19 17:00:00','2026-09-19 17:14:00',13,23),
+(1094,1066,NULL,'SAT-ONC','HD',1,1,'2026-09-19 18:45:00','2026-09-19 19:03:00',17,26),
+(1095,1071,NULL,'SAT-ONC','QT-AMB',16,16,'2026-09-19 19:10:00','2026-09-19 19:27:00',16,25),
+(1096,1064,NULL,'SAT-ONC','QT-AMB',2,2,'2026-09-19 19:35:00','2026-09-19 19:53:00',16,27),
+(1097,1025,NULL,'SAT-ONC','ONC-ANX',6,6,'2026-09-19 22:40:00','2026-09-19 22:45:00',16,16),
+(1098,1043,NULL,'SAT-ONC','QT-AMB',8,8,'2026-09-20 09:40:00','2026-09-20 10:00:00',17,27),
+(1099,1090,NULL,'SAT-UTI','UTI-A',1,1,'2026-09-20 15:15:00','2026-09-20 15:53:00',10,20),
+(1100,1064,NULL,'SAT-ONC','QT-AMB',2,2,'2026-09-20 15:45:00','2026-09-20 16:06:00',16,27),
+(1101,1067,NULL,'SAT-ONC','HEMATO',5,5,'2026-09-20 19:50:00','2026-09-20 20:06:00',16,29),
+(1102,1068,NULL,'SAT-ONC','HEMATO',8,8,'2026-09-21 08:45:00','2026-09-21 09:23:00',16,29),
+(1103,NULL,'DAP-2609-344','ALM','FC',100,100,'2026-09-21 09:40:00','2026-09-21 10:32:00',7,5),
+(1104,1067,NULL,'SAT-ONC','HEMATO',4,4,'2026-09-21 10:10:00','2026-09-21 10:44:00',15,28),
+(1105,1073,NULL,'SAT-ONC','QT-AMB',3,3,'2026-09-21 10:15:00','2026-09-21 10:37:00',17,27),
+(1106,1055,NULL,'SAT-UTI','UTI-A',3,3,'2026-09-21 11:35:00','2026-09-21 11:51:00',9,20),
+(1107,1045,NULL,'SAT-ONC','QT-AMB',12,12,'2026-09-21 12:35:00','2026-09-21 13:09:00',16,25),
+(1108,1056,NULL,'SAT-ONC','HEMATO',7,7,'2026-09-21 14:15:00','2026-09-21 14:30:00',17,28),
+(1109,1087,NULL,'UTI-P','SAT-UTI',2,2,'2026-09-21 16:40:00','2026-09-21 16:50:00',22,11),
+(1110,1081,NULL,'QT-AMB','SAT-ONC',2,2,'2026-09-21 18:35:00','2026-09-21 18:51:00',27,16),
+(1111,1073,NULL,'SAT-ONC','HEMATO',2,2,'2026-09-21 18:45:00','2026-09-21 19:23:00',16,28),
+(1112,1068,NULL,'SAT-ONC','HEMATO',8,8,'2026-09-22 08:40:00','2026-09-22 09:14:00',17,28),
+(1113,1107,NULL,'QT-AMB','SAT-ONC',1,1,'2026-09-22 09:50:00','2026-09-22 10:04:00',34,16),
+(1114,1021,NULL,'FC','SAT-ONC',30,30,'2026-09-22 10:15:00','2026-09-22 10:45:00',35,16),
+(1115,1015,NULL,'FC','PS',14,14,'2026-09-22 10:20:00','2026-09-22 10:55:00',35,31),
+(1116,1064,NULL,'SAT-ONC','QT-AMB',6,6,'2026-09-22 10:30:00','2026-09-22 11:08:00',16,34),
+(1117,1113,NULL,'SAT-ONC','HD',1,1,'2026-09-22 16:45:00','2026-09-22 17:05:00',17,26),
+(1118,1015,NULL,'FC','SAT-UTI',12,12,'2026-09-22 17:10:00','2026-09-22 17:54:00',35,10),
+(1119,1090,NULL,'SAT-UTI','UTI-P',2,2,'2026-09-22 19:00:00','2026-09-22 19:25:00',9,21),
+(1120,1114,NULL,'SAT-ONC','QT-AMB',14,14,'2026-09-23 08:00:00','2026-09-23 08:20:00',17,27),
+(1121,NULL,'MIC-2609-071','ALM','FC',50,50,'2026-09-23 09:00:00','2026-09-23 09:43:00',8,6),
+(1122,1015,NULL,'FC','PS',6,6,'2026-09-23 09:05:00','2026-09-23 09:41:00',6,31),
+(1123,1110,NULL,'SAT-ONC','QT-AMB',2,2,'2026-09-23 09:50:00','2026-09-23 10:00:00',16,27),
+(1124,1015,NULL,'FC','SAT-UTI',13,13,'2026-09-23 10:10:00','2026-09-23 10:28:00',35,9),
+(1125,1026,NULL,'FC','SAT-UTI',9,9,'2026-09-23 11:10:00','2026-09-23 11:43:00',5,9),
+(1126,1089,NULL,'SAT-CC','CC',4,4,'2026-09-23 13:50:00','2026-09-23 14:03:00',13,23),
+(1127,1124,NULL,'SAT-UTI','UTI-A',5,5,'2026-09-23 17:00:00','2026-09-23 17:15:00',9,18),
+(1128,1125,NULL,'SAT-UTI','UTI-A',2,2,'2026-09-23 17:35:00','2026-09-23 17:45:00',10,20),
+(1129,1108,NULL,'HEMATO','SAT-ONC',1,1,'2026-09-24 07:00:00','2026-09-24 07:28:00',28,17),
+(1130,1069,NULL,'SAT-UTI','UTI-P',8,8,'2026-09-24 08:35:00','2026-09-24 09:15:00',11,22),
+(1131,1029,NULL,'FC','SAT-ONC',10,10,'2026-09-24 08:40:00','2026-09-24 09:24:00',6,17),
+(1132,NULL,'PBZ-2609-058','ALM','FC',30,30,'2026-09-24 09:10:00','2026-09-24 09:39:00',7,6),
+(1133,1086,NULL,'SAT-UTI','UTI-A',9,8,'2026-09-24 10:05:00','2026-09-24 10:31:00',9,20),
+(1134,1080,NULL,'SAT-UTI','UTI-P',6,6,'2026-09-24 10:40:00','2026-09-24 11:03:00',10,21),
+(1135,1109,NULL,'SAT-UTI','UTI-A',2,2,'2026-09-24 10:40:00','2026-09-24 11:05:00',11,18),
+(1136,1101,NULL,'HEMATO','SAT-ONC',1,1,'2026-09-24 11:50:00','2026-09-24 12:20:00',28,15),
+(1137,1080,NULL,'SAT-UTI','SAT-ONC',2,2,'2026-09-24 15:40:00','2026-09-24 16:05:00',10,17),
+(1138,1058,NULL,'FC','SAT-ONC',30,30,'2026-09-24 17:05:00','2026-09-24 17:46:00',35,17),
+(1139,1131,NULL,'SAT-ONC','QT-AMB',9,9,'2026-09-24 17:40:00','2026-09-24 18:20:00',15,34),
+(1140,1129,NULL,'SAT-ONC','HD',1,1,'2026-09-24 18:30:00','2026-09-24 18:59:00',16,26),
+(1141,1137,NULL,'SAT-ONC','HEMATO',2,2,'2026-09-24 18:40:00','2026-09-24 18:55:00',16,28),
+(1142,1138,NULL,'SAT-ONC','QT-AMB',13,13,'2026-09-24 20:05:00','2026-09-24 20:32:00',16,34),
+(1143,1138,NULL,'SAT-ONC','QT-AMB',17,17,'2026-09-24 20:05:00','2026-09-24 20:40:00',17,25),
+(1144,NULL,'ALT-2609-049','ALM','FC',16,16,'2026-09-25 10:40:00','2026-09-25 11:00:00',8,5),
+(1145,1121,NULL,'FC','SAT-UTI',6,6,'2026-09-25 15:45:00','2026-09-25 16:34:00',5,9),
+(1146,1144,NULL,'FC','SAT-UTI',3,3,'2026-09-25 17:50:00','2026-09-25 18:08:00',6,11),
+(1147,1121,NULL,'FC','SAT-UTI',6,6,'2026-09-26 07:05:00','2026-09-26 07:32:00',35,11),
+(1148,1052,NULL,'FC','SAT-UTI',19,19,'2026-09-26 13:30:00','2026-09-26 14:04:00',5,10),
+(1149,1126,NULL,'CC','SAT-CC',2,2,'2026-09-26 13:30:00','2026-09-26 13:52:00',24,12),
+(1150,1029,NULL,'FC','SAT-ONC',5,5,'2026-09-26 14:50:00','2026-09-26 15:20:00',6,14),
+(1151,1089,NULL,'SAT-CC','CC',6,6,'2026-09-26 16:10:00','2026-09-26 16:34:00',12,23),
+(1152,1125,NULL,'SAT-UTI','UTI-A',3,3,'2026-09-26 17:30:00','2026-09-26 17:47:00',9,20),
+(1153,1118,NULL,'SAT-UTI','UTI-A',12,11,'2026-09-26 18:15:00','2026-09-26 18:28:00',9,18),
+(1154,1150,NULL,'SAT-ONC','QT-AMB',1,1,'2026-09-27 09:50:00','2026-09-27 10:01:00',16,25),
+(1155,1089,NULL,'SAT-CC','CC',3,3,'2026-09-27 11:15:00','2026-09-27 11:25:00',13,24),
+(1156,1090,NULL,'SAT-UTI','UTI-A',1,1,'2026-09-27 11:40:00','2026-09-27 12:01:00',11,19),
+(1157,1150,NULL,'SAT-ONC','QT-AMB',2,2,'2026-09-27 14:50:00','2026-09-27 15:00:00',16,27),
+(1158,1136,NULL,'SAT-ONC','HD',1,1,'2026-09-27 17:30:00','2026-09-27 17:57:00',16,26),
+(1159,1090,NULL,'SAT-UTI','UTI-P',1,1,'2026-09-27 19:45:00','2026-09-27 20:24:00',10,22),
+(1160,NULL,'CZA-2609-097','ALM','FC',60,60,'2026-09-28 09:40:00','2026-09-28 10:15:00',8,4),
+(1161,1124,NULL,'SAT-UTI','UTI-P',4,4,'2026-09-28 12:00:00','2026-09-28 12:14:00',10,22),
+(1162,1145,NULL,'SAT-UTI','UTI-A',2,2,'2026-09-28 12:00:00','2026-09-28 12:31:00',10,19),
+(1163,1142,NULL,'QT-AMB','SAT-ONC',1,1,'2026-09-28 13:10:00','2026-09-28 13:39:00',27,14),
+(1164,1143,NULL,'QT-AMB','SAT-ONC',1,1,'2026-09-28 16:40:00','2026-09-28 17:00:00',34,17),
+(1165,1163,NULL,'SAT-ONC','HEMATO',1,1,'2026-09-28 17:50:00','2026-09-28 18:08:00',16,29),
+(1166,1164,NULL,'SAT-ONC','HEMATO',1,1,'2026-09-28 19:40:00','2026-09-28 19:51:00',17,29),
+(1167,1152,NULL,'UTI-A','SAT-UTI',2,2,'2026-09-29 07:00:00','2026-09-29 07:25:00',20,10),
+(1168,1103,NULL,'FC','SAT-CC',29,29,'2026-09-29 07:50:00','2026-09-29 08:34:00',6,13),
+(1169,1160,NULL,'FC','PS',7,7,'2026-09-29 11:45:00','2026-09-29 12:08:00',35,30),
+(1170,1132,NULL,'FC','SAT-ONC',10,10,'2026-09-29 13:05:00','2026-09-29 13:53:00',4,17),
+(1171,1148,NULL,'SAT-UTI','UTI-A',7,7,'2026-09-29 14:00:00','2026-09-29 14:20:00',11,18),
+(1172,1144,NULL,'FC','PS',2,2,'2026-09-29 14:05:00','2026-09-29 14:44:00',35,31),
+(1173,1022,NULL,'SAT-UTI','UTI-A',8,8,'2026-09-29 15:20:00','2026-09-29 15:30:00',11,19),
+(1174,1149,NULL,'SAT-CC','CC',2,2,'2026-09-29 15:40:00','2026-09-29 16:08:00',12,24),
+(1175,1114,NULL,'SAT-ONC','HEMATO',8,8,'2026-09-30 13:30:00','2026-09-30 13:55:00',15,28),
+(1176,1167,NULL,'SAT-UTI','UTI-P',2,2,'2026-09-30 14:15:00','2026-09-30 14:33:00',10,21),
+(1177,1150,NULL,'SAT-ONC','HEMATO',1,1,'2026-09-30 16:50:00','2026-09-30 17:23:00',17,29),
+(1178,1146,NULL,'SAT-UTI','UTI-A',3,3,'2026-09-30 17:00:00','2026-09-30 17:22:00',10,20),
+(1179,1103,NULL,'FC','ENF-CLI',4,3,'2026-10-01 07:10:00','2026-10-01 08:00:00',6,32),
+(1180,1147,NULL,'SAT-UTI','UTI-A',6,6,'2026-10-01 08:45:00','2026-10-01 09:19:00',10,20),
+(1181,1170,NULL,'SAT-ONC','HD',3,3,'2026-10-01 08:50:00','2026-10-01 09:17:00',16,26),
+(1182,NULL,'TIG-2610-004','ALM','FC',40,40,'2026-10-01 10:00:00','2026-10-01 10:54:00',8,4),
+(1183,NULL,'NIV-2610-009','ALM','FC',30,30,'2026-10-01 10:20:00','2026-10-01 11:18:00',8,4),
+(1184,1125,NULL,'SAT-UTI','UTI-A',3,3,'2026-10-01 10:40:00','2026-10-01 11:15:00',11,20),
+(1185,1124,NULL,'SAT-UTI','UTI-A',3,3,'2026-10-01 13:50:00','2026-10-01 14:18:00',9,19),
+(1186,1103,NULL,'FC','ENF-CLI',4,3,'2026-10-01 14:00:00','2026-10-01 14:15:00',6,33),
+(1187,1150,NULL,'SAT-ONC','QT-AMB',1,1,'2026-10-01 17:35:00','2026-10-01 18:06:00',17,27),
+(1188,1121,NULL,'FC','SAT-ONC',7,7,'2026-10-02 08:00:00','2026-10-02 08:44:00',6,14),
+(1189,NULL,'ANF-2610-011','ALM','FC',40,40,'2026-10-02 08:40:00','2026-10-02 09:03:00',7,5),
+(1190,NULL,'RTX-2610-015','ALM','FC',24,24,'2026-10-02 09:10:00','2026-10-02 10:02:00',8,5),
+(1191,1148,NULL,'SAT-UTI','UTI-A',3,3,'2026-10-02 09:50:00','2026-10-02 10:02:00',9,19),
+(1192,1121,NULL,'FC','SAT-UTI',12,12,'2026-10-03 08:05:00','2026-10-03 08:46:00',35,11),
+(1193,1148,NULL,'SAT-UTI','UTI-A',7,7,'2026-10-03 09:30:00','2026-10-03 09:53:00',10,19),
+(1194,1180,NULL,'UTI-A','SAT-UTI',2,2,'2026-10-03 12:10:00','2026-10-03 12:26:00',20,9),
+(1195,1145,NULL,'SAT-UTI','UTI-P',4,4,'2026-10-03 12:35:00','2026-10-03 12:47:00',11,22),
+(1196,1168,NULL,'SAT-CC','CC',29,29,'2026-10-03 15:45:00','2026-10-03 16:16:00',13,24),
+(1197,1170,NULL,'SAT-ONC','HEMATO',4,4,'2026-10-03 18:45:00','2026-10-03 19:03:00',16,28),
+(1198,1114,NULL,'SAT-ONC','ONC-ANX',4,4,'2026-10-03 23:15:00','2026-10-03 23:20:00',16,16),
+(1199,1188,NULL,'SAT-ONC','QT-AMB',1,1,'2026-10-04 10:50:00','2026-10-04 11:06:00',17,25),
+(1200,1188,NULL,'SAT-ONC','QT-AMB',2,2,'2026-10-05 08:30:00','2026-10-05 08:47:00',16,34),
+(1201,1181,NULL,'HD','SAT-ONC',1,1,'2026-10-05 10:10:00','2026-10-05 10:21:00',26,16),
+(1202,NULL,'IGH-2610-031','ALM','FC',60,60,'2026-10-05 10:30:00','2026-10-05 11:06:00',7,4),
+(1203,1192,NULL,'SAT-UTI','UTI-A',5,4,'2026-10-05 11:10:00','2026-10-05 11:49:00',9,20),
+(1204,1160,NULL,'FC','SAT-UTI',4,4,'2026-10-05 11:50:00','2026-10-05 12:07:00',35,9),
+(1205,1204,NULL,'SAT-UTI','UTI-A',1,1,'2026-10-05 14:50:00','2026-10-05 15:05:00',10,19),
+(1206,1103,NULL,'FC','ENF-CLI',9,9,'2026-10-05 15:20:00','2026-10-05 15:45:00',5,33),
+(1207,1195,NULL,'UTI-P','SAT-UTI',1,1,'2026-10-06 07:05:00','2026-10-06 07:23:00',22,10),
+(1208,1144,NULL,'FC','SAT-UTI',4,4,'2026-10-06 07:10:00','2026-10-06 07:35:00',6,9),
+(1209,1194,NULL,'SAT-UTI','UTI-P',2,2,'2026-10-06 09:10:00','2026-10-06 09:28:00',9,22),
+(1210,1183,NULL,'FC','SAT-ONC',10,10,'2026-10-06 09:45:00','2026-10-06 10:33:00',5,14),
+(1211,1208,NULL,'SAT-UTI','UTI-A',1,1,'2026-10-06 10:10:00','2026-10-06 10:41:00',10,20),
+(1212,1103,NULL,'FC','SAT-UTI',24,24,'2026-10-06 10:30:00','2026-10-06 11:10:00',6,11),
+(1213,1160,NULL,'FC','ENF-CLI',11,11,'2026-10-06 11:50:00','2026-10-06 12:06:00',35,33),
+(1214,1120,NULL,'QT-AMB','SAT-ONC',2,2,'2026-10-06 17:10:00','2026-10-06 17:25:00',34,15),
+(1215,1182,NULL,'FC','SAT-UTI',3,3,'2026-10-06 17:40:00','2026-10-06 18:04:00',4,11),
+(1216,1190,NULL,'FC','SAT-ONC',12,12,'2026-10-06 18:00:00','2026-10-06 18:37:00',5,16),
+(1217,1212,NULL,'SAT-UTI','UTI-A',11,11,'2026-10-06 18:15:00','2026-10-06 18:55:00',10,20),
+(1218,1204,NULL,'SAT-UTI','UTI-A',1,1,'2026-10-06 19:10:00','2026-10-06 19:38:00',10,20),
+(1219,1214,NULL,'SAT-ONC','HD',2,2,'2026-10-07 09:00:00','2026-10-07 09:15:00',17,26),
+(1220,1132,NULL,'FC','SAT-ONC',12,12,'2026-10-07 09:45:00','2026-10-07 10:13:00',35,16),
+(1221,1170,NULL,'SAT-ONC','QT-AMB',1,1,'2026-10-07 11:30:00','2026-10-07 11:52:00',17,25),
+(1222,1160,NULL,'FC','PS',6,6,'2026-10-07 14:15:00','2026-10-07 15:02:00',6,31),
+(1223,1216,NULL,'SAT-ONC','HD',4,4,'2026-10-07 16:15:00','2026-10-07 16:46:00',17,26),
+(1224,1144,NULL,'FC','PS',3,3,'2026-10-07 16:20:00','2026-10-07 16:36:00',6,31),
+(1225,1121,NULL,'FC','SAT-ONC',6,6,'2026-10-07 16:45:00','2026-10-07 17:16:00',4,15),
+(1226,1216,NULL,'SAT-ONC','QT-AMB',3,3,'2026-10-07 19:05:00','2026-10-07 19:23:00',17,34),
+(1227,1208,NULL,'SAT-UTI','UTI-A',1,1,'2026-10-07 19:45:00','2026-10-07 20:20:00',11,20),
+(1228,1190,NULL,'FC','SAT-ONC',8,8,'2026-10-08 09:45:00','2026-10-08 10:22:00',35,17),
+(1229,1216,NULL,'SAT-ONC','QT-AMB',1,1,'2026-10-08 11:35:00','2026-10-08 11:50:00',16,27),
+(1230,1215,NULL,'SAT-UTI','UTI-A',1,1,'2026-10-08 14:50:00','2026-10-08 15:27:00',9,18),
+(1231,1201,NULL,'SAT-ONC','QT-AMB',1,1,'2026-10-08 16:50:00','2026-10-08 17:17:00',16,27),
+(1232,1220,NULL,'SAT-ONC','HD',4,4,'2026-10-08 17:05:00','2026-10-08 17:40:00',16,25),
+(1233,1225,NULL,'SAT-ONC','QT-AMB',5,5,'2026-10-08 17:10:00','2026-10-08 17:41:00',15,34),
+(1234,1121,NULL,'FC','SAT-ONC',3,3,'2026-10-08 17:20:00','2026-10-08 18:07:00',5,16),
+(1235,1220,NULL,'SAT-ONC','HD',6,6,'2026-10-08 19:05:00','2026-10-08 19:35:00',15,25),
+(1236,1234,NULL,'SAT-ONC','HEMATO',1,1,'2026-10-08 20:20:00','2026-10-08 20:56:00',16,29),
+(1237,1207,NULL,'SAT-UTI','UTI-A',1,1,'2026-10-09 08:50:00','2026-10-09 09:06:00',9,19),
+(1238,1202,NULL,'FC','SAT-UTI',10,10,'2026-10-09 09:40:00','2026-10-09 10:03:00',4,11),
+(1239,1188,NULL,'SAT-ONC','QT-AMB',2,2,'2026-10-09 11:30:00','2026-10-09 11:45:00',16,27),
+(1240,1192,NULL,'SAT-UTI','UTI-P',6,5,'2026-10-09 14:15:00','2026-10-09 14:31:00',9,21),
+(1241,1228,NULL,'SAT-ONC','QT-AMB',2,2,'2026-10-10 09:20:00','2026-10-10 09:44:00',16,34),
+(1242,1210,NULL,'SAT-ONC','QT-AMB',9,9,'2026-10-10 13:15:00','2026-10-10 13:41:00',17,27),
+(1243,1204,NULL,'SAT-UTI','UTI-A',1,1,'2026-10-10 13:30:00','2026-10-10 13:44:00',11,20),
+(1244,1212,NULL,'SAT-UTI','UTI-A',3,3,'2026-10-10 14:30:00','2026-10-10 14:57:00',9,20),
+(1245,1226,NULL,'QT-AMB','SAT-ONC',1,1,'2026-10-10 17:15:00','2026-10-10 17:30:00',34,16),
+(1246,1212,NULL,'SAT-UTI','UTI-A',9,9,'2026-10-10 17:30:00','2026-10-10 17:54:00',10,19),
+(1247,1228,NULL,'SAT-ONC','QT-AMB',1,1,'2026-10-10 17:50:00','2026-10-10 18:04:00',16,27),
+(1248,1183,NULL,'FC','SAT-ONC',7,6,'2026-10-11 07:00:00','2026-10-11 07:42:00',35,17),
+(1249,1234,NULL,'SAT-ONC','QT-AMB',1,1,'2026-10-11 08:15:00','2026-10-11 08:48:00',16,25),
+(1250,1182,NULL,'FC','SAT-CC',21,21,'2026-10-11 08:50:00','2026-10-11 09:34:00',5,12),
+(1251,1208,NULL,'SAT-UTI','UTI-P',1,1,'2026-10-11 13:20:00','2026-10-11 13:52:00',11,21),
+(1252,1160,NULL,'FC','ENF-CLI',9,9,'2026-10-11 15:20:00','2026-10-11 15:59:00',4,32),
+(1253,1228,NULL,'SAT-ONC','QT-AMB',1,1,'2026-10-11 16:00:00','2026-10-11 16:33:00',16,25),
+(1254,1215,NULL,'SAT-UTI','UTI-P',1,1,'2026-10-11 16:45:00','2026-10-11 17:05:00',9,21),
+(1255,1160,NULL,'FC','SAT-UTI',6,6,'2026-10-11 18:20:00','2026-10-11 18:55:00',6,10),
+(1256,1238,NULL,'SAT-UTI','UTI-A',10,10,'2026-10-12 13:40:00','2026-10-12 13:56:00',10,20),
+(1257,1216,NULL,'SAT-ONC','HD',4,4,'2026-10-12 16:45:00','2026-10-12 17:09:00',17,26),
+(1258,1250,NULL,'SAT-CC','CC',4,4,'2026-10-12 19:45:00','2026-10-12 20:03:00',12,23),
+(1259,1204,NULL,'SAT-UTI','UTI-A',1,1,'2026-10-13 08:10:00','2026-10-13 08:38:00',10,20),
+(1260,1245,NULL,'SAT-ONC','QT-AMB',1,1,'2026-10-13 10:00:00','2026-10-13 10:13:00',17,27),
+(1261,1208,NULL,'SAT-UTI','UTI-A',1,1,'2026-10-13 16:00:00','2026-10-13 16:40:00',9,20),
+(1262,1160,NULL,'FC','PS',5,5,'2026-10-13 16:30:00','2026-10-13 16:45:00',5,30),
+(1263,1182,NULL,'FC','SAT-UTI',6,6,'2026-10-13 17:15:00','2026-10-13 17:46:00',35,11),
+(1264,1189,NULL,'FC','SAT-UTI',3,3,'2026-10-13 18:05:00','2026-10-13 18:44:00',5,9),
+(1265,1234,NULL,'SAT-ONC','QT-AMB',1,1,'2026-10-14 09:40:00','2026-10-14 10:17:00',15,34),
+(1266,1183,NULL,'FC','SAT-ONC',9,9,'2026-10-14 11:40:00','2026-10-14 12:11:00',5,15),
+(1267,1215,NULL,'SAT-UTI','UTI-P',1,1,'2026-10-14 11:45:00','2026-10-14 12:25:00',10,21);
+
+INSERT INTO lote_baixa (id,guia_id,qtd,motivo,termo,registrado_por,registrado_em) VALUES
+(1,1020,1,'Frasco quebrado no transporte','TB-2026-0141',24,'2026-09-08 09:01:00'),
+(2,1040,1,'Frasco caiu do carrinho no corredor e quebrou','TB-2026-0143',17,'2026-09-12 09:40:00'),
+(3,1046,1,'Frasco quebrado no transporte','TB-2026-0146',16,'2026-09-13 14:58:00'),
+(4,1049,1,'Frasco trincado na conferência do recebimento','TB-2026-0149',34,'2026-09-13 17:42:00'),
+(5,1133,1,'Frasco trincado na conferência do recebimento','TB-2026-0153',20,'2026-09-24 11:04:00'),
+(6,1153,1,'Frasco com partícula visível, separado para devolver ao fabricante','TB-2026-0157',9,'2026-09-26 19:01:00'),
+(7,1179,1,'Lacre violado na chegada, frasco descartado','TB-2026-0159',6,'2026-10-01 08:30:00'),
+(8,1186,1,'Frasco caiu na bancada e quebrou','TB-2026-0162',33,'2026-10-01 14:34:00'),
+(9,1203,1,'Frasco quebrado no transporte','TB-2026-0165',9,'2026-10-05 12:10:00'),
+(10,1240,1,'Frasco caiu na bancada e quebrou','TB-2026-0169',21,'2026-10-09 14:51:00'),
+(11,1248,1,'Frasco caiu na bancada e quebrou','TB-2026-0171',35,'2026-10-11 08:14:00');
+
+-- Segurança: bloqueia acesso pela API pública (o SQL Editor continua funcionando)
+ALTER TABLE lote_local ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lote_funcionario ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lote_produto ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lote_rota ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lote_guia ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lote_baixa ENABLE ROW LEVEL SECURITY;
+
+-- Conferir a resposta:  SELECT verificar_caso12('resposta');
+CREATE FUNCTION verificar_caso12(resposta text) RETURNS text
+LANGUAGE sql AS $$
+  SELECT CASE md5(lower(trim(resposta)))
+    WHEN '6780fb72a737114984d782a38c6278a8' THEN
+      '🏆 CASO ENCERRADO! Foi essa pessoa que mandou frascos de imunoglobulina para um setor desativado, assinou ela mesma o recebimento e ainda enviou menos do que registrou. A Farmácia vai apurar o desvio e travar guias para locais inativos. Parabéns, detetive!'
+    ELSE
+      '❌ Não é essa. Confira se escreveu exatamente como aparece nos dados e revise as pistas.'
+  END
+$$;
+
+SELECT '✅ Caso 12 instalado! Volte para o guia e comece a Etapa 1.' AS status;
+</script>
+
+<div class="tela-login" id="telaLogin" role="dialog" aria-modal="true" aria-labelledby="lgTitulo" hidden>
+  <div class="tela-card">
+    <aside class="tela-marca">
+      <svg class="tela-logo" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="27" cy="27" r="18" fill="none" stroke="#fff" stroke-width="5"/>
+        <path d="M40 40l16 16" stroke="#f3d64e" stroke-width="7" stroke-linecap="round"/>
+        <path d="M27 18v18M18 27h18" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+      </svg>
+      <h1 id="lgTitulo">Mistério no Hospital SQL</h1>
+      <p class="tela-lema">Aprenda SQL investigando casos de um hospital.</p>
+      <ul class="tela-itens">
+        <li>14 casos, do iniciante ao avançado</li>
+        <li>Seu progresso salvo em qualquer computador</li>
+        <li>Caderno do detetive com as suas anotações</li>
+      </ul>
+    </aside>
+    <section class="tela-form">
+      <p class="tela-sub" id="lgSubtitulo">Entre para continuar de onde parou</p>
+      <div class="tela-abas" id="lgAbas" role="tablist">
+        <button type="button" role="tab" id="lgTabEntrar" aria-selected="true">Entrar</button>
+        <button type="button" role="tab" id="lgTabCriar" aria-selected="false">Criar conta</button>
+      </div>
+      <div id="lgCampoEmail">
+        <label for="sbEmail">E-mail</label>
+        <div class="campo">
+          <span class="campo-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>
+          <input id="sbEmail" type="email" placeholder="voce@exemplo.com" autocomplete="email" inputmode="email">
+        </div>
+      </div>
+      <div>
+        <label for="sbPass" id="lgRotSenha">Senha <span class="tela-min">(mínimo 8 caracteres)</span></label>
+        <div class="campo">
+          <span class="campo-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+          <input id="sbPass" type="password" autocomplete="current-password" maxlength="72">
+          <button type="button" class="campo-ver" id="lgVer" aria-label="Mostrar senha" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
+      <button type="button" class="tela-principal" id="sbLogin">Entrar</button>
+      <button type="button" class="tela-principal" id="sbSignup" hidden>Criar conta</button>
+      <button type="button" class="tela-principal" id="lgNova" hidden>Salvar nova senha</button>
+      <button type="button" class="tela-link" id="lgEsqueci">Esqueci minha senha</button>
+      <div class="msg" id="lgMsg" role="status" aria-live="polite"></div>
+      <div class="tela-ou"><span>ou</span></div>
+      <button type="button" class="tela-pular" id="lgPular">Continuar sem entrar</button>
+      <p class="tela-nota">Sem entrar, o progresso fica salvo só neste navegador.</p>
+      <p class="tela-autoria">Aplicativo criado por Noemi Sales</p>
+    </section>
+  </div>
+</div>
+
+<dialog class="sync" id="syncDlg">
+  <h3>☁ Salvar progresso na nuvem</h3>
+  <div id="sbConnGrp">
+    <small>No Supabase: Project Settings → API. Use a <b>Project URL</b> e a chave <b>anon / public</b>. Nunca use a service_role. Rode antes o <code>banco_do_jogo.sql</code> atualizado.</small>
+    <label for="sbUrl">Project URL</label>
+    <input id="sbUrl" type="url" placeholder="https://xxxx.supabase.co" autocomplete="off">
+    <label for="sbKey">Chave anon (public)</label>
+    <input id="sbKey" type="text" placeholder="eyJ..." autocomplete="off">
+    <div class="row"><button type="button" class="btn" id="sbSave">Conectar</button></div>
+  </div>
+  <div id="sbUserGrp">
+    <p id="sbWho"></p>
+    <div class="row"><button type="button" class="btn" id="sbLogout">Sair</button></div>
+  </div>
+  <div class="msg" id="sbMsg" role="status"></div>
+  <div class="row">
+    <button type="button" class="btn" id="sbClear">Trocar projeto</button>
+    <button type="button" class="btn" id="sbClose">Fechar</button>
+  </div>
+</dialog>
+
+<script src="js/config.js?v=58dc78bb"></script>
+<script src="js/app.js?v=5417c6c0"></script>
+<script src="js/pwa.js?v=10765b60"></script>
+<script src="js/catalogo.js?v=f7ff8d49"></script>
+<script src="js/caderno.js?v=0dfa9e18"></script>
+<script src="js/quadro.js?v=4af9677b"></script>
+<script src="js/computador.js?v=f06025ad"></script>
+
+<script src="js/mermaid-init.js?v=f13746f5"></script>
+
+<span id="fim-da-pagina" hidden></span>
+</body>
+</html>

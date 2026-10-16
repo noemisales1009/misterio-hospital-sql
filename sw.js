@@ -1,10 +1,14 @@
 // Gerado por scripts/gerar-sw.js. Não edite à mão.
 // Guarda o jogo no aparelho para funcionar sem internet.
-var VERSAO = "f9ebc20968";
+var VERSAO = "3ff7099767";
 var CACHE = "misterio-sql-" + VERSAO;
 var ARQUIVOS = [
   "./",
   "caso10.html",
+  "caso11.html",
+  "caso12.html",
+  "caso13.html",
+  "caso14.html",
   "caso2.html",
   "caso3.html",
   "caso4.html",
@@ -13,7 +17,7 @@ var ARQUIVOS = [
   "caso7.html",
   "caso8.html",
   "caso9.html",
-  "css/estilo.css?v=7d9dd1a8",
+  "css/estilo.css?v=f80c1510",
   "fonts/atkinson-hyperlegible-400-italic-latin-ext.woff2",
   "fonts/atkinson-hyperlegible-400-italic-latin.woff2",
   "fonts/atkinson-hyperlegible-400-normal-latin-ext.woff2",
@@ -35,12 +39,13 @@ var ARQUIVOS = [
   "index.html",
   "js/achados-dados.json",
   "js/app.js?v=5417c6c0",
-  "js/caderno.js?v=d849753a",
-  "js/catalogo.js?v=addf162f",
+  "js/caderno.js?v=0dfa9e18",
+  "js/catalogo.js?v=f7ff8d49",
+  "js/comandos-dados.json",
   "js/computador.js?v=f06025ad",
   "js/config.js?v=58dc78bb",
-  "js/mermaid-init.js?v=9cf16683",
-  "js/pwa.js?v=e304ae22",
+  "js/mermaid-init.js?v=f13746f5",
+  "js/pwa.js?v=10765b60",
   "js/quadro.js?v=4af9677b",
   "js/tema.js?v=45d4af28",
   "manifest.webmanifest",

@@ -3,8 +3,19 @@
   if (!("serviceWorker" in navigator)) return;
   // dentro do aplicativo Android (APK) os arquivos já estão no aparelho: não precisa de service worker
   try { if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return; } catch (e) {}
+  // no localhost (npm run dev) o service worker entregaria css/js velhos enquanto se edita:
+  // lá ele não roda, e quem já tinha um registrado perde ele e o cache
   var local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
-  if (location.protocol !== "https:" && !local) return;
+  if (local) {
+    navigator.serviceWorker.getRegistrations().then(function (regs) {
+      regs.forEach(function (r) { r.unregister(); });
+    }).catch(function () {});
+    if (window.caches) caches.keys().then(function (nomes) {
+      nomes.forEach(function (n) { if (n.indexOf("misterio-sql-") === 0) caches.delete(n); });
+    }).catch(function () {});
+    return;
+  }
+  if (location.protocol !== "https:") return;
   var K = "misterio-sql-offline-avisado";
 
   function avisa() {

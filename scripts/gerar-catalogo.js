@@ -15,6 +15,10 @@ const casos = [
   { arq: 'caso8.html', n: 8, titulo: 'As horas extras', nivel: 'Avançado', resumo: 'A folha de hora extra explodiu em setembro.' },
   { arq: 'caso9.html', n: 9, titulo: 'O prontuário espiado', nivel: 'Segurança', resumo: 'O prontuário de uma paciente vazou nas redes.' },
   { arq: 'caso10.html', n: 10, titulo: 'A invasão', nivel: 'Segurança', resumo: 'Um ataque pela busca de exames do portal do paciente.' },
+  { arq: 'caso11.html', n: 11, titulo: 'A fila furada', nivel: 'Avançado', resumo: 'Cores da triagem trocadas para furar a fila do PS.' },
+  { arq: 'caso12.html', n: 12, titulo: 'O lote que sumiu', nivel: 'Avançado', resumo: '13 frascos de imunoglobulina sumiram no caminho do lote.' },
+  { arq: 'caso13.html', n: 13, titulo: 'A dose reprogramada', nivel: 'Avançado', resumo: 'Bombas de infusão mandam eventos em JSON; quem burlou o limite?' },
+  { arq: 'caso14.html', n: 14, titulo: 'O banco que se corrigia sozinho', nivel: 'Avançado', resumo: 'Um gatilho escondido dá 40% de desconto a amigos.' },
 ];
 
 function limpa(s) {

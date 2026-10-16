@@ -16,7 +16,7 @@ const MAX_LINHAS = 8, MAX_COLUNAS = 8, MAX_CELULA = 80;
 const mantem = (v) => v;   // datas e horas ficam como o Postgres escreve (igual ao computador do jogo)
 const PARSERS = { 1082: mantem, 1083: mantem, 1114: mantem, 1184: mantem, 1186: mantem, 1266: mantem };
 
-const catalogo = JSON.parse(fs.readFileSync(path.join(raiz, 'js/catalogo.js'), 'utf8').match(/=\s*(\[[\s\S]*\]);?\s*$/)[1]);
+const catalogo = JSON.parse(fs.readFileSync(path.join(raiz, 'js/catalogo.js'), 'utf8').match(/MISTERIO_CATALOGO\s*=\s*(\[.*\]);?\s*$/m)[1]);
 const sqlDoCaso = (arq) => (arq === 'guia.html' ? 'banco_do_jogo.sql' : arq.replace('.html', '.sql'));
 
 const destag = (s) => s

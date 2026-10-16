@@ -1,6 +1,6 @@
 # 🕵️ Mistério no Hospital SQL
 
-Jogo de detetive para aprender SQL usando o Supabase. São dez casos, do mais simples ao mais exigente, todos com dados fictícios de um hospital.
+Jogo de detetive para aprender SQL usando o Supabase. São catorze casos, do mais simples ao mais exigente, todos com dados fictícios de um hospital.
 
 Aplicativo criado por Noemi Sales.
 
@@ -18,8 +18,12 @@ Aplicativo criado por Noemi Sales.
 | 8 | As horas extras | Avançado | `EXTRACT`, `DATE_TRUNC`, `RANK`, `SUM() OVER`, `NOT EXISTS` | `caso8.html` e `caso8.sql` |
 | 9 | O prontuário espiado | Segurança (LGPD) | auditoria de acessos, anti-join, mascarar dado sensível | `caso9.html` e `caso9.sql` |
 | 10 | A invasão | Segurança | SQL injection, `GRANT`/`REVOKE`, RLS | `caso10.html` e `caso10.sql` |
+| 11 | A fila furada | Avançado | intervalos e `EXTRACT(EPOCH)`, `PERCENTILE_CONT` (mediana, P90), `NTILE`, `generate_series` | `caso11.html` e `caso11.sql` |
+| 12 | O lote que sumiu | Avançado | `WITH RECURSIVE`, `UNION ALL`, caminho com `||`, `ARRAY`/`= ANY` (evitar ciclo), hierarquia | `caso12.html` e `caso12.sql` |
+| 13 | A dose reprogramada | Avançado | JSON: `jsonb`, `->`/`->>`, `#>>`, `?`, `@>`, `jsonb_array_elements`, `jsonb_object_keys` | `caso13.html` e `caso13.sql` |
+| 14 | O banco que se corrigia sozinho | Avançado | `INSERT`, `UPDATE`/`DELETE … WHERE`, `RETURNING`, `BEGIN`/`ROLLBACK`, gatilhos (`CREATE TRIGGER`, `pg_trigger`) | `caso14.html` e `caso14.sql` |
 
-Cada caso tem as **próprias tabelas**, então os dez cabem no mesmo projeto do Supabase. As fases abrem em sequência: a próxima só libera quando a anterior é concluída, e uma fase abre por vez.
+Cada caso tem as **próprias tabelas**, então os catorze cabem no mesmo projeto do Supabase. As fases abrem em sequência: a próxima só libera quando a anterior é concluída, e uma fase abre por vez.
 
 Os casos 9 e 10 são sobre **segurança**: investigar quem acessou dado sensível sem motivo (Caso 9) e reconstruir um ataque de SQL injection, com as defesas de menor privilégio e RLS (Caso 10). No Caso 10, comandos como `GRANT`, `REVOKE` e `CREATE POLICY` aparecem como exemplo para copiar e rodar à parte no computador da fase — eles não entram nas missões corrigidas automaticamente, porque mudam o banco e precisam ser vistos em ação, não só comparados.
 
@@ -28,8 +32,8 @@ Os casos 9 e 10 são sobre **segurança**: investigar quem acessou dado sensíve
 | Arquivo | Para que serve |
 |---|---|
 | `index.html` | Página inicial: escolha do caso, nome e botão "continuar de onde parei". |
-| `guia.html`, `caso2.html` … `caso10.html` | Os casos: explicações, missões, dicas e soluções. |
-| `banco_do_jogo.sql`, `caso2.sql` … `caso10.sql` | Os bancos de dados de cada caso. Vão no SQL Editor do Supabase. |
+| `guia.html`, `caso2.html` … `caso14.html` | Os casos: explicações, missões, dicas e soluções. |
+| `banco_do_jogo.sql`, `caso2.sql` … `caso14.sql` | Os bancos de dados de cada caso. Vão no SQL Editor do Supabase. |
 | `progresso.sql` | Só as tabelas da conta: progresso, perfil e anotações. Já está dentro do `banco_do_jogo.sql`. |
 | `css/estilo.css` | Visual. |
 | `js/app.js` | Fases em sequência, progresso, login e sincronização com o Supabase. |
@@ -58,6 +62,10 @@ SELECT verificar_caso7('Nome Completo');
 SELECT verificar_caso8('Nome Completo');
 SELECT verificar_caso9('Nome Completo');
 SELECT verificar_caso10('Nome Completo');
+SELECT verificar_caso11('Nome Completo');
+SELECT verificar_caso12('Nome Completo');
+SELECT verificar_caso13('Nome Completo');
+SELECT verificar_caso14('Nome Completo');
 ```
 
 ## Salvar no Supabase, com conta
