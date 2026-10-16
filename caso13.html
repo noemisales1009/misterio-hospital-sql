@@ -289,7 +289,7 @@ WHERE cracha = 'C-2207' AND entrada &gt;= '2026-10-11';</pre></div>
 FROM bomba_evento e
 JOIN bomba_equipe q ON q.cracha = e.dados -&gt;&gt; 'usuario'
 WHERE e.dados @&gt; '{"tipo":"login","sessao":"S-5763"}';</pre></div>
-    <p>Para conferir: às 2h43 havia <strong>4 pessoas</strong> de plantão — Heloísa Brandini, Marta Seixas, Rosana Damasceno e Wesley Coutinho. <strong>Simone Leitão não está</strong>, e a segunda consulta (1 linha) mostra por quê: ela entrou de manhã no dia 11, dobrou o plantão e bateu o ponto de saída à <strong>1h04</strong> do dia 12. Quem usou o crachá dela às 2h29 estava com ele na mão, não era ela. A sessão <code>S-5763</code> foi aberta na <code>CENTRAL</code> às <strong>2h35</strong> com o crachá de <strong>Heloísa Brandini</strong>, enfermeira do plantão noturno. A sequência fecha: a bomba recusa a dose às 2h31 → Heloísa entra na central com o próprio crachá às 2h35 → sobe o limite de 0,5 para 3,0 às 2h38 → a bomba sincroniza às 2h41 → a dose de 2,4 passa às 2h43 no crachá esquecido da Simone. Marta fez um bolus prescrito, Wesley desdobrou um equipo, Rosana salvou o paciente. Confira com <code>SELECT verificar_caso13('Heloísa Brandini');</code></p>
+    <p>Para conferir: às 2h43 havia <strong>4 pessoas</strong> de plantão — Amélia Chagas, Heloísa Brandini, Rosana Damasceno e Wesley Coutinho. <strong>Simone Leitão não está</strong>, e a segunda consulta (1 linha) mostra por quê: ela entrou de manhã no dia 11, dobrou o plantão e bateu o ponto de saída à <strong>1h04</strong> do dia 12. Quem usou o crachá dela às 2h29 estava com ele na mão, não era ela. A sessão <code>S-5763</code> foi aberta na <code>CENTRAL</code> às <strong>2h35</strong> com o crachá de <strong>Heloísa Brandini</strong>, enfermeira do plantão noturno. A sequência fecha: a bomba recusa a dose às 2h31 → Heloísa entra na central com o próprio crachá às 2h35 → sobe o limite de 0,5 para 3,0 às 2h38 → a bomba sincroniza às 2h41 → a dose de 2,4 passa às 2h43 no crachá esquecido da Simone. Amélia fez um bolus prescrito, Wesley desdobrou um equipo, Rosana salvou o paciente. Confira com <code>SELECT verificar_caso13('Heloísa Brandini');</code></p>
   </div></details>
   <div class="done-row"><input type="checkbox" id="c13-ok5"><label for="c13-ok5">Etapa 5 concluída</label></div>
 </section>
@@ -371,7 +371,7 @@ CREATE TABLE bomba_evento (
 
 INSERT INTO bomba_equipe (cracha,nome,cargo,turno) VALUES
 ('C-3318','Heloísa Brandini','Enfermeira','noturno (dias ímpares)'),
-('C-1875','Marta Seixas','Enfermeira','noturno (dias ímpares)'),
+('C-1875','Amélia Chagas','Enfermeira','noturno (dias ímpares)'),
 ('C-5120','Rosana Damasceno','Enfermeira','noturno (dias ímpares)'),
 ('C-4410','Wesley Coutinho','Técnico de enfermagem','noturno (dias ímpares)'),
 ('C-2207','Simone Leitão','Enfermeira','diurno (dias ímpares)'),
@@ -1385,8 +1385,8 @@ SELECT '✅ Caso 13 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=f5b0d053"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=118f65dc"></script>
-<script src="js/caderno.js?v=3db2ae63"></script>
+<script src="js/catalogo.js?v=6652795a"></script>
+<script src="js/caderno.js?v=40f18c8b"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
 <script src="js/computador.js?v=b08cf78a"></script>
 

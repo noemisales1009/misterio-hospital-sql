@@ -6,7 +6,7 @@ ilustracao no lugar do desenho que ja vem pronto. Quem nao tem arquivo continua 
 
 COMO NOMEAR O ARQUIVO
   nome da pessoa, tudo em minusculas, sem acento, com hifen no lugar dos espacos
-  Exemplos:  otavio-brandao.png   rogerio-mendonca.webp   claudia-lourenco.jpg   bi-07.png
+  Exemplos:  otavio-brandao.png   hamilton-seabra.webp   dalila-almada.jpg   bi-07.png
 
 FORMATOS ACEITOS:  .png  .jpg  .jpeg  .webp
 

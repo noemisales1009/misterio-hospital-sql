@@ -57,7 +57,7 @@ CREATE TABLE bomba_evento (
 
 INSERT INTO bomba_equipe (cracha,nome,cargo,turno) VALUES
 ('C-3318','Heloísa Brandini','Enfermeira','noturno (dias ímpares)'),
-('C-1875','Marta Seixas','Enfermeira','noturno (dias ímpares)'),
+('C-1875','Amélia Chagas','Enfermeira','noturno (dias ímpares)'),
 ('C-5120','Rosana Damasceno','Enfermeira','noturno (dias ímpares)'),
 ('C-4410','Wesley Coutinho','Técnico de enfermagem','noturno (dias ímpares)'),
 ('C-2207','Simone Leitão','Enfermeira','diurno (dias ímpares)'),

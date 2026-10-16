@@ -54,7 +54,7 @@ INSERT INTO tecnico (id,nome) VALUES
 (4,'Caetano Ribeiro'),
 (5,'Marilda Sobral'),
 (6,'Ênio Barcellos'),
-(7,'Dulce Albuquerque'),
+(7,'Dulce Galdino'),
 (8,'Rubens Tavares');
 
 INSERT INTO leitura (id,geladeira_id,momento,temperatura) VALUES

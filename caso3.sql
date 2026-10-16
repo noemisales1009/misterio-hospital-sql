@@ -47,7 +47,7 @@ CREATE TABLE movimento_estoque (
 
 INSERT INTO colaborador (id,nome,funcao,setor) VALUES
 (1,'Edson Carvalhaes','Técnico de Farmácia','Farmácia Central'),
-(2,'Lúcia Bittencourt','Técnico de Farmácia','Farmácia Central'),
+(2,'Solange Portela','Técnico de Farmácia','Farmácia Central'),
 (3,'Fabiana Ornelas','Técnico de Farmácia','Farmácia Central'),
 (4,'Lucas Salgado','Técnico de Farmácia','Farmácia Central'),
 (5,'Renata Ornelas','Técnico de Farmácia','Farmácia Central'),
@@ -69,8 +69,8 @@ INSERT INTO colaborador (id,nome,funcao,setor) VALUES
 (21,'Olívia Nogueira','Médico','UTI'),
 (22,'Bruna Jardim','Médico','Centro Cirúrgico'),
 (23,'Karina Nogueira','Médico','Pronto Atendimento'),
-(24,'Marta Figueiredo','Enfermeiro','UTI'),
-(25,'Gilson Albuquerque','Enfermeiro','UTI'),
+(24,'Leila Sandoval','Enfermeiro','UTI'),
+(25,'Gilson Amorim','Enfermeiro','UTI'),
 (26,'Paula Nascimento','Enfermeiro','Centro Cirúrgico'),
 (27,'Thiago Coelho','Enfermeiro','Emergência'),
 (28,'João Leite','Enfermeiro','Pronto Atendimento'),
@@ -83,7 +83,7 @@ INSERT INTO colaborador (id,nome,funcao,setor) VALUES
 (35,'Rafael Xavier','Enfermeiro','Pronto Atendimento'),
 (36,'Elisa Vidal','Enfermeiro','Emergência'),
 (37,'Davi Holanda','Enfermeiro','Pronto Atendimento'),
-(38,'Sônia Lourenço','Técnico de Enfermagem','UTI'),
+(38,'Sônia Zanella','Técnico de Enfermagem','UTI'),
 (39,'Alexandre Ibrahim','Técnico de Enfermagem','UTI'),
 (40,'Caio Henriques','Técnico de Enfermagem','Enfermaria'),
 (41,'Vítor Werneck','Técnico de Enfermagem','Enfermaria'),

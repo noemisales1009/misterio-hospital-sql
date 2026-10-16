@@ -133,7 +133,7 @@ ORDER BY c.ordem;</pre></div>
 </section>
 <section class="fase" id="c11-f2" data-fase="2" data-nome="A média mente">
   <div class="fase-head"><div class="num">2</div><div class="t"><h2>A média mente: mediana e percentil</h2><div class="sub">AVG · PERCENTILE_CONT(0.5) · PERCENTILE_CONT(0.9) · WITHIN GROUP</div></div></div>
-  <div class="box"><b class="l">Situação</b><p>A diretoria já tem um palpite: a culpa é da <strong>tarde</strong>, a equipe do Dr. Fábio Montenegro, chefe do turno. "A média de espera da tarde é a maior do mês", diz o relatório. Só que média é uma medida fácil de enganar. Vamos comparar três números por turno, só para os pacientes <strong>laranja e amarelo</strong> (os graves que esperam na fila, já que o vermelho entra direto): a média, a mediana e o percentil 90.</p></div>
+  <div class="box"><b class="l">Situação</b><p>A diretoria já tem um palpite: a culpa é da <strong>tarde</strong>, a equipe do Dr. Celso Drumond, chefe do turno. "A média de espera da tarde é a maior do mês", diz o relatório. Só que média é uma medida fácil de enganar. Vamos comparar três números por turno, só para os pacientes <strong>laranja e amarelo</strong> (os graves que esperam na fila, já que o vermelho entra direto): a média, a mediana e o percentil 90.</p></div>
   <div class="tw tw-cmd"><table>
     <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
     <tr><td><code>AVG(x)</code></td><td>média: soma tudo e divide pela quantidade</td><td>“a espera média”</td></tr>
@@ -185,7 +185,7 @@ SELECT turno,
 FROM esperas
 GROUP BY turno
 ORDER BY media DESC;</pre></div>
-    <p>Para conferir: na primeira, a <strong>tarde</strong> tem a maior média (<strong>49,1</strong> minutos), mas a mediana dela é <strong>24,0</strong>, quase igual à da manhã (20,0): metade dos graves da tarde foi atendida em até 24 minutos, como em qualquer turno. Média lá em cima com mediana normal é a marca de <strong>poucos valores extremos</strong>. A noite tem média 41,5, mediana 25,5 e, de longe, o maior P90: <strong>109,8</strong> minutos. Na segunda, sem o dia 12/09, a média da tarde despenca para <strong>21,7</strong> e o P90 dela fica igual ao da manhã (44,0): todos aqueles extremos vinham de uma tarde só. Foi o dia do <strong>acidente com um ônibus</strong> (várias queixas desse dia terminam em “acidente de ônibus”), com vítimas chegando juntas a partir das 14h35. Uma tarde ruim, mas por um motivo conhecido e legítimo: a equipe do Dr. Fábio Montenegro sai da suspeita. Já a noite quase não muda (média 41,9, P90 110,3): o problema dela não é um dia só.</p>
+    <p>Para conferir: na primeira, a <strong>tarde</strong> tem a maior média (<strong>49,1</strong> minutos), mas a mediana dela é <strong>24,0</strong>, quase igual à da manhã (20,0): metade dos graves da tarde foi atendida em até 24 minutos, como em qualquer turno. Média lá em cima com mediana normal é a marca de <strong>poucos valores extremos</strong>. A noite tem média 41,5, mediana 25,5 e, de longe, o maior P90: <strong>109,8</strong> minutos. Na segunda, sem o dia 12/09, a média da tarde despenca para <strong>21,7</strong> e o P90 dela fica igual ao da manhã (44,0): todos aqueles extremos vinham de uma tarde só. Foi o dia do <strong>acidente com um ônibus</strong> (várias queixas desse dia terminam em “acidente de ônibus”), com vítimas chegando juntas a partir das 14h35. Uma tarde ruim, mas por um motivo conhecido e legítimo: a equipe do Dr. Celso Drumond sai da suspeita. Já a noite quase não muda (média 41,9, P90 110,3): o problema dela não é um dia só.</p>
   </div></details>
   <div class="done-row"><input type="checkbox" id="c11-ok2"><label for="c11-ok2">Etapa 2 concluída</label></div>
 </section>
@@ -257,7 +257,7 @@ JOIN ps_profissional p ON p.id = e.profissional_id
 WHERE g.grupo = 1
 GROUP BY p.nome, p.funcao
 ORDER BY piores_noites DESC, p.nome;</pre></div>
-    <p>Para conferir: na primeira, <strong>8 noites</strong> ficam no grupo 1: <strong>03, 07, 09, 13, 17, 19, 23 e 27</strong> de setembro, todas com P90 acima de 100 minutos (a de 19/09, da Dona Ivone, com 115,0). A 9ª pior já cai para 58,3. Repare: são todas datas ímpares. Na segunda, <strong>Patrícia Lacerda</strong> (supervisora de enfermagem) e <strong>Vinícius Cardoso</strong> (enfermeiro de triagem) estavam nas <strong>8</strong>; os médicos se revezam e aparecem em 5 ou 6. Os dois trabalham na mesma escala, noite sim, noite não — a escala sozinha não separa um do outro. Guarde os dois nomes.</p>
+    <p>Para conferir: na primeira, <strong>8 noites</strong> ficam no grupo 1: <strong>03, 07, 09, 13, 17, 19, 23 e 27</strong> de setembro, todas com P90 acima de 100 minutos (a de 19/09, da Dona Ivone, com 115,0). A 9ª pior já cai para 58,3. Repare: são todas datas ímpares. Na segunda, <strong>Fabíola Silveira</strong> (supervisora de enfermagem) e <strong>Eliseu Quintana</strong> (enfermeiro de triagem) estavam nas <strong>8</strong>; os médicos se revezam e aparecem em 5 ou 6. Os dois trabalham na mesma escala, noite sim, noite não — a escala sozinha não separa um do outro. Guarde os dois nomes.</p>
   </div></details>
   <div class="done-row"><input type="checkbox" id="c11-ok3"><label for="c11-ok3">Etapa 3 concluída</label></div>
 </section>
@@ -364,7 +364,7 @@ LEFT JOIN ps_profissional p ON p.id = r.alterado_por
 WHERE a.chegada &gt; iv.chegada
   AND a.inicio_medico &lt; iv.inicio_medico
 ORDER BY a.inicio_medico;</pre></div>
-    <p>Para conferir: na primeira, <strong>Patrícia Lacerda</strong> subiu a cor de <strong>20</strong> pacientes: só 4 têm alguma justificativa (e as quatro dizem apenas “reavaliação”, sem nenhum dado clínico), os 20 tiveram alta e <strong>18 furaram a fila</strong> de alguém laranja que já estava esperando. Vinícius Cardoso, a pista falsa, subiu 11, todas com motivo clínico (saturação, pressão, glicemia…), nenhum foi para casa (todos internaram ou foram para a UTI) e nenhum passou na frente de ninguém. Na segunda, 3 pessoas chegaram depois da Dona Ivone e entraram antes dela: Bruno Saldanha, do <strong>tornozelo torcido</strong> (o rapaz da reclamação), e Marcelo Vilaça Filho, que só queria um <strong>atestado</strong>. Os dois chegaram verde e azul e, minutos depois, viraram laranja pelas mãos de Patrícia Lacerda, sem justificativa. O terceiro, Adriano Couto, era vermelho (queda de moto) e passou na frente com toda a razão. Quem furou a fila foi a supervisora da noite: confira o nome com <code>verificar_caso11</code>.</p>
+    <p>Para conferir: na primeira, <strong>Fabíola Silveira</strong> subiu a cor de <strong>20</strong> pacientes: só 4 têm alguma justificativa (e as quatro dizem apenas “reavaliação”, sem nenhum dado clínico), os 20 tiveram alta e <strong>18 furaram a fila</strong> de alguém laranja que já estava esperando. Eliseu Quintana, a pista falsa, subiu 11, todas com motivo clínico (saturação, pressão, glicemia…), nenhum foi para casa (todos internaram ou foram para a UTI) e nenhum passou na frente de ninguém. Na segunda, 3 pessoas chegaram depois da Dona Ivone e entraram antes dela: Bruno Saldanha, do <strong>tornozelo torcido</strong> (o rapaz da reclamação), e Marcelo Vilaça Filho, que só queria um <strong>atestado</strong>. Os dois chegaram verde e azul e, minutos depois, viraram laranja pelas mãos de Fabíola Silveira, sem justificativa. O terceiro, Adriano Couto, era vermelho (queda de moto) e passou na frente com toda a razão. Quem furou a fila foi a supervisora da noite: confira o nome com <code>verificar_caso11</code>.</p>
   </div></details>
   <div class="done-row"><input type="checkbox" id="c11-ok5"><label for="c11-ok5">Etapa 5 concluída</label></div>
 </section>
@@ -462,12 +462,12 @@ INSERT INTO ps_profissional (id,nome,funcao) VALUES
 (9,'Neide Prado','Supervisora de enfermagem'),
 (10,'Tatiane Furtado','Enfermeira de triagem'),
 (11,'Otávio Peixoto','Enfermeiro de triagem'),
-(12,'Fábio Montenegro','Médico plantonista (chefe da tarde)'),
+(12,'Celso Drumond','Médico plantonista (chefe da tarde)'),
 (13,'Cecília Antunes','Médica plantonista'),
 (14,'Leandro Bitencourt','Médico plantonista'),
-(15,'Patrícia Lacerda','Supervisora de enfermagem'),
+(15,'Fabíola Silveira','Supervisora de enfermagem'),
 (16,'Joel Brandão','Supervisor de enfermagem'),
-(17,'Vinícius Cardoso','Enfermeiro de triagem'),
+(17,'Eliseu Quintana','Enfermeiro de triagem'),
 (18,'Simone Arantes','Enfermeira de triagem'),
 (19,'Gustavo Lessa','Médico plantonista'),
 (20,'Yara Guedes','Médica plantonista'),
@@ -1933,8 +1933,8 @@ SELECT '✅ Caso 11 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=f5b0d053"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=118f65dc"></script>
-<script src="js/caderno.js?v=3db2ae63"></script>
+<script src="js/catalogo.js?v=6652795a"></script>
+<script src="js/caderno.js?v=40f18c8b"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
 <script src="js/computador.js?v=b08cf78a"></script>
 

@@ -1127,7 +1127,7 @@ ORDER BY nivel, nome;`),
     `WITH RECURSIVE cadeia AS (
   SELECT id, nome, cargo, chefe_id, 1 AS nivel
   FROM lote_funcionario
-  WHERE nome = 'Hélio Prado'
+  WHERE nome = 'Hélio Loureiro'
   UNION ALL
   SELECT f.id, f.nome, f.cargo, f.chefe_id, c.nivel + 1
   FROM lote_funcionario f

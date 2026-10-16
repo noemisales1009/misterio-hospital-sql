@@ -131,7 +131,7 @@ WHERE a.data = 20260814
   AND a.acao = 'alterou'
   AND a.hora BETWEEN 200 AND 359
   AND pr.setor = 'UTI Adulto';</pre></div>
-    <p>Para conferir: <strong>2</strong> pessoas, <strong>Márcia Albuquerque</strong> (técnica de enfermagem, 02h12) e <strong>Renata Figueiredo</strong> (enfermeira, 02h30). Uma delas está no plantão certo. A outra, não.</p></div></details>
+    <p>Para conferir: <strong>2</strong> pessoas, <strong>Márcia Barcelos</strong> (técnica de enfermagem, 02h12) e <strong>Renata Figueiredo</strong> (enfermeira, 02h30). Uma delas está no plantão certo. A outra, não.</p></div></details>
   <div class="done-row"><input type="checkbox" id="c2-ok2"><label for="c2-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c2-f3" data-fase="3" data-nome="Plantão">
@@ -158,7 +158,7 @@ WHERE a.data = 20260814
   AND a.hora BETWEEN 200 AND 359
   AND pr.setor = 'UTI Adulto'
   AND NOT (pl.turno = 'noturno' AND pl.setor = 'UTI Adulto');</pre></div>
-    <p>Para conferir: <strong>Márcia Albuquerque</strong>, turno <strong>folga</strong>. A senha é dela, mas não foi ela. Anote o dia e o horário: 14/08, perto das 02h12.</p></div></details>
+    <p>Para conferir: <strong>Márcia Barcelos</strong>, turno <strong>folga</strong>. A senha é dela, mas não foi ela. Anote o dia e o horário: 14/08, perto das 02h12.</p></div></details>
   <div class="done-row"><input type="checkbox" id="c2-ok3"><label for="c2-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c2-f4" data-fase="4" data-nome="Porta">
@@ -186,7 +186,7 @@ WHERE l.local = 'UTI Adulto'
   AND l.data = 20260814
   AND l.hora BETWEEN 150 AND 220
   AND pl.funcionario_id IS NULL;</pre></div>
-    <p>Para conferir: <strong>3</strong> pessoas: <strong>Rogério Mendonça</strong> (02h05), <strong>Fábio Bittencourt</strong> (02h07) e <strong>Cláudia Lourenço</strong> (02h11). Quem das três tem o hábito?</p></div></details>
+    <p>Para conferir: <strong>3</strong> pessoas: <strong>Hamilton Seabra</strong> (02h05), <strong>Breno Padilha</strong> (02h07) e <strong>Dalila Almada</strong> (02h11). Quem das três tem o hábito?</p></div></details>
   <div class="done-row"><input type="checkbox" id="c2-ok4"><label for="c2-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c2-f5" data-fase="5" data-nome="Hábito">
@@ -216,7 +216,7 @@ WHERE l.local = 'UTI Adulto'
   AND l.funcionario_id IN (41,55,58)
 GROUP BY f.nome
 HAVING COUNT(DISTINCT l.data) &gt;= 3;</pre></div>
-    <p>Para conferir: <strong>Rogério Mendonça</strong>, em <strong>5 noites</strong>. As outras duas entraram em 2 e 1 noites. É um técnico de enfermagem da Enfermaria, que usou a senha da Márcia na UTI Adulto.</p></div></details>
+    <p>Para conferir: <strong>Hamilton Seabra</strong>, em <strong>5 noites</strong>. As outras duas entraram em 2 e 1 noites. É um técnico de enfermagem da Enfermaria, que usou a senha da Márcia na UTI Adulto.</p></div></details>
   <div class="done-row"><input type="checkbox" id="c2-ok5"><label for="c2-ok5">Etapa 5 concluída</label></div>
 </section>
 <section class="fase" id="c2-cola" style="gap:12px">
@@ -312,7 +312,7 @@ INSERT INTO funcionario (id,nome,cargo,setor) VALUES
 (24,'Sabrina Cardoso','Técnico de Enfermagem','UTI Pediátrica'),
 (25,'Hugo Lacerda','Enfermeiro','Enfermaria'),
 (26,'André Teixeira','Farmacêutico','Farmácia'),
-(27,'Márcia Albuquerque','Técnico de Enfermagem','UTI Adulto'),
+(27,'Márcia Barcelos','Técnico de Enfermagem','UTI Adulto'),
 (28,'Camila Zanetti','Técnico de Enfermagem','Centro Cirúrgico'),
 (29,'Renata Almeida','Auxiliar Administrativo','Recepção'),
 (30,'Larissa Nogueira','Técnico de Enfermagem','Emergência'),
@@ -326,7 +326,7 @@ INSERT INTO funcionario (id,nome,cargo,setor) VALUES
 (38,'Carla Machado','Enfermeiro','Enfermaria'),
 (39,'Vanessa Siqueira','Enfermeiro','Centro Cirúrgico'),
 (40,'Bruna Falcão','Enfermeiro','UTI Adulto'),
-(41,'Rogério Mendonça','Técnico de Enfermagem','Enfermaria'),
+(41,'Hamilton Seabra','Técnico de Enfermagem','Enfermaria'),
 (42,'Carla Duarte','Médico','Emergência'),
 (43,'Eduardo Machado','Médico','Enfermaria'),
 (44,'Rafael Zanetti','Fisioterapeuta','Enfermaria'),
@@ -340,10 +340,10 @@ INSERT INTO funcionario (id,nome,cargo,setor) VALUES
 (52,'Carlos Uchoa','Técnico de Enfermagem','UTI Pediátrica'),
 (53,'Ana Ferraz','Médico','Enfermaria'),
 (54,'Henrique Junqueira','Técnico de Enfermagem','UTI Adulto'),
-(55,'Fábio Bittencourt','Técnico de Enfermagem','Emergência'),
+(55,'Breno Padilha','Técnico de Enfermagem','Emergência'),
 (56,'Aline Gomes','Médico','UTI Pediátrica'),
 (57,'Tatiane Klein','Farmacêutico','Farmácia'),
-(58,'Cláudia Lourenço','Fisioterapeuta','UTI Pediátrica'),
+(58,'Dalila Almada','Fisioterapeuta','UTI Pediátrica'),
 (59,'Igor Holanda','Auxiliar Administrativo','Recepção'),
 (60,'Leonardo Tavares','Enfermeiro','UTI Adulto');
 
@@ -4745,8 +4745,8 @@ SELECT '✅ Caso 2 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=f5b0d053"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=118f65dc"></script>
-<script src="js/caderno.js?v=3db2ae63"></script>
+<script src="js/catalogo.js?v=6652795a"></script>
+<script src="js/caderno.js?v=40f18c8b"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
 <script src="js/computador.js?v=b08cf78a"></script>
 

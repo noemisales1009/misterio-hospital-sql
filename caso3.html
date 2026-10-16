@@ -132,7 +132,7 @@ ORDER BY diferenca DESC;</pre></div>
     <tr><td><code>NULL</code></td><td>valor vazio: aqui, uma saída sem receita</td><td>“campo da receita em branco”</td></tr>
     <tr><td><code>IS NULL</code></td><td>filtra quem está vazio (nunca = NULL)</td><td>“saídas sem receita”</td></tr>
     <tr><td><code>SUM(…)</code></td><td>soma o que sobrou depois do filtro</td><td>“quanto saiu sem receita”</td></tr>
-    <tr><td><code>JOIN colaborador</code></td><td>troca o número pelo nome de quem retirou</td><td>“Gilson Albuquerque, e não o id 14”</td></tr>
+    <tr><td><code>JOIN colaborador</code></td><td>troca o número pelo nome de quem retirou</td><td>“Gilson Amorim, e não o id 14”</td></tr>
   </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as saídas de <strong>morfina</strong> (<code>item_id = 1</code>) que não têm receita, com o nome de quem retirou e o motivo.</li><li>Some a quantidade. Isso explica os 47? Quanto <strong>sobra</strong>?</li></ul></div>
   <details><summary>Dica</summary><div><p>Filtre <code>tipo = 'saida'</code>, <code>item_id = 1</code> e <code>receita_id IS NULL</code>. Para ver o nome, faça <code>JOIN colaborador</code> pelo <code>colaborador_id</code>. Nunca use <code>= NULL</code>: o certo é <code>IS NULL</code>.</p></div></details>
@@ -172,7 +172,7 @@ WHERE m.item_id = 1
   AND m.quantidade &gt; r.quantidade
 GROUP BY c.nome
 ORDER BY excesso DESC;</pre></div>
-    <p>Para conferir: <strong>4</strong> pessoas. Edson Carvalhaes <strong>9</strong> ocorrências e excesso <strong>28</strong>; Marta Figueiredo 3 e 6; Sônia Lourenço 2 e 2; Lúcia Bittencourt 2 e 2. Total: <strong>38</strong>.</p></div></details>
+    <p>Para conferir: <strong>4</strong> pessoas. Edson Carvalhaes <strong>9</strong> ocorrências e excesso <strong>28</strong>; Leila Sandoval 3 e 6; Sônia Zanella 2 e 2; Solange Portela 2 e 2. Total: <strong>38</strong>.</p></div></details>
   <div class="done-row"><input type="checkbox" id="c3-ok3"><label for="c3-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c3-f4" data-fase="4" data-nome="Justificativa">
@@ -199,7 +199,7 @@ WHERE m.item_id = 1
   AND m.quantidade &gt; r.quantidade
 GROUP BY c.nome, situacao
 ORDER BY excesso DESC;</pre></div>
-    <p>Para conferir: sem justificativa ficam <strong>Edson Carvalhaes (28)</strong> e <strong>Lúcia Bittencourt (2)</strong>. Marta Figueiredo e Sônia Lourenço são justificadas.</p></div></details>
+    <p>Para conferir: sem justificativa ficam <strong>Edson Carvalhaes (28)</strong> e <strong>Solange Portela (2)</strong>. Leila Sandoval e Sônia Zanella são justificadas.</p></div></details>
   <div class="done-row"><input type="checkbox" id="c3-ok4"><label for="c3-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c3-f5" data-fase="5" data-nome="Madrugada">
@@ -293,7 +293,7 @@ CREATE TABLE movimento_estoque (
 
 INSERT INTO colaborador (id,nome,funcao,setor) VALUES
 (1,'Edson Carvalhaes','Técnico de Farmácia','Farmácia Central'),
-(2,'Lúcia Bittencourt','Técnico de Farmácia','Farmácia Central'),
+(2,'Solange Portela','Técnico de Farmácia','Farmácia Central'),
 (3,'Fabiana Ornelas','Técnico de Farmácia','Farmácia Central'),
 (4,'Lucas Salgado','Técnico de Farmácia','Farmácia Central'),
 (5,'Renata Ornelas','Técnico de Farmácia','Farmácia Central'),
@@ -315,8 +315,8 @@ INSERT INTO colaborador (id,nome,funcao,setor) VALUES
 (21,'Olívia Nogueira','Médico','UTI'),
 (22,'Bruna Jardim','Médico','Centro Cirúrgico'),
 (23,'Karina Nogueira','Médico','Pronto Atendimento'),
-(24,'Marta Figueiredo','Enfermeiro','UTI'),
-(25,'Gilson Albuquerque','Enfermeiro','UTI'),
+(24,'Leila Sandoval','Enfermeiro','UTI'),
+(25,'Gilson Amorim','Enfermeiro','UTI'),
 (26,'Paula Nascimento','Enfermeiro','Centro Cirúrgico'),
 (27,'Thiago Coelho','Enfermeiro','Emergência'),
 (28,'João Leite','Enfermeiro','Pronto Atendimento'),
@@ -329,7 +329,7 @@ INSERT INTO colaborador (id,nome,funcao,setor) VALUES
 (35,'Rafael Xavier','Enfermeiro','Pronto Atendimento'),
 (36,'Elisa Vidal','Enfermeiro','Emergência'),
 (37,'Davi Holanda','Enfermeiro','Pronto Atendimento'),
-(38,'Sônia Lourenço','Técnico de Enfermagem','UTI'),
+(38,'Sônia Zanella','Técnico de Enfermagem','UTI'),
 (39,'Alexandre Ibrahim','Técnico de Enfermagem','UTI'),
 (40,'Caio Henriques','Técnico de Enfermagem','Enfermaria'),
 (41,'Vítor Werneck','Técnico de Enfermagem','Enfermaria'),
@@ -1539,8 +1539,8 @@ SELECT '✅ Caso 3 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=f5b0d053"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=118f65dc"></script>
-<script src="js/caderno.js?v=3db2ae63"></script>
+<script src="js/catalogo.js?v=6652795a"></script>
+<script src="js/caderno.js?v=40f18c8b"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
 <script src="js/computador.js?v=b08cf78a"></script>
 

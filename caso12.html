@@ -322,7 +322,7 @@ SELECT SUM(a.qtd_enviada - a.qtd_recebida) FILTER (WHERE b.id IS NOT NULL) AS co
        SUM(a.qtd_enviada - a.qtd_recebida) FILTER (WHERE b.id IS NULL) AS sem_baixa
 FROM arvore a
 LEFT JOIN lote_baixa b ON b.guia_id = a.id;</pre></div>
-    <p>Para conferir: são <strong>2 elos quebrados</strong>. A guia <strong>1040</strong> (<code>SAT-ONC → HD</code>) saiu com 12 e chegou com 11; quem recebeu foi Lúcia Nogueira, e há termo de baixa: “Frasco caiu do carrinho no corredor e quebrou”. Perda justificada. A guia <strong>1065</strong> (<code>SAT-ONC → QT-AMB</code>) saiu com 10 e chegou com <strong>8</strong>, <strong>sem termo nenhum</strong>, e quem assinou o recebimento foi <strong>Hélio Prado</strong>. Na segunda missão: <code>com_baixa</code> = <strong>1</strong> e <code>sem_baixa</code> = <strong>2</strong>. A conta da auditoria fecha: 1 quebrado + 2 sumidos neste elo + 10 mandados para o setor desativado = <strong>13</strong>. Só que Hélio é técnico de enfermagem da <strong>UTI Adulto</strong>, não da Quimioterapia. Naquela manhã ele estava cobrindo uma folga. Foi ele? A última fase decide.</p>
+    <p>Para conferir: são <strong>2 elos quebrados</strong>. A guia <strong>1040</strong> (<code>SAT-ONC → HD</code>) saiu com 12 e chegou com 11; quem recebeu foi Lúcia Nogueira, e há termo de baixa: “Frasco caiu do carrinho no corredor e quebrou”. Perda justificada. A guia <strong>1065</strong> (<code>SAT-ONC → QT-AMB</code>) saiu com 10 e chegou com <strong>8</strong>, <strong>sem termo nenhum</strong>, e quem assinou o recebimento foi <strong>Hélio Loureiro</strong>. Na segunda missão: <code>com_baixa</code> = <strong>1</strong> e <code>sem_baixa</code> = <strong>2</strong>. A conta da auditoria fecha: 1 quebrado + 2 sumidos neste elo + 10 mandados para o setor desativado = <strong>13</strong>. Só que Hélio é técnico de enfermagem da <strong>UTI Adulto</strong>, não da Quimioterapia. Naquela manhã ele estava cobrindo uma folga. Foi ele? A última fase decide.</p>
   </div></details>
   <div class="done-row"><input type="checkbox" id="c12-ok4"><label for="c12-ok4">Etapa 4 concluída</label></div>
 </section>
@@ -348,8 +348,8 @@ WITH RECURSIVE cadeia AS (
   JOIN cadeia c ON f.id = c.chefe_id
 )
 SELECT nome, cargo, nivel FROM cadeia ORDER BY nivel;</pre></div>
-  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Quem forma a equipe da Farmácia Satélite da Oncologia? Comece pela pessoa responsável pelo local (<code>responsavel_id</code> de <code>SAT-ONC</code> em <code>lote_local</code>) e desça pela chefia. Mostre <code>nome</code>, <code>cargo</code>, <code>nivel</code> (1 para a responsável) e <code>cadeia</code>, a cadeia de chefia escrita com <code>→</code>, como <code>Fulana → Beltrano</code>.</li><li>Suba a cadeia de chefia de <strong>Hélio Prado</strong>, quem assinou o recebimento do elo quebrado: mostre <code>nome</code>, <code>cargo</code> e <code>nivel</code> (1 para o próprio Hélio). Ele responde a alguém da farmácia?</li><li>Junte tudo: as <strong>guias-problema</strong> da árvore do lote (destino fora das rotas autorizadas, <strong>ou</strong> recebida a menos sem termo de baixa) que foram <strong>enviadas por alguém da equipe da SAT-ONC</strong>. Mostre <code>nome</code> de quem enviou, quantas <code>guias</code> e quantos <code>frascos</code> sumiram (a guia inteira, quando o destino está fora do mapa; a diferença, quando o elo quebrou). Quem é o culpado? Confira com <code>SELECT verificar_caso12('Nome Completo');</code>.</li></ul></div>
-  <details><summary>Dica</summary><div><p>Primeira: âncora <code>SELECT id, nome, cargo, 1 AS nivel, nome AS cadeia FROM lote_funcionario WHERE id = (SELECT responsavel_id FROM lote_local WHERE codigo = 'SAT-ONC')</code>; parte recursiva com <code>JOIN equipe e ON f.chefe_id = e.id</code> e <code>e.cadeia || ' → ' || f.nome</code>. Segunda: é o exemplo acima, com <code>'Hélio Prado'</code>. Terceira: um <code>WITH RECURSIVE</code> com três blocos (<code>arvore</code>, <code>alcance</code> e <code>equipe</code>). No <code>SELECT</code> final, <code>LEFT JOIN lote_baixa</code>, a condição <code>destino NOT IN (SELECT destino FROM alcance) OR (qtd_recebida &lt; qtd_enviada AND b.id IS NULL)</code>, e <code>enviado_por IN (SELECT id FROM equipe)</code>. Para os frascos, um <code>CASE</code>: se o destino está fora do mapa, conte <code>qtd_enviada</code>; se não, a diferença.</p></div></details>
+  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Quem forma a equipe da Farmácia Satélite da Oncologia? Comece pela pessoa responsável pelo local (<code>responsavel_id</code> de <code>SAT-ONC</code> em <code>lote_local</code>) e desça pela chefia. Mostre <code>nome</code>, <code>cargo</code>, <code>nivel</code> (1 para a responsável) e <code>cadeia</code>, a cadeia de chefia escrita com <code>→</code>, como <code>Fulana → Beltrano</code>.</li><li>Suba a cadeia de chefia de <strong>Hélio Loureiro</strong>, quem assinou o recebimento do elo quebrado: mostre <code>nome</code>, <code>cargo</code> e <code>nivel</code> (1 para o próprio Hélio). Ele responde a alguém da farmácia?</li><li>Junte tudo: as <strong>guias-problema</strong> da árvore do lote (destino fora das rotas autorizadas, <strong>ou</strong> recebida a menos sem termo de baixa) que foram <strong>enviadas por alguém da equipe da SAT-ONC</strong>. Mostre <code>nome</code> de quem enviou, quantas <code>guias</code> e quantos <code>frascos</code> sumiram (a guia inteira, quando o destino está fora do mapa; a diferença, quando o elo quebrou). Quem é o culpado? Confira com <code>SELECT verificar_caso12('Nome Completo');</code>.</li></ul></div>
+  <details><summary>Dica</summary><div><p>Primeira: âncora <code>SELECT id, nome, cargo, 1 AS nivel, nome AS cadeia FROM lote_funcionario WHERE id = (SELECT responsavel_id FROM lote_local WHERE codigo = 'SAT-ONC')</code>; parte recursiva com <code>JOIN equipe e ON f.chefe_id = e.id</code> e <code>e.cadeia || ' → ' || f.nome</code>. Segunda: é o exemplo acima, com <code>'Hélio Loureiro'</code>. Terceira: um <code>WITH RECURSIVE</code> com três blocos (<code>arvore</code>, <code>alcance</code> e <code>equipe</code>). No <code>SELECT</code> final, <code>LEFT JOIN lote_baixa</code>, a condição <code>destino NOT IN (SELECT destino FROM alcance) OR (qtd_recebida &lt; qtd_enviada AND b.id IS NULL)</code>, e <code>enviado_por IN (SELECT id FROM equipe)</code>. Para os frascos, um <code>CASE</code>: se o destino está fora do mapa, conte <code>qtd_enviada</code>; se não, a diferença.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH RECURSIVE equipe AS (
   SELECT id, nome, cargo, 1 AS nivel, nome AS cadeia
@@ -366,7 +366,7 @@ ORDER BY nivel, nome;</pre></div>
     <div class="code"><pre data-sql>WITH RECURSIVE cadeia AS (
   SELECT id, nome, cargo, chefe_id, 1 AS nivel
   FROM lote_funcionario
-  WHERE nome = 'Hélio Prado'
+  WHERE nome = 'Hélio Loureiro'
   UNION ALL
   SELECT f.id, f.nome, f.cargo, f.chefe_id, c.nivel + 1
   FROM lote_funcionario f
@@ -414,7 +414,7 @@ WHERE (a.destino NOT IN (SELECT destino FROM alcance)
        OR (a.qtd_recebida &lt; a.qtd_enviada AND b.id IS NULL))
   AND a.enviado_por IN (SELECT id FROM equipe)
 GROUP BY f.nome;</pre></div>
-    <p>Para conferir: a equipe da <code>SAT-ONC</code> tem <strong>4 pessoas</strong> em 3 níveis: Sueli Arantes (farmacêutica responsável, nível 1), Ivo Matos (técnico líder, nível 2) e, no nível 3, <strong>Joana Leal</strong> e <strong>Wagner Bastos</strong>, auxiliares de farmácia. A cadeia de Hélio Prado sobe por Fátima Quaresma (enfermeira-chefe da UTI Adulto), Telma Guerra (Gerente de Enfermagem) e Heloísa Brandão (Diretora Assistencial): <strong>ninguém da farmácia</strong>. Hélio não mexia no estoque da satélite: só assinou o que chegou na Quimioterapia, e contou 8. Joana também sai limpa: a única perda dela tem termo de baixa. A missão final traz <strong>1 linha</strong>: <strong>Wagner Bastos</strong>, com <strong>3 guias</strong> e <strong>12 frascos</strong>. Ele registrou 10 frascos numa guia que chegou com 8, e mandou 6 + 4 frascos, tarde da noite, para o setor desativado <code>ONC-ANX</code>. Nessas duas guias, quem assinou o recebimento foi <strong>ele mesmo</strong>.</p>
+    <p>Para conferir: a equipe da <code>SAT-ONC</code> tem <strong>4 pessoas</strong> em 3 níveis: Sueli Arantes (farmacêutica responsável, nível 1), Ivo Matos (técnico líder, nível 2) e, no nível 3, <strong>Joana Leal</strong> e <strong>Wagner Veloso</strong>, auxiliares de farmácia. A cadeia de Hélio Loureiro sobe por Fátima Quaresma (enfermeira-chefe da UTI Adulto), Telma Guerra (Gerente de Enfermagem) e Heloísa Brandão (Diretora Assistencial): <strong>ninguém da farmácia</strong>. Hélio não mexia no estoque da satélite: só assinou o que chegou na Quimioterapia, e contou 8. Joana também sai limpa: a única perda dela tem termo de baixa. A missão final traz <strong>1 linha</strong>: <strong>Wagner Veloso</strong>, com <strong>3 guias</strong> e <strong>12 frascos</strong>. Ele registrou 10 frascos numa guia que chegou com 8, e mandou 6 + 4 frascos, tarde da noite, para o setor desativado <code>ONC-ANX</code>. Nessas duas guias, quem assinou o recebimento foi <strong>ele mesmo</strong>.</p>
   </div></details>
   <div class="done-row"><input type="checkbox" id="c12-ok5"><label for="c12-ok5">Etapa 5 concluída</label></div>
 </section>
@@ -544,10 +544,10 @@ INSERT INTO lote_funcionario (id,nome,cargo,local,chefe_id) VALUES
 (13,'Simone Freitas','Auxiliar de farmácia','SAT-CC',12),
 (14,'Sueli Arantes','Farmacêutica responsável','SAT-ONC',2),
 (15,'Ivo Matos','Técnico de farmácia líder','SAT-ONC',14),
-(16,'Wagner Bastos','Auxiliar de farmácia','SAT-ONC',15),
+(16,'Wagner Veloso','Auxiliar de farmácia','SAT-ONC',15),
 (17,'Joana Leal','Auxiliar de farmácia','SAT-ONC',15),
 (18,'Fátima Quaresma','Enfermeira-chefe','UTI-A',3),
-(19,'Hélio Prado','Técnico de enfermagem','UTI-A',18),
+(19,'Hélio Loureiro','Técnico de enfermagem','UTI-A',18),
 (20,'Bianca Rosendo','Enfermeira','UTI-A',18),
 (21,'Cláudia Mesquita','Enfermeira-chefe','UTI-P',3),
 (22,'Nara Vilela','Enfermeira','UTI-P',21),
@@ -999,8 +999,8 @@ SELECT '✅ Caso 12 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=f5b0d053"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=118f65dc"></script>
-<script src="js/caderno.js?v=3db2ae63"></script>
+<script src="js/catalogo.js?v=6652795a"></script>
+<script src="js/caderno.js?v=40f18c8b"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
 <script src="js/computador.js?v=b08cf78a"></script>
 
