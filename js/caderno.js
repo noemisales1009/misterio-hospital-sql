@@ -767,6 +767,7 @@
     var ta = el("textarea", "cad-nota-area"); ta.rows = (opt && opt.linhas) || 2; ta.maxLength = 4000;
     ta.placeholder = "Minhas anotações desta fase…"; ta.value = notas[fa.id] || "";
     var imagens = [], imagensSujas = false, verImg = 0, noVisor = false;
+    var aoMudar = (opt && opt.aoMudar) || null;   // quem usa o editor pode querer saber do que mudou (prévia da linha)
     var avisoNota = criaAviso(function (k) {
       var v = verImg, lote = imagens.slice(), sujas = imagensSujas;
       var passoImg = sujas ? salvaImagensNuvem(fa.id, lote) : Promise.resolve("ok");
@@ -818,6 +819,7 @@
       if (imagens.length) idbPut(fa.id, imagens.slice()); else idbDel(fa.id);
       pintaImg();
       avisoNota.alterou();
+      if (aoMudar) aoMudar(imagens.length);
     };
     var adicionaImg = function (d) {
       if (imagens.length >= IMG_MAX_POR_FASE) { toast("Máximo de " + IMG_MAX_POR_FASE + " imagens por anotação"); return; }
@@ -869,7 +871,7 @@
     };
     idbGet(fa.id).then(function (v) {
       var l = listaImagens(v);
-      if (l.length && !imagens.length) { imagens = l; pintaImg(); }
+      if (l.length && !imagens.length) { imagens = l; pintaImg(); if (aoMudar) aoMudar(imagens.length); }
     });
     addImg.addEventListener("click", function () { escolherArquivoImagem(adicionaArquivos, true); });
     // botão "Colar imagem": lê a imagem que está na área de transferência
@@ -909,8 +911,10 @@
     ta.addEventListener("input", function () {
       notas[fa.id] = ta.value; gravar(K_NOTAS, notas);
       avisoNota.alterou();
+      if (aoMudar) aoMudar(imagens.length);
     });
-    avisoNota.inicia();
+    // na aba Missões o aviso fica uma vez só, no topo; o editor só fala quando algo for salvo
+    if (!(opt && opt.semAvisoInicial)) avisoNota.inicia();
     raiz.appendChild(ta);
     raiz.appendChild(avisoNota.no);
     raiz.appendChild(areaImg);
@@ -924,7 +928,9 @@
 
   function paginaMissoes(r) {
     var c = corpo;
-    c.appendChild(el("p", "cad-nota", "Cada fase tem seu espaço de anotações. Ele fica salvo automaticamente."));
+    c.appendChild(el("p", "cad-nota cad-missoes-intro", "Toque numa fase para abrir o espaço de anotações dela. " +
+      (nuvem() ? "☁ Tudo é salvo sozinho, neste aparelho e na nuvem." : "✓ Tudo é salvo sozinho neste aparelho. Entre na conta para guardar na nuvem também.")));
+    var linhas = {};   // fase -> controle da linha (as que têm foto guardada abrem quando o IndexedDB responder)
     CAT.forEach(function (cs, ci) {
       var feitas = cs.fases.filter(function (fa) { return r.st[fa.id]; }).length;
       var d = el("details", "cad-caso");
@@ -935,27 +941,77 @@
       var lista = el("div", "cad-fases");
       cs.fases.forEach(function (fa, i) {
         var feita = !!r.st[fa.id], lib = liberada(cs.fases, i, r.st);
+        var emAndamento = lib && !feita && feitas > 0;   // a fase da vez, num caso que a pessoa já começou
         var linha = el("div", "cad-fase" + (feita ? " feita" : lib ? " atual" : " trava"));
         var cab = el("div", "cad-fase-cab");
         cab.appendChild(el("span", "cad-fase-i", feita ? "✓" : lib ? "▶" : "🔒"));
         var tit = el("div", "cad-fase-t");
         tit.appendChild(el("b", null, fa.num + " · " + (fa.titulo || fa.nome)));
         if (fa.sub) tit.appendChild(el("span", "cad-nota", fa.sub));
+        var previa = el("span", "cad-fase-previa");
+        tit.appendChild(previa);
         cab.appendChild(tit);
+        var abrir = el("button", "cad-fase-abrir"); abrir.type = "button";
+        abrir.setAttribute("aria-expanded", "false");
+        cab.appendChild(abrir);
         if (lib) {
           var ir = el("a", "btn", feita ? "Rever" : "Ir"); ir.href = cs.arq + "#" + fa.id;
           ir.addEventListener("click", function () { dlg.close(); });
           cab.appendChild(ir);
         }
-        linha.appendChild(cab);
-        if (fa.missao) linha.appendChild(el("p", "cad-missao", fa.missao));
-        var ed = criaEditorNota(fa);
-        linha.appendChild(ed.no);
+        var corpoFase = el("div", "cad-fase-corpo"); corpoFase.hidden = true;
+        if (fa.missao) corpoFase.appendChild(el("p", "cad-missao", fa.missao));
+        var ed = null, nImg = 0;
+        var aberta = function () { return linha.classList.contains("aberta"); };
+        // linha fechada: um resumo do que já tem ("texto…" · 2 fotos); botão diz o que fazer
+        var resumo = function () {
+          var txt = (notas[fa.id] || "").trim().replace(/\s+/g, " ");
+          var partes = [];
+          if (txt) partes.push("“" + (txt.length > 70 ? txt.slice(0, 70) + "…" : txt) + "”");
+          if (nImg) partes.push(nImg + (nImg > 1 ? " fotos" : " foto"));
+          previa.textContent = aberta() ? "" : partes.join(" · ");
+          linha.classList.toggle("com-nota", !!(txt || nImg));
+          abrir.textContent = aberta() ? "▾ Fechar" : (txt || nImg ? "▸ Abrir" : "✎ Anotar");
+          abrir.title = aberta() ? "Fechar as anotações desta fase" : "Abrir as anotações desta fase";
+        };
+        var abre = function (foco) {
+          if (!ed) {
+            ed = criaEditorNota(fa, { semAvisoInicial: true, aoMudar: function (n) { nImg = n; resumo(); } });
+            corpoFase.appendChild(ed.no);
+          }
+          corpoFase.hidden = false; linha.classList.add("aberta"); abrir.setAttribute("aria-expanded", "true");
+          resumo();
+          if (foco) ed.foca();
+        };
+        var fecha = function () {
+          corpoFase.hidden = true; linha.classList.remove("aberta"); abrir.setAttribute("aria-expanded", "false");
+          if (ed) ed.descarrega();
+          resumo();
+        };
+        abrir.addEventListener("click", function () { if (aberta()) fecha(); else abre(true); });
+        cab.addEventListener("click", function (e) {
+          if (e.target.closest("a, button")) return;   // "Rever"/"Ir" e o botão têm vez própria
+          if (aberta()) fecha(); else abre(false);
+        });
+        linha.appendChild(cab); linha.appendChild(corpoFase);
         lista.appendChild(linha);
+        linhas[fa.id] = { linha: linha, abre: abre, fotos: function (n) { nImg = n; resumo(); } };
+        resumo();
+        if ((notas[fa.id] || "").trim() || emAndamento) abre(false);
       });
       d.appendChild(lista);
       c.appendChild(d);
     });
+    // fases com fotos guardadas neste aparelho: já abrem mostrando as fotos
+    idbChaves().then(function (ks) {
+      (ks || []).forEach(function (k) {
+        var l = linhas[k]; if (!l || !l.linha.isConnected) return;
+        idbGet(k).then(function (v) {
+          var n = listaImagens(v).length;
+          if (n && l.linha.isConnected) { l.fotos(n); l.abre(false); }
+        });
+      });
+    }).catch(function () {});
   }
 
   function paginaComandos(r) {
@@ -1383,6 +1439,14 @@
     var F = "url(#" + id + "h)";
     var cabeca = CABECAS[t.f] || CABECAS.oval;
     var ex = cabeca.ex;
+    // detalhes que mudam de pessoa para pessoa (estáveis, calculados do nome): cabeça levemente inclinada, nariz mais fino ou mais largo
+    var hh = hashTexto(nome);
+    var inclina = ((hh >>> 13) % 5 - 2) * 1.1, nariz = [0.9, 1, 1.13][(hh >>> 5) % 3];
+    // rubor e brilho de pele: mais quentes e suaves nos tons escuros (o rosado fixo virava mancha)
+    var RUBOR = { clara: ["#e0675c", .34], media: ["#dd6a55", .32], morena: ["#d2603f", .34], escura: ["#cf7448", .4], negra: ["#c27a4d", .44] };
+    var LUZ_PELE = { clara: .12, media: .15, morena: .2, escura: .27, negra: .32 };
+    var LUZ_COR = { clara: "#fff", media: "#fff", morena: "#ffe2c6", escura: "#ffc898", negra: "#ffc08a" };
+    var rub = RUBOR[t.p] || RUBOR.media, luzPele = LUZ_PELE[t.p] || LUZ_PELE.media;
     // enquadramento fechado no rosto e nos ombros (o rosto ocupa mais a foto); ancorado embaixo
     var s = '<svg viewBox="3 6 94 94" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Retrato de ' + nome + '">';
     s += '<defs>' +
@@ -1391,13 +1455,17 @@
       '<linearGradient id="' + id + 's" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".34"/><stop offset=".26" stop-color="#000" stop-opacity="0"/><stop offset=".74" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".34"/></linearGradient>' +
       '<linearGradient id="' + id + 'n" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + clareia(pele[1], -.12) + '"/><stop offset=".4" stop-color="' + pele[1] + '"/><stop offset=".75" stop-color="' + pele[0] + '"/></linearGradient>' +
       '<radialGradient id="' + id + 'b"><stop offset="0" stop-color="#fff" stop-opacity=".4"/><stop offset=".6" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="' + id + 'r"><stop offset="0" stop-color="' + rub[0] + '" stop-opacity="' + rub[1] + '"/><stop offset="1" stop-color="' + rub[0] + '" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="' + id + 'l"><stop offset="0" stop-color="' + (LUZ_COR[t.p] || "#fff") + '" stop-opacity="' + luzPele + '"/><stop offset="1" stop-color="' + (LUZ_COR[t.p] || "#fff") + '" stop-opacity="0"/></radialGradient>' +
       '<clipPath id="' + id + 't"><path d="M3 112 C5 90 26 81 50 81 C74 81 95 90 97 112 Z"/></clipPath>' +
       '</defs>';
-    s += cabeloTras(t.h, F, luz);
+    var gira = '<g transform="rotate(' + inclina + ' 50 86)">';
+    s += gira + cabeloTras(t.h, F, luz) + '</g>';
     // pescoço, com a sombra do queixo
     s += '<path d="M42.5 62 L42.5 84 C42.5 89 57.5 89 57.5 84 L57.5 62Z" fill="url(#' + id + 'n)"/>';
     s += roupaSVG(t.r || "casual", t.x, pele, id + "s", t.pe, id + "t", t.gr);
     // orelhas (com brinco, se tiver)
+    s += gira;
     [50 - ex - 0.7, 50 + ex + 0.7].forEach(function (cx) {
       s += '<ellipse cx="' + cx.toFixed(1) + '" cy="49.5" rx="3.3" ry="5.4" fill="' + pele[0] + '"/><ellipse cx="' + (cx + (cx < 50 ? 0.5 : -0.5)).toFixed(1) + '" cy="50" rx="1.5" ry="3.2" fill="' + pele[1] + '" opacity=".6"/>';
       if (t.br) s += '<circle cx="' + (cx + (cx < 50 ? 0.4 : -0.4)).toFixed(1) + '" cy="55.6" r="1.5" fill="#e3b94f" stroke="#a88428" stroke-width=".5"/>';
@@ -1405,7 +1473,11 @@
     // rosto
     s += '<path d="' + cabeca.d + '" fill="url(#' + id + 'p)"/>';
     s += '<path d="M31.4 56 C34 73 66 73 68.6 56 C64 67 36 67 31.4 56Z" fill="' + pele[1] + '" opacity=".24"/>';
-    s += '<ellipse cx="37.6" cy="57.4" rx="4.6" ry="3" fill="#e0675c" opacity=".17"/><ellipse cx="62.4" cy="57.4" rx="4.6" ry="3" fill="#e0675c" opacity=".17"/>';
+    s += '<ellipse cx="37.2" cy="57.2" rx="6.6" ry="4.6" fill="url(#' + id + 'r)"/><ellipse cx="62.8" cy="57.2" rx="6.6" ry="4.6" fill="url(#' + id + 'r)"/>';
+    // luz suave na testa, nas maçãs do rosto e na ponta do nariz (dá volume, principalmente aos tons escuros)
+    s += '<ellipse cx="46.5" cy="34.5" rx="12" ry="6.4" fill="url(#' + id + 'l)"/>' +
+      '<ellipse cx="35.4" cy="52.4" rx="5.2" ry="3.2" fill="url(#' + id + 'l)"/><ellipse cx="64.6" cy="52.4" rx="5.2" ry="3.2" fill="url(#' + id + 'l)"/>' +
+      '<ellipse cx="49.3" cy="57.4" rx="2.8" ry="2.1" fill="url(#' + id + 'l)"/>';
     if (t.sa) {
       [[41, 55], [43.6, 57.2], [39.4, 57.8], [44.8, 54.2], [59, 55], [56.4, 57.2], [60.6, 57.8], [55.2, 54.2], [48.2, 56.4], [51.8, 56.4]].forEach(function (q, i) {
         s += '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="' + (0.5 + (i % 3) * 0.1).toFixed(1) + '" fill="#a0602f" opacity=".5"/>';
@@ -1417,8 +1489,10 @@
     }
     // sobrancelhas
     var g = t.s === "serio" || t.b ? 0.5 : 0.2;
-    s += '<path d="M35.4 43.8 Q41 39.6 47.4 42.4 L47.2 44.1 Q41.6 41.9 36 45.6Z" fill="' + cab + '" stroke="' + cab + '" stroke-width="' + g + '" stroke-linejoin="round"/>' +
-      '<path d="M64.6 43.8 Q59 39.6 52.6 42.4 L52.8 44.1 Q58.4 41.9 64 45.6Z" fill="' + cab + '" stroke="' + cab + '" stroke-width="' + g + '" stroke-linejoin="round"/>';
+    // o humor aparece na sobrancelha: séria desce para dentro, sorriso largo sobe um pouco
+    var inc = t.s === "serio" ? 4 : t.s === "largo" ? -2.5 : 0, alto = t.s === "largo" ? -0.8 : 0;
+    s += '<g transform="translate(0 ' + alto + ')"><path transform="rotate(' + inc + ' 41.4 43.8)" d="M35.4 43.8 Q41 39.6 47.4 42.4 L47.2 44.1 Q41.6 41.9 36 45.6Z" fill="' + cab + '" stroke="' + cab + '" stroke-width="' + g + '" stroke-linejoin="round"/>' +
+      '<path transform="rotate(' + (-inc) + ' 58.6 43.8)" d="M64.6 43.8 Q59 39.6 52.6 42.4 L52.8 44.1 Q58.4 41.9 64 45.6Z" fill="' + cab + '" stroke="' + cab + '" stroke-width="' + g + '" stroke-linejoin="round"/></g>';
     // olhos
     [41.5, 58.5].forEach(function (cx, k) {
       s += '<path d="M' + (cx - 4.8) + ' 47.8 Q' + cx + ' 44.2 ' + (cx + 4.8) + ' 47.8 Q' + cx + ' 50.8 ' + (cx - 4.8) + ' 47.8Z" fill="#fbf7f2"/>' +
@@ -1429,9 +1503,9 @@
       if (t.ci) s += '<path d="M' + (k ? cx + 5 : cx - 5) + ' 47.2 l' + (k ? 1.5 : -1.5) + ' -1.3" stroke="' + clareia(cab, -.3) + '" stroke-width=".8" fill="none" stroke-linecap="round"/>';
     });
     // nariz
-    s += '<path d="M50.6 50 C51.4 54 52.4 57 51.2 59 Q50 60.2 48.8 59 C47.8 57.6 48.4 55.8 49 54" fill="none" stroke="' + pele[1] + '" stroke-width=".95" stroke-linecap="round" opacity=".7"/>' +
+    s += '<g transform="translate(50 59) scale(' + nariz + ' 1) translate(-50 -59)"><path d="M50.6 50 C51.4 54 52.4 57 51.2 59 Q50 60.2 48.8 59 C47.8 57.6 48.4 55.8 49 54" fill="none" stroke="' + pele[1] + '" stroke-width=".95" stroke-linecap="round" opacity=".7"/>' +
       '<path d="M52.4 53 Q53.6 57 51.8 59" fill="none" stroke="#000" stroke-width="1.6" opacity=".05"/>' +
-      '<ellipse cx="48.6" cy="59.6" rx=".9" ry=".5" fill="' + pele[1] + '" opacity=".75"/><ellipse cx="51.4" cy="59.6" rx=".9" ry=".5" fill="' + pele[1] + '" opacity=".75"/>';
+      '<ellipse cx="48.6" cy="59.6" rx=".9" ry=".5" fill="' + pele[1] + '" opacity=".75"/><ellipse cx="51.4" cy="59.6" rx=".9" ry=".5" fill="' + pele[1] + '" opacity=".75"/></g>';
     s += cabeloFrente(t.h, F, luz, sombra, id, cabeca.d);
     // boca (por cima da barba)
     var labio = t.ci ? "#b5504a" : "#9b5146";
@@ -1439,7 +1513,7 @@
       : t.s === "largo" ? '<path d="M42.6 64 Q50 72.4 57.4 64 Q50 66.4 42.6 64Z" fill="#fff" stroke="#7a3b2e" stroke-width="1.3" stroke-linejoin="round"/><path d="M44.5 66 Q50 69 55.5 66" stroke="' + labio + '" stroke-width="1.4" fill="none" opacity=".7"/>'
       : '<path d="M43.6 65 Q50 70.4 56.4 65" stroke="#7a3b2e" stroke-width="1.9" fill="none" stroke-linecap="round"/><path d="M46 67.4 Q50 69.4 54 67.4" stroke="' + labio + '" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".75"/>';
     s += barbaSVG(t.b, F, luz) + boca + oculosSVG(t.o);
-    return s + '</svg>';
+    return s + '</g></svg>';
   }
   // nome do arquivo da ilustração: minúsculas, sem acento, hífen no lugar dos espaços
   function slugRetrato(nome) {
@@ -1530,9 +1604,14 @@
     card.classList.toggle("encerrado", feito);
     card.classList.toggle("resolvido", feito);
     if (!feito) return;
-    card.appendChild(carimboConcluido());
     var cul = CULPADOS[cs.arq];
-    if (cul) card.insertBefore(fichaCulpado(cul, false), card.querySelector(".caso-go"));
+    if (cul) {
+      // o selo "Culpado" vai em cima do retrato de quem é culpado: não ocupa lugar no cartão
+      var ficha = fichaCulpado(cul, false);
+      [].forEach.call(ficha.querySelectorAll(".ficha-retrato"), function (ret) { ret.appendChild(el("span", "mural-selo", "Culpado")); });
+      card.insertBefore(ficha, card.querySelector(".caso-go"));
+    }
+    card.appendChild(carimboConcluido());   // carimbo grande, na diagonal, atravessando o cartão
   }
   // painel no fim da página do caso
   var jaEncerrado = false;
@@ -1961,7 +2040,7 @@
       fig.appendChild(el("span", "mural-num", String(cs.n)));
       var ret = el("div", "ficha-retrato");
       ret.innerHTML = feito && cul ? retratoCulpado(cul) : svgSilhueta();
-      if (feito && cul) ret.appendChild(el("span", "mural-selo", "Concluído"));
+      if (feito && cul) ret.appendChild(el("span", "mural-selo", "Culpado"));
       fig.appendChild(ret);
       var nome = feito && cul ? nomesCompletos(cul) : "?";
       var leg = el("figcaption");
@@ -1985,36 +2064,47 @@
     var quadro = document.querySelector(".quadro-home") || document.querySelector(".wrap");
     var rq = quadro ? quadro.getBoundingClientRect() : { left: 0, right: window.innerWidth };
     var sobraEsq = rq.left - 28;
-    // as 10 fotos ficam na esquerda, em duas colunas (casos 1 a 5 e 6 a 10); o tamanho acompanha a altura da tela
-    var linhas = Math.ceil(CASOS.length / 2);
+    // as fotos ficam na esquerda, em duas colunas (ou três, quando assim saem maiores); o tamanho acompanha a
+    // altura e a largura da tela, e a disposição que deixa as fotos maiores é a escolhida
     var altura = window.innerHeight - 120;
-    // com muitas fotos por coluna, o vão entre elas diminui para as fotos não ficarem minúsculas
-    var vao = linhas > 5 ? 6 : 15;
-    var wAltura = (altura - vao * (linhas - 1) - 42 * linhas) / (0.94 * linhas);
-    var AW = Math.min(sobraEsq, 440);          // largura que as duas colunas podem ocupar
-    var folga = 30;                            // espaço para o "tortinho" de cada lado
-    var wLargura = (AW - 16) / 2 - 2 * folga;
-    var w = Math.floor(Math.max(56, Math.min(140, wAltura, wLargura)));
-    var dxMax = Math.max(0, Math.min(folga + 6, ((AW - 16) / 2 - w) / 2 - 4));
+    var AW = Math.min(sobraEsq, 440);          // largura que as colunas podem ocupar
+    var medidas = function (ncol) {
+      var lin = Math.ceil(CASOS.length / ncol);
+      // com muitas fotos por coluna, o vão entre elas diminui para as fotos não ficarem minúsculas
+      var espaco = lin > 5 ? 6 : 15;
+      var fg = ncol > 2 ? 22 : 30;             // espaço para o "tortinho" de cada lado
+      var wAlt = (altura - espaco * (lin - 1) - 42 * lin) / (0.94 * lin);
+      var wLar = (AW - 16 * (ncol - 1)) / ncol - 2 * fg;
+      return { ncol: ncol, linhas: lin, vao: espaco, folga: fg, w: Math.floor(Math.max(56, Math.min(140, wAlt, wLar))) };
+    };
+    var m2 = medidas(2), m3 = medidas(3);
+    var med = CASOS.length > 10 && m3.w > m2.w ? m3 : m2;
+    var linhas = med.linhas, vao = med.vao, w = med.w;
+    var dxMax = Math.max(0, Math.min(med.folga + 6, (((AW - 16 * (med.ncol - 1)) / med.ncol) - w) / 2 - 4));
     var giros = [-4.6, 3.4, -2.8, 4.2, -3.6, 2.8, -4.2, 3.6, -3, 4.4];
     var desloc = [-1, 0.7, -0.4, 1, -0.75];
     muralEsq.style.setProperty("--foto-w", w + "px");
-    var colA = el("div", "mural-col fotos"), colB = el("div", "mural-col fotos");
-    // a folga do "tortinho" fica dentro de cada coluna: as fotos não invadem a vizinha
-    colA.style.padding = "0 " + Math.round(dxMax) + "px"; colB.style.padding = "0 " + Math.round(dxMax) + "px";
-    colA.style.gap = colB.style.gap = vao + "px";
+    var cols = [];
+    for (var ci = 0; ci < med.ncol; ci++) {
+      var col = el("div", "mural-col fotos");
+      // a folga do "tortinho" fica dentro de cada coluna: as fotos não invadem a vizinha
+      col.style.padding = "0 " + Math.round(dxMax) + "px";
+      col.style.gap = vao + "px";
+      cols.push(col);
+    }
     CASOS.forEach(function (cs, i) {
       var cul = CULPADOS[cs.arq];
       var feito = casoCompleto(cs, r.st);
       var fig = el("figure", "mural-item mural-foto mini");
       fig.style.setProperty("--giro", giros[i % giros.length] + "deg");
-      fig.style.setProperty("--dx", Math.round(desloc[(i + (i >= linhas ? 2 : 0)) % linhas] * dxMax) + "px");
+      // o "tortinho" se repete a cada 5 fotos; cada coluna começa 2 passos adiante da vizinha
+      fig.style.setProperty("--dx", Math.round(desloc[(i % linhas + 2 * Math.floor(i / linhas)) % desloc.length] * dxMax) + "px");
       fig.appendChild(el("span", "pino pino-" + pinos[i % 4]));
       fig.appendChild(el("span", "mural-num", String(cs.n)));
       var ret = el("div", "ficha-retrato");
       ret.innerHTML = feito && cul ? retratoCulpado(cul) : svgSilhueta();
       // o carimbo fica dentro da foto, na parte de baixo do retrato (não cobre o nome)
-      if (feito && cul) ret.appendChild(el("span", "mural-selo", "Concluído"));
+      if (feito && cul) ret.appendChild(el("span", "mural-selo", "Culpado"));
       fig.appendChild(ret);
       var leg = el("figcaption");
       var nomeCompleto = feito && cul ? nomesCompletos(cul) : "?";
@@ -2025,10 +2115,9 @@
       leg.appendChild(nb);
       leg.appendChild(el("small", null, feito && cul ? "Caso " + cs.n + " · " + cs.titulo : "Culpado do Caso " + cs.n));
       fig.appendChild(leg);
-      (i < linhas ? colA : colB).appendChild(fig);
+      cols[Math.min(Math.floor(i / linhas), cols.length - 1)].appendChild(fig);
     });
-    muralEsq.appendChild(colA);
-    muralEsq.appendChild(colB);
+    cols.forEach(function (col) { muralEsq.appendChild(col); });
     // à direita: o andamento, em post-its
     var colNotas = el("div", "mural-col notas");
     var cores = ["#fff1a0", "#ffd9e2", "#d6f0c5", "#cfe6fb"];
@@ -2041,13 +2130,20 @@
            : { t: "Parabéns, detetive!", x: "Você encerrou todos os casos." }
     ];
     if (r.qtdNotas) notas.push({ t: "Suas anotações", x: r.qtdNotas + (r.qtdNotas === 1 ? " fase com anotação." : " fases com anotação.") });
+    // cada andamento é uma pasta de arquivo (fundo com aba, folha aparecendo, frente) com o post-it colado em cima
     notas.forEach(function (nt, i) {
-      var no = el("div", "mural-item mural-nota");
-      no.style.setProperty("--cor", cores[i % 4]);
-      no.style.setProperty("--giro", (i % 2 ? -2.4 : 2.2) + "deg");
-      no.appendChild(el("span", "pino pino-" + pinos[(i + 2) % 4]));
-      no.appendChild(el("small", null, nt.t));
-      no.appendChild(el("p", null, nt.x));
+      var no = el("div", "mural-item mural-nota pasta");
+      no.style.setProperty("--giro", (i % 2 ? -1.2 : 1.1) + "deg");
+      no.appendChild(el("span", "pasta-fundo"));
+      no.appendChild(el("span", "pasta-papel"));
+      no.appendChild(el("span", "pasta-frente"));
+      var post = el("div", "pasta-post");
+      post.style.setProperty("--cor", cores[i % 4]);
+      post.style.setProperty("--giro-post", (i % 2 ? 2.4 : -2.2) + "deg");
+      post.appendChild(el("span", "pino pino-" + pinos[(i + 2) % 4]));
+      post.appendChild(el("small", null, nt.t));
+      post.appendChild(el("p", null, nt.x));
+      no.appendChild(post);
       colNotas.appendChild(no);
     });
     muralDir.appendChild(colNotas);
