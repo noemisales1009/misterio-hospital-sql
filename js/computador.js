@@ -73,21 +73,34 @@
       motor.tabelas = ordem.map(function (n) { return { nome: n, colunas: mapa[n] }; });
     });
   }
-  // ------------------------------------------------------------------ o caderno do detetive
-  // A tabela "caderno" (fase Extra) é da pessoa, não do caso. O banco nasce de novo a cada visita,
-  // então guardamos no navegador os comandos que mexem SÓ no caderno e os refazemos ao ligar.
-  var ALVO_ESCRITA = /\b(?:insert\s+into|update|delete\s+from|drop\s+table(?:\s+if\s+exists)?|alter\s+table(?:\s+if\s+exists)?|truncate(?:\s+table)?|create\s+table(?:\s+if\s+not\s+exists)?)\s+"?([a-z_][a-z0-9_]*)"?/gi;
-  var MUDA_ESQUEMA = /\b(create|drop|alter)\s+table\b/i;
+  // ------------------------------------------------------------------ as tabelas da pessoa
+  // O "caderno" (fase Extra) e as tabelas enf_* (fases E, F e G) são da pessoa, não do caso. O banco
+  // nasce de novo a cada visita, então guardamos no navegador os comandos que mexem SÓ nelas e os
+  // refazemos ao ligar. Também vale para views (enf_...) e índices (idx_enf_...).
+  var ALVO_ESCRITA = /\b(?:insert\s+into|update|delete\s+from|drop\s+(?:table|view|index)(?:\s+if\s+exists)?|alter\s+table(?:\s+if\s+exists)?(?:\s+only)?|truncate(?:\s+table)?|create\s+(?:or\s+replace\s+)?(?:table|view)(?:\s+if\s+not\s+exists)?|create\s+(?:unique\s+)?index(?:\s+if\s+not\s+exists)?(?:\s+"?[a-z_][a-z0-9_]*"?)?\s+on(?:\s+only)?)\s+"?([a-z_][a-z0-9_]*)"?/gi;
+  var NOME_MEU = /^(caderno|(idx_)?enf_[a-z0-9_]+)$/;
+  var MUDA_ESQUEMA = /\b(create|drop|alter)\s+(or\s+replace\s+)?(unique\s+)?(table|view|index)\b/i;
+  var MOSTRA_RESULTADO = /\b(insert\s+into|update|delete\s+from|truncate|create\s+(or\s+replace\s+)?(table|view)|alter\s+table)\b/i;
   function paginaAtual() { return location.pathname.split("/").pop().replace(/\.html$/, "") || "index"; }
-  function soMexeNoCaderno(sql) {
+  function alvosDe(sql) {
     var limpo = sql.replace(/--[^\n]*/g, "");
     var alvos = [], m;
     ALVO_ESCRITA.lastIndex = 0;
     while ((m = ALVO_ESCRITA.exec(limpo))) alvos.push(m[1].toLowerCase());
-    return alvos.length > 0 && alvos.every(function (a) { return a === "caderno"; });
+    return alvos;
+  }
+  function soMexeNasMinhas(sql) {
+    var alvos = alvosDe(sql);
+    return alvos.length > 0 && alvos.every(function (a) { return NOME_MEU.test(a); });
+  }
+  // a única tabela (ou view) da pessoa que o comando mexeu, para mostrar como ela ficou
+  function tabelaMexida(sql) {
+    if (!MOSTRA_RESULTADO.test(sql) || /\bdrop\b/i.test(sql) || !soMexeNasMinhas(sql)) return null;
+    var alvos = alvosDe(sql).filter(function (a, i, v) { return v.indexOf(a) === i; });
+    return alvos.length === 1 ? alvos[0] : null;
   }
   function guardaMinhas(sql) {
-    if (!soMexeNoCaderno(sql)) return;
+    if (!soMexeNasMinhas(sql)) return;
     var todas = ler(K_MINHAS, {});
     var lista = todas[paginaAtual()] || [];
     if (lista.length >= MAX_MINHAS) return;
@@ -177,6 +190,12 @@
     if (/must appear in the GROUP BY/.test(msg)) return "Toda coluna do SELECT precisa estar no GROUP BY ou dentro de COUNT, SUM, MAX…";
     if (/operator does not exist/.test(msg)) return "Os tipos não combinam (texto com número?). Confira aspas e valores.";
     if (/unterminated quoted string/.test(msg)) return "Faltou fechar uma aspa.";
+    if ((m = /null value in column "([^"]+)"/.exec(msg))) return "A coluna \"" + m[1] + "\" é obrigatória (NOT NULL): não dá para deixar em branco.";
+    if (/duplicate key value violates unique constraint/.test(msg)) return "Esse valor já existe, e a coluna não aceita repetidos (UNIQUE ou chave primária).";
+    if ((m = /violates check constraint "([^"]+)"/.exec(msg))) return "O valor não passou na regra CHECK \"" + m[1] + "\". Confira se está dentro do que a tabela permite.";
+    if (/violates foreign key constraint/.test(msg)) return "Chave estrangeira: o número usado não existe na outra tabela (ao inserir), ou ainda é usado por outra tabela (ao apagar).";
+    if (/cannot drop .* because other objects depend on it/.test(msg)) return "Outras tabelas ou views dependem dela. Apague primeiro quem depende.";
+    if ((m = /relation "([^"]+)" already exists/.exec(msg))) return "\"" + m[1] + "\" já existe. Para recomeçar, apague com DROP antes.";
     return null;
   }
 
@@ -241,7 +260,7 @@
     colar.title = "Cola o que você copiou, no ponto onde está o cursor";
     var limpar = el("button", "pc-botao", "Limpar"); limpar.type = "button";
     var reset = el("button", "pc-botao", "Reiniciar banco"); reset.type = "button";
-    reset.title = "Volta as tabelas do mistério ao começo, desfazendo o que você alterou nelas. Seu caderno é mantido (para apagá-lo: DROP TABLE caderno;)";
+    reset.title = "Volta as tabelas do mistério ao começo, desfazendo o que você alterou nelas. As tabelas que você criou (caderno, enf_...) são mantidas; para apagar uma, use DROP TABLE.";
     acoes.appendChild(ligarBtn); acoes.appendChild(rodar); acoes.appendChild(copiar); acoes.appendChild(colar);
     acoes.appendChild(limpar); acoes.appendChild(reset);
     acoes.appendChild(el("span", "pc-dica", "Ctrl+Enter roda"));
@@ -397,11 +416,12 @@
       saida.appendChild(topo);
       saida.appendChild(tabelaDe(res));
     }
-    // CREATE/INSERT/UPDATE/DELETE não devolvem linhas: mostra como o caderno ficou depois do comando
-    function mostraCaderno(sql, res) {
-      if (!res.semTabela || !soMexeNoCaderno(sql) || /\bdrop\s+table\b/i.test(sql)) return Promise.resolve();
-      return executa("SELECT * FROM caderno ORDER BY id").then(function (c) {
-        saida.appendChild(el("div", "pc-resumo", "Como o caderno ficou: " + resumoDe(c.linhas.length) + "."));
+    // CREATE/INSERT/UPDATE/DELETE não devolvem linhas: mostra como a tabela da pessoa ficou depois do comando
+    function mostraMinha(sql, res) {
+      var nome = res.semTabela ? tabelaMexida(sql) : null;
+      if (!nome) return Promise.resolve();
+      return executa("SELECT * FROM " + nome + " ORDER BY 1").then(function (c) {
+        saida.appendChild(el("div", "pc-resumo", "Como ficou " + nome + ": " + resumoDe(c.linhas.length) + "."));
         saida.appendChild(tabelaDe(c));
       }).catch(function () {});
     }
@@ -462,10 +482,11 @@
           var rod = el("div", "pc-rodape", "executado em " + seg + " s");
           saida.appendChild(rod);
           guardaMinhas(sql);
-          var fim = function () { return mostraCaderno(sql, res).then(function () { return veredito(res); }); };
+          var fim = function () { return mostraMinha(sql, res).then(function () { return veredito(res); }); };
           if (!MUDA_ESQUEMA.test(sql)) return fim();
           return atualizaTabelas().then(function () {
             if (/\bcreate\s+table\b/i.test(sql)) saida.appendChild(el("div", "pc-rodape", "A tabela nova já aparece no painel TABELAS, à esquerda."));
+            else if (/\bcreate\s+(or\s+replace\s+)?view\b/i.test(sql)) saida.appendChild(el("div", "pc-rodape", "A view nova já aparece no painel TABELAS, à esquerda."));
             return fim();
           });
         });
@@ -544,7 +565,7 @@
       mensagem("> reiniciando o banco de dados…", "boot");
       reiniciar().then(function () {
         marca("ligado", "ligado");
-        mensagem(temMinhas() ? "> banco reiniciado. As tabelas do mistério voltaram ao começo; seu caderno foi mantido." : "> banco reiniciado. Tudo voltou ao começo.", "boot");
+        mensagem(temMinhas() ? "> banco reiniciado. As tabelas do mistério voltaram ao começo; as que você criou foram mantidas." : "> banco reiniciado. Tudo voltou ao começo.", "boot");
         document.dispatchEvent(new Event("misterio:banco"));
       }).catch(function () { marca("erro", "sem conexão"); });
     });
@@ -564,8 +585,64 @@
 
     marca("desligado", "desligado");
     sincronizaSeJaLigado();
+    pc._liga = liga;
     pc._leva = function (sql) { area.value = sql; guardaRascunho(); area.focus(); area.scrollIntoView({ block: "center", behavior: "smooth" }); };
     return pc;
+  }
+
+  // ------------------------------------------------------------------ conferir o banco que a pessoa montou
+  // As fases de criar tabelas (E, F e G) trazem <script type="application/json" class="confere"> com uma
+  // lista de {ok, sql}: cada sql devolve verdadeiro quando aquele pedaço da missão está certo.
+  function criaConfere(sec, pc, itens) {
+    var caixa = el("div", "pc-confere");
+    var topo = el("div", "pc-confere-topo");
+    var btn = el("button", "btn", "✔ Conferir meu banco"); btn.type = "button";
+    topo.appendChild(btn);
+    topo.appendChild(el("span", "pc-confere-dica", "O jogo confere a estrutura que você criou."));
+    var lista = el("ul", "pc-confere-lista"); lista.hidden = true;
+    var fim = el("div", "pc-confere-fim");
+    caixa.appendChild(topo); caixa.appendChild(lista); caixa.appendChild(fim);
+
+    function confere(it) {
+      return motor.db.query(it.sql).then(function (r) {
+        var linha = r.rows[0];
+        return { txt: it.ok, certo: !!linha && linha[Object.keys(linha)[0]] === true };
+      }, function () { return { txt: it.ok, certo: false }; });
+    }
+    btn.addEventListener("click", function () {
+      btn.disabled = true; btn.textContent = "Conferindo…";
+      var prepara = motor.pronto ? Promise.resolve() : pc._liga();
+      prepara.then(function () {
+        return itens.reduce(function (p, it) {
+          return p.then(function (acc) { return confere(it).then(function (x) { acc.push(x); return acc; }); });
+        }, Promise.resolve([]));
+      }).then(function (res) {
+        lista.textContent = ""; fim.textContent = ""; lista.hidden = false;
+        var certos = 0;
+        res.forEach(function (x) {
+          if (x.certo) certos++;
+          lista.appendChild(el("li", x.certo ? "ok" : "falta", (x.certo ? "✅ " : "❌ ") + x.txt));
+        });
+        if (certos === res.length) {
+          fim.appendChild(el("b", "pc-confere-ok", "🎉 Banco certo! Tudo o que a missão pedia está funcionando."));
+          var cb = sec.querySelector('input[type="checkbox"]');
+          if (cb && !cb.checked) {
+            var b = el("button", "btn big", "🏁 Concluir esta fase"); b.type = "button";
+            b.addEventListener("click", function () { cb.click(); });
+            fim.appendChild(document.createElement("br"));
+            fim.appendChild(b);
+          }
+        } else {
+          fim.appendChild(el("span", "pc-confere-falta", (res.length - certos) + " item(ns) ainda faltando. Releia a missão, ajuste e confira de novo."));
+        }
+      }).catch(function () {
+        lista.hidden = true;
+        fim.textContent = "Não consegui conferir agora. Ligue o computador e tente de novo.";
+      }).then(function () {
+        btn.disabled = false; btn.textContent = "✔ Conferir meu banco";
+      });
+    });
+    return caixa;
   }
 
   // ------------------------------------------------------------------ montagem nas fases
@@ -580,6 +657,13 @@
       else {
         var fim = corpo.querySelector(".done-row");
         corpo.insertBefore(pc, fim || null);
+      }
+      // fases de criar tabelas: botão que confere a estrutura montada
+      var js = sec.querySelector("script.confere");
+      if (js) {
+        var itens = null;
+        try { itens = JSON.parse(js.textContent); } catch (e) {}
+        if (itens && itens.length) pc.parentNode.insertBefore(criaConfere(sec, pc, itens), pc.nextSibling);
       }
       // aviso na primeira fase (montar o laboratório)
       if (i === 0) {

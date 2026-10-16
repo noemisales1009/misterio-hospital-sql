@@ -536,6 +536,19 @@ dialog.caderno[open]{display:block}
 .pc-veredito.ok{border:1px solid #5cc4a6;background:rgba(92,196,166,.16);color:#c8f7e1}
 .pc-veredito.quase{border:1px solid #8a7a2a;background:rgba(243,214,78,.10);color:#f3e7a0}
 .pc-concluir{margin-top:8px;border-color:#f3d64e;background:#f3d64e;color:#16211e}
+/* "Conferir meu banco" das fases E, F e G: fica abaixo do computador, no papel da página */
+.pc-confere{margin:14px 0 0;padding:12px 14px;border:1.5px dashed var(--line);border-radius:10px;background:var(--paper)}
+.pc-confere-topo{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.pc-confere-dica{font-size:.85rem;color:var(--muted)}
+.pc-confere .btn:disabled{opacity:.6;cursor:progress}
+.pc-confere-lista{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:.92rem;line-height:1.4}
+.pc-confere-lista li.ok{color:var(--scrub)}
+.pc-confere-lista li.falta{color:var(--stamp);font-weight:600}
+.pc-confere-fim{margin-top:10px;font-size:.95rem}
+.pc-confere-fim:empty{display:none}
+.pc-confere-ok{color:var(--scrub)}
+.pc-confere-falta{color:var(--muted)}
+.pc-confere .btn.big{margin-top:8px}
 .pc-queixo{display:flex;align-items:center;justify-content:space-between;padding:10px 8px 4px;color:#7d765f;font:700 12px var(--f-mono);letter-spacing:.22em}
 .pc-led{width:10px;height:10px;border-radius:50%;background:#6b6554;box-shadow:inset 0 1px 1px rgba(0,0,0,.4)}
 .pc[data-estado="ligado"] .pc-led{background:#4cf0a6;box-shadow:0 0 9px #4cf0a6}

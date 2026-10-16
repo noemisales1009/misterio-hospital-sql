@@ -66,7 +66,7 @@
   }
   var chips=fases.map(function(sec){
     var a=document.createElement("a");a.className="chip";a.href="#"+sec.id;
-    var n={"7":"★","8":"✎","9":"A","10":"B","11":"C","12":"D"}[sec.dataset.fase]||sec.dataset.fase;
+    var n={"7":"★","8":"✎","9":"A","10":"B","11":"C","12":"D","13":"E","14":"F","15":"G"}[sec.dataset.fase]||sec.dataset.fase;
     a.innerHTML='<span>'+n+'</span><span>'+sec.dataset.nome+'</span>';
     chipsBox.appendChild(a);return a;
   });

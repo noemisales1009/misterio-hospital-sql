@@ -8,7 +8,7 @@ Aplicativo criado por Noemi Sales.
 
 | Caso | História | Nível | O que você pratica | Arquivos |
 |---|---|---|---|---|
-| 1 | A geladeira de vacinas | Iniciante, ensina do zero | `SELECT`, `WHERE`, `LIKE`, `JOIN`, `GROUP BY`, `CASE`, `LEFT JOIN` | `guia.html` e `banco_do_jogo.sql` |
+| 1 | A geladeira de vacinas | Iniciante, ensina do zero (16 fases) | `SELECT`, `WHERE`, `LIKE`, `JOIN`, `GROUP BY`, `CASE`, `LEFT JOIN`; nas fases E a G, criar e organizar um banco do zero: `CREATE TABLE`, `PRIMARY KEY`, `FOREIGN KEY`, `ALTER TABLE`, índice e view | `guia.html` e `banco_do_jogo.sql` |
 | 2 | O prontuário adulterado | Intermediário | `JOIN` de várias tabelas, `LEFT JOIN`, `HAVING` | `caso2.html` e `caso2.sql` |
 | 3 | O sumiço da morfina | Intermediário | `SUM`, `IS NULL`, `CASE`, `HAVING` | `caso3.html` e `caso3.sql` |
 | 4 | O surto na UTI | Intermediário | datas, `WITH`, taxa de ataque | `caso4.html` e `caso4.sql` |
