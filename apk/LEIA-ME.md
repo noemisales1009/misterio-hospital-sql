@@ -4,16 +4,25 @@ O APK é o mesmo jogo, empacotado com [Capacitor](https://capacitorjs.com). Tudo
 
 ## Como baixar e instalar (Android 7 ou mais novo)
 
-1. No celular, abra: **https://github.com/noemisales1009/misterio-hospital-sql/releases/tag/apk-mais-recente**
-2. Toque em **misterio-sql.apk** para baixar.
+1. No celular, abra: **https://linen-crab-866348.hostingersite.com/misterio-sql.apk** (o arquivo fica no próprio site do jogo).
+2. Espere o download terminar.
 3. Abra o arquivo baixado. O Android vai pedir para permitir instalar de "fontes desconhecidas" para o navegador ou gerenciador de arquivos: permita.
 4. Instale e abra o **Mistério SQL**.
 
-O APK novo instala por cima do antigo e mantém o progresso salvo no aparelho (a assinatura é sempre a mesma).
+O APK novo instala por cima do antigo e mantém o progresso salvo no aparelho, desde que a chave de assinatura seja a mesma. Em 16/10/2026 a chave foi trocada (a antiga tinha ficado pública): quem tinha a versão anterior precisa desinstalar e instalar de novo uma vez.
 
 ## Como o APK é gerado
 
-Sozinho, pelo GitHub (`.github/workflows/apk.yml`). A cada envio para a `main` que mexa no jogo, ele compila e atualiza a página **Releases**. Para gerar na mão: aba **Actions** > **Gerar APK** > **Run workflow**. Leva uns 5 a 10 minutos.
+Pelo GitHub (`.github/workflows/apk.yml`), que compila, assina e **envia o arquivo para o site por FTP**. Nada do APK fica no GitHub. O fluxo está **desligado** desde 16/10/2026; para religar: aba **Actions** > **Gerar APK** > **Enable workflow**. Antes disso, os segredos abaixo precisam existir em **Settings > Secrets and variables > Actions**:
+
+| Segredo | O que é |
+|---|---|
+| `APK_KEYSTORE_B64` | a chave de assinatura (`misterio-sql-2026.p12`) em base64, conteúdo do arquivo `.p12.b64` |
+| `APK_KEYSTORE_SENHA` | a senha dessa chave |
+| `FTP_HOST`, `FTP_USUARIO`, `FTP_SENHA` | a conta FTP do site na Hostinger (hPanel > Arquivos > Contas FTP) |
+| `FTP_PASTA` | opcional; pasta do site no FTP (padrão `public_html`) |
+
+A chave e a senha ficam no computador da Noemi, na pasta `chave-apk/` ao lado do projeto (fora do repositório). Leva uns 5 a 10 minutos por APK.
 
 ## O que tem nesta pasta
 
@@ -23,13 +32,12 @@ Sozinho, pelo GitHub (`.github/workflows/apk.yml`). A cada envio para a `main` q
 | `scripts/preparar-www.js` | Copia só o jogo (páginas, css, js, fontes, ícones, vendor) para `www/`. |
 | `scripts/configurar-android.js` | Define assinatura e número da versão no projeto Android. |
 | `assets/` | Ícone, ícone adaptativo e tela de abertura. |
-| `keystore/misterio-sql.p12` | Chave de assinatura (veja o aviso abaixo). |
 
 `www/` e `android/` são gerados a cada compilação e não vão para o Git.
 
 ## Aviso sobre a chave de assinatura
 
-A chave em `keystore/` está no repositório de propósito, para o APK novo poder atualizar o antigo. Isso serve para instalar direto (sideload). **Para publicar na Play Store** é preciso uma chave privada, que nunca fica no repositório, e a conta de desenvolvedora do Google.
+A chave de assinatura **nunca** fica no repositório: ela entra na compilação pelos segredos do GitHub e é apagada no fim. Quem tiver a chave consegue assinar um aplicativo que o Android aceita como atualização do seu. **Para publicar na Play Store** é preciso, além disso, a conta de desenvolvedora do Google.
 
 ## Ícone e assinatura (importante)
 

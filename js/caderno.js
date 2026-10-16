@@ -332,6 +332,15 @@
   function idbGet(k) { return idbOp("readonly", function (s) { return s.get(k); }); }
   function idbPut(k, v) { return idbOp("readwrite", function (s) { return s.put(v, k); }); }
   function idbDel(k) { return idbOp("readwrite", function (s) { return s["delete"](k); }); }
+  function idbLimpa() { return idbOp("readwrite", function (s) { return s.clear(); }); }
+  // ao sair da conta num computador compartilhado: tira do aparelho tudo o que é da pessoa
+  // (o progresso e a sessão o app.js já limpa; o tema e o aviso de boas-vindas podem ficar)
+  function apagarAparelho() {
+    ["misterio-sql-jogador", "misterio-sql-notas", "misterio-sql-codigo", "misterio-sql-conferido", "misterio-sql-minhas-tabelas", "misterio-sql-tentou"]
+      .forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
+    notas = {}; jog = {};
+    return idbLimpa();
+  }
   function idbChaves() { return idbOp("readonly", function (s) { return s.getAllKeys(); }); }
   // cada fase guarda uma lista de imagens (o formato antigo guardava uma só, em texto)
   function listaImagens(v) {
@@ -742,18 +751,31 @@
     }
     var zera = el("button", "btn cad-perigo", "Recomeçar do zero"); zera.type = "button";
     zera.addEventListener("click", function () {
-      if (!window.confirm("Zerar o seu progresso em todos os casos? As anotações são mantidas.")) return;
+      if (!window.confirm("Recomeçar do zero? Isso apaga o progresso, as anotações, as imagens e os rascunhos do computador em todos os casos, neste aparelho e na nuvem.\n\nO nome e a foto do perfil ficam.")) return;
       var ids = []; CAT.forEach(function (cs) { cs.fases.forEach(function (fa) { ids.push(fa.id); }); });
+      // neste aparelho: progresso, anotações, rascunhos do computador e as imagens (IndexedDB)
       var pronto = function () {
-        try { localStorage.removeItem(K_PROG); } catch (e) {}
-        location.reload();
+        ["misterio-sql-progresso", "misterio-sql-notas", "misterio-sql-codigo", "misterio-sql-conferido", "misterio-sql-minhas-tabelas", "misterio-sql-tentou"]
+          .forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
+        notas = {};
+        idbLimpa().then(function () { location.reload(); }, function () { location.reload(); });
       };
       var nu = nuvem();
       if (nu) {
-        nu.api("progresso?on_conflict=user_id,fase", {
-          method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-          body: JSON.stringify(ids.map(function (id) { return { user_id: nu.uid(), fase: id, concluida: false, atualizado_em: new Date().toISOString() }; }))
-        }).then(pronto, pronto);
+        var uid = nu.uid(), agora = new Date().toISOString();
+        // na nuvem: fases voltam a "não concluída", anotações ficam vazias e as imagens são apagadas
+        // (as regras do banco só deixam cada pessoa mexer nas próprias linhas)
+        Promise.all([
+          nu.api("progresso?on_conflict=user_id,fase", {
+            method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+            body: JSON.stringify(ids.map(function (id) { return { user_id: uid, fase: id, concluida: false, atualizado_em: agora }; }))
+          }),
+          nu.api("anotacao?user_id=eq." + encodeURIComponent(uid), {
+            method: "PATCH", headers: { Prefer: "return=minimal" },
+            body: JSON.stringify({ texto: "", imagem: null, atualizado_em: agora })
+          }),
+          nu.api("anotacao_imagem?user_id=eq." + encodeURIComponent(uid), { method: "DELETE", headers: { Prefer: "return=minimal" } })
+        ]).then(pronto, pronto);
       } else pronto();
     });
     conta.appendChild(zera);
@@ -2613,7 +2635,7 @@
     if (b) { b.remove(); homeExtras(); }
     if (muralModoHome) agendaMural(0);
   }
-  window.MisterioCaderno = { abrir: abrir, anotar: abreGaveta, guardar: fechaGaveta, retrato: svgBusto, aparelho: svgAparelho, retratoMarkup: retratoMarkup, slug: slugRetrato };
+  window.MisterioCaderno = { abrir: abrir, anotar: abreGaveta, guardar: fechaGaveta, retrato: svgBusto, aparelho: svgAparelho, retratoMarkup: retratoMarkup, slug: slugRetrato, apagarAparelho: apagarAparelho };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", iniciar);
   else iniciar();
 })();

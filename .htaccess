@@ -10,3 +10,16 @@ AddType application/manifest+json .webmanifest
     Header set Cache-Control "no-cache"
   </FilesMatch>
 </IfModule>
+
+# Cabecalhos de seguranca
+# - CSP: so roda script do proprio site (e WebAssembly, para o PGlite); so conversa com o proprio site e o Supabase;
+#   imagens do site ou coladas (data:); nada de iframe por cima nem de embutir o jogo em outro site.
+# - Os outros impedem adivinhar tipo de arquivo, vazar a URL completa para fora e usar camera/microfone/localizacao.
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+  Header always set Strict-Transport-Security "max-age=31536000"
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://*.supabase.co; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+</IfModule>

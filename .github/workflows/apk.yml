@@ -1,5 +1,7 @@
-# Gera o aplicativo Android (APK) do jogo e publica na aba "Releases".
-# Para rodar na mão: aba Actions > "Gerar APK" > Run workflow.
+# Gera o aplicativo Android (APK) do jogo e envia o arquivo para o site (FTP da Hostinger).
+# Nada do APK fica no GitHub. A chave de assinatura e a conta FTP vêm dos segredos do repositório
+# (Settings > Secrets and variables > Actions): APK_KEYSTORE_B64, APK_KEYSTORE_SENHA, FTP_HOST, FTP_USUARIO, FTP_SENHA
+# e, opcional, FTP_PASTA (padrão public_html). Para rodar na mão: aba Actions > "Gerar APK" > Run workflow.
 name: Gerar APK
 
 on:
@@ -19,7 +21,7 @@ on:
       - "manifest.webmanifest"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: gerar-apk
@@ -84,32 +86,49 @@ jobs:
         working-directory: apk/android
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
+      - name: Chave de assinatura (vem dos segredos do repositório, nunca do código)
+        env:
+          KS_B64: ${{ secrets.APK_KEYSTORE_B64 }}
+          KS_SENHA: ${{ secrets.APK_KEYSTORE_SENHA }}
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_SENHA" ]; then
+            echo "::error::Faltam os segredos APK_KEYSTORE_B64 e APK_KEYSTORE_SENHA (Settings > Secrets and variables > Actions > New repository secret)."
+            exit 1
+          fi
+          mkdir -p keystore
+          echo "$KS_B64" | base64 -d > keystore/assinatura.p12
+
       - name: Alinhar e assinar
+        env:
+          KS_SENHA: ${{ secrets.APK_KEYSTORE_SENHA }}
         run: |
           BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           echo "build-tools: $BT"
           "$BT/zipalign" -f -p 4 android/app/build/outputs/apk/release/app-release-unsigned.apk alinhado.apk
-          "$BT/apksigner" sign --min-sdk-version 23             --ks keystore/misterio-sql.p12 --ks-type PKCS12 --ks-key-alias misterio-sql             --ks-pass pass:misterio-sql --key-pass pass:misterio-sql             --out ../misterio-sql.apk alinhado.apk
+          "$BT/apksigner" sign --min-sdk-version 23 \
+            --ks keystore/assinatura.p12 --ks-type PKCS12 --ks-key-alias misterio-sql \
+            --ks-pass env:KS_SENHA --key-pass env:KS_SENHA \
+            --out ../misterio-sql.apk alinhado.apk
           "$BT/apksigner" verify --verbose --print-certs ../misterio-sql.apk | head -12
+          rm -f keystore/assinatura.p12
 
       - name: Conferir o arquivo
         run: |
           ls -la ../misterio-sql.apk
           unzip -l ../misterio-sql.apk | grep -E "assets/public/(index.html|vendor/pglite/postgres.wasm)" || (echo "faltam arquivos do jogo no APK" && exit 1)
 
-      - name: Guardar como arquivo da execução
-        uses: actions/upload-artifact@v4
-        with:
-          name: misterio-sql-apk
-          path: misterio-sql.apk
-          retention-days: 30
-
-      - name: Publicar na aba Releases
+      - name: Enviar o APK para o site (FTP da Hostinger)
         working-directory: ${{ github.workspace }}
         env:
-          GH_TOKEN: ${{ github.token }}
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USUARIO: ${{ secrets.FTP_USUARIO }}
+          FTP_SENHA: ${{ secrets.FTP_SENHA }}
+          FTP_PASTA: ${{ secrets.FTP_PASTA }}
         run: |
-          gh release delete apk-mais-recente --yes --cleanup-tag || true
-          gh release create apk-mais-recente misterio-sql.apk \
-            --title "Mistério SQL (APK Android)" \
-            --notes "Aplicativo Android do jogo, funciona sem internet. Baixe o arquivo misterio-sql.apk no celular e instale (o Android pede para permitir instalar de fontes desconhecidas). Gerado em $(date -u +'%d/%m/%Y %H:%M') UTC a partir do commit ${GITHUB_SHA::7}."
+          if [ -z "$FTP_HOST" ] || [ -z "$FTP_USUARIO" ] || [ -z "$FTP_SENHA" ]; then
+            echo "::error::Faltam os segredos FTP_HOST, FTP_USUARIO e FTP_SENHA (conta FTP da Hostinger). O APK não é guardado no GitHub."
+            exit 1
+          fi
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp >/dev/null
+          lftp -u "$FTP_USUARIO","$FTP_SENHA" -e "set ftp:ssl-allow true; set ssl:verify-certificate no; cd ${FTP_PASTA:-public_html}; put -O . misterio-sql.apk; bye" "$FTP_HOST"
+          echo "APK publicado em: https://linen-crab-866348.hostingersite.com/misterio-sql.apk"

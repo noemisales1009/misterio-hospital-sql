@@ -418,8 +418,14 @@
   $("sbLogout").addEventListener("click",function(){
     var tk=sessao&&sessao.access_token;
     if(tk) authReq("logout",{},tk).catch(function(){});
+    // computador compartilhado: o que ficou guardado no aparelho (nome, foto, anotações, imagens) também deve sair
+    var apagar=window.confirm("Apagar também o que está guardado neste aparelho (nome, foto, anotações e imagens)?\n\nEscolha OK num computador compartilhado. Quem tem conta continua com tudo na nuvem.");
     sairLocal();try{sessionStorage.removeItem(SKIP_KEY)}catch(e){}
     if(dlg.open) dlg.close();
+    if(apagar&&window.MisterioCaderno&&window.MisterioCaderno.apagarAparelho){
+      window.MisterioCaderno.apagarAparelho().then(function(){location.reload()},function(){location.reload()});
+      return;
+    }
     mostraLogin();aviso("Você saiu. Entre de novo quando quiser.");
   });
   $("sbSave").addEventListener("click",function(){

@@ -1,3 +1,7 @@
 *.bak
 node_modules/
 .env
+# chave de assinatura do APK: NUNCA no repositorio (vai nos segredos do GitHub)
+apk/keystore/
+*.p12
+*.jks
