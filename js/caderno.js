@@ -763,19 +763,24 @@
       var nu = nuvem();
       if (nu) {
         var uid = nu.uid(), agora = new Date().toISOString();
+        var filtro = "user_id=eq." + encodeURIComponent(uid);
         // na nuvem: fases voltam a "não concluída", anotações ficam vazias e as imagens são apagadas
-        // (as regras do banco só deixam cada pessoa mexer nas próprias linhas)
-        Promise.all([
-          nu.api("progresso?on_conflict=user_id,fase", {
-            method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-            body: JSON.stringify(ids.map(function (id) { return { user_id: uid, fase: id, concluida: false, atualizado_em: agora }; }))
-          }),
-          nu.api("anotacao?user_id=eq." + encodeURIComponent(uid), {
-            method: "PATCH", headers: { Prefer: "return=minimal" },
-            body: JSON.stringify({ texto: "", imagem: null, atualizado_em: agora })
-          }),
-          nu.api("anotacao_imagem?user_id=eq." + encodeURIComponent(uid), { method: "DELETE", headers: { Prefer: "return=minimal" } })
-        ]).then(pronto, pronto);
+        // (as regras do banco só deixam cada pessoa mexer nas próprias linhas). A coluna antiga "imagem"
+        // não existe em todo projeto, por isso é limpa à parte e pode falhar sem estragar o resto.
+        zera.disabled = true; zera.textContent = "Apagando…";
+        nu.api("progresso?on_conflict=user_id,fase", {
+          method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+          body: JSON.stringify(ids.map(function (id) { return { user_id: uid, fase: id, concluida: false, atualizado_em: agora }; }))
+        }).then(function () {
+          return nu.api("anotacao?" + filtro, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ texto: "", atualizado_em: agora }) });
+        }).then(function () {
+          return nu.api("anotacao?" + filtro, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ imagem: null }) }).catch(function () {});
+        }).then(function () {
+          return nu.api("anotacao_imagem?" + filtro, { method: "DELETE", headers: { Prefer: "return=minimal" } });
+        }).then(pronto, function (e) {
+          zera.disabled = false; zera.textContent = "Recomeçar do zero";
+          toast("⚠ A nuvem não deixou apagar (" + String(e && e.message || e).slice(0, 80) + "). Nada foi apagado; tente de novo.");
+        });
       } else pronto();
     });
     conta.appendChild(zera);
