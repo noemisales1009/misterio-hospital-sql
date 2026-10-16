@@ -992,7 +992,7 @@
     escura: ["#8e5b38", "#724427"], negra: ["#5f3b26", "#46291a"]
   };
   var CABELOS = {
-    preto: "#1b1613", castanho: "#4b2d1a", ruivo: "#a24b21", loiro: "#c19a52", grisalho: "#9a9a98", branco: "#dcdcd6"
+    preto: "#1b1613", castanho: "#4b2d1a", castclaro: "#7a5232", mel: "#8a6a3a", ruivo: "#a24b21", loiro: "#c19a52", grisalho: "#9a9a98", branco: "#dcdcd6"
   };
   var OLHOS = { castanho: "#4a2c19", escuro: "#241710", verde: "#4d7a52", azul: "#4a7db0", mel: "#a2722c" };
   var ROUPA_COR = {
@@ -1004,39 +1004,39 @@
   // ci=cílios br=brincos pe=pérolas ru=marcas de expressão (mais velho)
   var RETRATOS = {
     "Otávio Brandão":      { p: "media",  h: "social",   c: "castanho", b: "bigode",  o: "redondo",    r: "casual",      s: "leve" },
-    "Lorena Bittencourt":  { p: "morena", h: "ondulado", c: "preto",    ci: 1, br: 1,                   r: "casual",      s: "leve" },
+    "Lorena Bittencourt":  { p: "morena", h: "ondulado", c: "preto",    ci: 1, br: 1,                   r: "casual",      s: "leve", f: "fino" },
     "Rogério Valadares":   { p: "media",  h: "curto",    c: "castanho", b: "barba",                    r: "moletom",     s: "serio" },
     "Jeremias Paiva":      { p: "escura", h: "raspado",  c: "preto",                  o: "retangular", r: "polo-cinza",  s: "leve" },
     "Vitória Albuquerque": { p: "clara",  h: "coque",    c: "loiro",    e: "azul", ci: 1, br: 1, pe: 1,  r: "blazer",      s: "serio", f: "fino" },
-    "Rogério Mendonça":    { p: "morena", h: "curto",    c: "preto",    b: "bigode",                   r: "scrub-verde", x: "cracha", s: "serio" },
-    "Márcia Albuquerque":  { p: "media",  h: "rabo",     c: "castanho", ci: 1,                         r: "scrub-azul",  x: "cracha", s: "leve" },
-    "Renata Figueiredo":   { p: "clara",  h: "ondulado", c: "ruivo",    e: "verde", ci: 1,             r: "scrub-bordo", x: "cracha", s: "largo" },
-    "Fábio Bittencourt":   { p: "media",  h: "raspado",  c: "preto",                                  r: "scrub-verde", x: "cracha", s: "leve" },
+    "Rogério Mendonça":    { p: "morena", h: "entradas", c: "preto",    b: "bigode",                   r: "scrub-verde", x: "cracha", s: "serio", f: "largo" },
+    "Márcia Albuquerque":  { p: "media",  h: "chanel",   c: "castclaro", e: "mel", ci: 1,              r: "scrub-azul",  x: "cracha", s: "leve", f: "fino" },
+    "Renata Figueiredo":   { p: "clara",  h: "ondulado", c: "ruivo",    e: "verde", ci: 1, sa: 1,       r: "scrub-bordo", x: "cracha", s: "largo" },
+    "Fábio Bittencourt":   { p: "media",  h: "topete",   c: "preto",                                  r: "scrub-verde", x: "cracha", s: "leve" },
     "Cláudia Lourenço":    { p: "escura", h: "cacheado", c: "preto",    ci: 1, br: 1,                   r: "jaleco",      x: "cracha", s: "largo" },
     "Edson Carvalhaes":    { p: "media",  h: "social",   c: "grisalho", b: "bigode",  o: "retangular", ru: 1, r: "jaleco",   x: "cracha", s: "serio", f: "largo" },
-    "Marta Figueiredo":    { p: "clara",  h: "coque",    c: "castanho", ci: 1,                         r: "jaleco",      x: "cracha", s: "leve" },
-    "Lúcia Bittencourt":   { p: "morena", h: "ondulado", c: "preto",    ci: 1,        o: "redondo",    r: "jaleco",      x: "cracha", s: "leve" },
+    "Marta Figueiredo":    { p: "clara",  h: "franja",   c: "castanho", ci: 1,        o: "gatinho",    r: "jaleco",      x: "cracha", s: "leve" },
+    "Lúcia Bittencourt":   { p: "morena", h: "comprido", c: "preto",    ci: 1,        o: "redondo",    r: "jaleco",      x: "cracha", s: "leve" },
     "Sônia Lourenço":      { p: "negra",  h: "volume",   c: "preto",    ci: 1, br: 1,                   r: "jaleco",      x: "cracha", s: "largo" },
     "Gilson Albuquerque":  { p: "escura", h: "careca",   c: "preto",    b: "cav",                      r: "jaleco",      x: "cracha", s: "leve" },
     "Bianca Furtado":      { p: "media",  h: "comprido", c: "castanho", ci: 1, br: 1,                   r: "social",      x: "cracha", s: "leve" },
     "Valéria Montenegro":  { p: "morena", h: "rabo",     c: "preto",    ci: 1,                         r: "polo-azul",   x: "cracha", s: "serio" },
     "Dulce Albuquerque":   { p: "clara",  h: "curto",    c: "branco",                 o: "redondo",    ru: 1, r: "polo-azul",  x: "cracha", s: "leve" },
-    "Cláudio Menezes":     { p: "media",  h: "social",   c: "castanho", b: "cav",                      r: "social",      gr: 1, x: "cracha", s: "serio" },
-    "Rosângela Freitas":   { p: "escura", h: "cacheado", c: "preto",    ci: 1, br: 1,                   r: "polo-cinza",  x: "cracha", s: "largo" },
-    "Hugo Amaral":         { p: "clara",  h: "curto",    c: "loiro",    e: "azul", o: "retangular",    r: "polo-cinza",  x: "cracha", s: "leve" },
+    "Cláudio Menezes":     { p: "clara",  h: "curto",    c: "castclaro", b: "cav",                     r: "social",      gr: 1, x: "cracha", s: "serio", f: "fino" },
+    "Rosângela Freitas":   { p: "escura", h: "afro",     c: "preto",    ci: 1, br: 1,                   r: "polo-cinza",  x: "cracha", s: "largo", e: "mel" },
+    "Hugo Amaral":         { p: "clara",  h: "curto",    c: "loiro",    e: "azul", o: "retangular",    r: "polo-cinza",  x: "cracha", s: "leve", sa: 1 },
     "Leonel Guedes":       { p: "morena", h: "raspado",  c: "preto",    b: "barba",                    r: "macacao",     s: "serio", f: "largo" },
-    "Irene Castilho":      { p: "clara",  h: "curto",    c: "grisalho",                               ru: 1, r: "macacao",    s: "leve" },
-    "Marta Guimarães":     { p: "media",  h: "rabo",     c: "castanho", ci: 1,                         r: "macacao",     s: "leve" },
-    "Moacir Teles":        { p: "escura", h: "careca",   c: "preto",    b: "bigode",                   ru: 1, r: "macacao",    s: "serio" },
-    "Lia Moraes":          { p: "media",  h: "comprido", c: "castanho", ci: 1,                         r: "casual",      s: "leve" },
-    "Beatriz Falcão":      { p: "clara",  h: "ondulado", c: "loiro",    e: "azul", ci: 1,             r: "social",      x: "cracha", s: "leve" },
-    "Jaqueline Prado":     { p: "escura", h: "cacheado", c: "preto",    ci: 1, br: 1,                   r: "social",      x: "cracha", s: "leve" },
+    "Irene Castilho":      { p: "clara",  h: "chanel",   c: "grisalho",                               ru: 1, r: "macacao",    s: "leve", f: "fino" },
+    "Marta Guimarães":     { p: "media",  h: "ondulado", c: "mel",      e: "verde", ci: 1,             r: "macacao",     s: "leve" },
+    "Moacir Teles":        { p: "negra",  h: "careca",   c: "grisalho", b: "bigode",                   ru: 1, r: "macacao",    s: "serio", f: "largo" },
+    "Lia Moraes":          { p: "media",  h: "franja",   c: "preto",    ci: 1,                         r: "casual",      s: "leve" },
+    "Beatriz Falcão":      { p: "clara",  h: "chanel",   c: "loiro",    e: "azul", ci: 1, sa: 1,       r: "social",      x: "cracha", s: "leve" },
+    "Jaqueline Prado":     { p: "morena", h: "cacheado", c: "castclaro", ci: 1, br: 1,                  r: "social",      x: "cracha", s: "leve" },
     "Daniela Couto":       { p: "media",  h: "coque",    c: "preto",    ci: 1,                         r: "social",      x: "cracha", s: "largo" },
-    "Caio Linhares":       { p: "clara",  h: "curto",    c: "castanho",               o: "redondo",    r: "scrub-azul",  x: "cracha", s: "leve" },
-    "Fábio Rezende":       { p: "morena", h: "social",   c: "preto",    b: "barba",                    r: "scrub-verde", x: "cracha", s: "serio" },
-    "Renata Godoy":        { p: "clara",  h: "rabo",     c: "ruivo",    e: "verde", ci: 1,             r: "social",      x: "cracha", s: "serio" },
-    "Sérgio Paixão":       { p: "media",  h: "raspado",  c: "castanho", b: "barba",   o: "retangular", r: "social",      gr: 1, x: "cracha", s: "serio", f: "largo" },
-    "Renan Duarte":        { p: "morena", h: "cacheado", c: "preto",                  o: "redondo",    r: "moletom",     s: "serio" }
+    "Caio Linhares":       { p: "clara",  h: "topete",   c: "castanho", e: "verde",                   sa: 1, r: "scrub-azul", x: "cracha", s: "leve" },
+    "Fábio Rezende":       { p: "clara",  h: "social",   c: "preto",    e: "escuro", b: "barba",       r: "scrub-verde", x: "cracha", s: "serio" },
+    "Renata Godoy":        { p: "clara",  h: "rabo",     c: "castclaro", e: "verde", ci: 1,   o: "gatinho", r: "social",     x: "cracha", s: "serio" },
+    "Sérgio Paixão":       { p: "media",  h: "entradas", c: "castanho", b: "barba",   o: "retangular", r: "social",      gr: 1, x: "cracha", s: "serio", f: "largo" },
+    "Renan Duarte":        { p: "morena", h: "cacheado", c: "preto",    b: "cav",     o: "redondo",    r: "moletom",     s: "serio" }
   };
   // traços estáveis para quem não está na lista
   function retratoPeloNome(nome) {
@@ -1076,23 +1076,36 @@
   }
   function cabeloTras(h, F, luz) {
     var f = ' fill="' + F + '"';
-    if (h === "comprido") return '<path d="M27 52 C19 12 81 12 73 52 L79 97 C60 104 40 104 21 97 Z"' + f + '/><path d="M30 40 Q27 70 30 94 M70 40 Q73 70 70 94" stroke="' + luz + '" stroke-width="1.2" fill="none" opacity=".3"/>';
+    if (h === "comprido" || h === "franja") return '<path d="M27 52 C19 12 81 12 73 52 L79 97 C60 104 40 104 21 97 Z"' + f + '/><path d="M30 40 Q27 70 30 94 M70 40 Q73 70 70 94" stroke="' + luz + '" stroke-width="1.2" fill="none" opacity=".3"/>';
     if (h === "ondulado") return '<path d="M27.5 50 C19 13 81 13 72.5 50 C80 62 74 74 80 88 C72 91 68 82 62 90 L38 90 C32 82 28 91 20 88 C26 74 20 62 27.5 50Z"' + f + '/><path d="M27 58 Q24 72 26 84 M73 58 Q76 72 74 84" stroke="' + luz + '" stroke-width="1.2" fill="none" opacity=".3"/>';
     if (h === "cacheado") return cachos('<circle cx="50" cy="38" r="26"' + f + '/><circle cx="27" cy="52" r="10"' + f + '/><circle cx="73" cy="52" r="10"' + f + '/><circle cx="32" cy="65" r="8"' + f + '/><circle cx="68" cy="65" r="8"' + f + '/><circle cx="33" cy="30" r="9"' + f + '/><circle cx="67" cy="30" r="9"' + f + '/>', luz, [[40, 21], [50, 17], [60, 21], [27, 54], [73, 54], [32, 66], [68, 66], [34, 30], [66, 30]]);
     if (h === "volume") return cachos('<circle cx="50" cy="37" r="28"' + f + '/><circle cx="24" cy="49" r="11"' + f + '/><circle cx="76" cy="49" r="11"' + f + '/><circle cx="31" cy="29" r="12"' + f + '/><circle cx="69" cy="29" r="12"' + f + '/><circle cx="50" cy="18" r="12"' + f + '/>', luz, [[38, 14], [50, 10], [62, 14], [28, 22], [72, 22], [21, 44], [79, 44], [30, 34], [70, 34], [44, 20], [56, 20]]);
     if (h === "coque") return '<circle cx="50" cy="12.5" r="10.5"' + f + '/><path d="M44 9 Q50 5.5 56 9 M43 13 Q50 10 57 13 M44.5 17 Q50 15 55.5 17" stroke="' + luz + '" stroke-width="1.1" fill="none" opacity=".4" stroke-linecap="round"/>';
     if (h === "rabo") return '<path d="M66 33 C87 29 96 57 86 86 C84 72 78 62 67 54Z"' + f + '/><path d="M76 42 Q85 56 82 76" stroke="' + luz + '" stroke-width="1.3" fill="none" opacity=".35" stroke-linecap="round"/>';
+    if (h === "chanel") return '<path d="M26 52 C17 8 83 8 74 52 C76.5 60 76 68 72 74.5 C62 71.5 38 71.5 28 74.5 C24 68 23.5 60 26 52Z"' + f + '/><path d="M27.6 56 Q26.6 66 30 72 M72.4 56 Q73.4 66 70 72" stroke="' + luz + '" stroke-width="1.2" fill="none" opacity=".3"/>';
+    if (h === "afro") return cachos('<circle cx="50" cy="35" r="22.5"' + f + '/><circle cx="28.5" cy="45" r="7.5"' + f + '/><circle cx="71.5" cy="45" r="7.5"' + f + '/>', luz, [[40, 18], [50, 15], [60, 18], [27, 44], [73, 44], [33, 26], [67, 26]]);
     return "";
   }
-  function cabeloFrente(h, F, luz, sombra, id) {
+  function cabeloFrente(h, F, luz, sombra, id, cabecaD) {
     var f = ' fill="' + F + '"';
     var fios = function (d) { return '<path d="' + d + '" stroke="' + luz + '" stroke-width="1.2" fill="none" opacity=".42" stroke-linecap="round"/>'; };
     if (h === "careca") return '<path d="M30.4 49 C29.4 35 40 26.5 50 26.5 C60 26.5 70.6 35 69.6 49 C66.6 39.5 59.5 33 50 33 C40.5 33 33.4 39.5 30.4 49Z"' + f + ' opacity=".2"/><ellipse cx="48" cy="30" rx="13" ry="6.5" fill="url(#' + id + 'b)"/>';
-    if (h === "raspado") return '<path d="M30.6 46 C29 28 40 20.5 50 20.5 C60 20.5 71 28 69.4 46 C67 37 59.5 31.5 50 31.5 C40.5 31.5 33 37 30.6 46Z"' + f + ' opacity=".5"/>' +
-      '<path d="M31.4 42 C30.4 28 40.5 21.2 50 21.2 C59.5 21.2 69.6 28 68.6 42 C65.5 34.5 59 28.5 50 28.5 C41 28.5 34.5 34.5 31.4 42Z"' + f + ' opacity=".96"/>' + fios("M39 25.5 Q50 21.8 61 25.5");
+    if (h === "raspado") {
+      // cabelo rente: sombra suave sobre a pele, presa ao contorno da cabeça (nada de "touca")
+      var k = id + "k", z = id + "z", z2 = id + "y";
+      return '<clipPath id="' + k + '"><path d="' + cabecaD + '"/></clipPath>' +
+        '<filter id="' + z + '" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.15"/></filter>' +
+        '<filter id="' + z2 + '" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.4"/></filter>' +
+        '<g clip-path="url(#' + k + ')">' +
+        '<path d="M26 54 C26 41 29.5 35 34 32.2 C40 28.6 45 30.2 50 29.6 C55 30.2 60 28.6 66 32.2 C70.5 35 74 41 74 54 L74 8 L26 8Z"' + f + ' opacity=".34" filter="url(#' + z2 + ')"/>' +
+        '<path d="M28 50 C28 40 31 35.6 35 33.6 C40.5 31.2 45.5 32.4 50 32 C54.5 32.4 59.5 31.2 65 33.6 C69 35.6 72 40 72 50 L72 8 L28 8Z"' + f + ' opacity=".64" filter="url(#' + z + ')"/>' +
+        '<ellipse cx="45" cy="28.5" rx="10" ry="4.4" fill="url(#' + id + 'b)" opacity=".6"/>' +
+        '</g>';
+    }
     if (h === "social") return '<path d="M29.5 49 C26 21 48 13 62 18 C71.5 22.5 74 36 70.5 49 C68.5 38.5 64 33 57.5 31 C48.5 35 38 31.5 33.5 39 C31.5 42 30.5 45.5 29.5 49Z"' + f + '/>' +
       '<path d="M43 31.5 C48 34.5 55 35 60 32" stroke="' + sombra + '" stroke-width="1.1" fill="none" opacity=".6"/>' + fios("M36 26 Q46 18.5 60 21 M52 24 Q64 24 69 32");
-    if (h === "comprido") return '<path d="M30 50 C25 14 50 8 50 29 C50 8 75 14 70 50 C67 40 60 34 50 32.5 C40 34 33 40 30 50Z"' + f + '/>' + fios("M34 38 Q40 24 49 24 M66 38 Q60 24 51 24");
+    if (h === "comprido") return '<path d="M29.6 52 C24 9 76 9 70.4 52 C69.2 41.6 63 34 55 31 C52.6 30.2 51.2 30 50 30 C48.8 30 47.4 30.2 45 31 C37 34 30.8 41.6 29.6 52Z"' + f + '/>' +
+      '<path d="M50 23 L50 30" stroke="' + sombra + '" stroke-width="1" opacity=".5" stroke-linecap="round"/>' + fios("M33 37 Q35 27 43 22 M67 37 Q65 27 57 22");
     if (h === "ondulado") return '<path d="M29 50 C24 8 76 8 71 50 C69 37 62 30 51 29.5 C43 30 36 34 33 42 C31 45 30 47.5 29 50Z"' + f + '/>' + fios("M34 36 Q44 22 62 25 M60 28 Q68 31 69 40");
     if (h === "cacheado") return '<path d="M30 46 C29 27 71 27 70 46 C66 37 58 34 50 34 C42 34 34 37 30 46Z"' + f + '/><circle cx="35" cy="31" r="6.5"' + f + '/><circle cx="44" cy="26" r="7"' + f + '/><circle cx="54" cy="25" r="7"' + f + '/><circle cx="63" cy="29" r="6.5"' + f + '/><circle cx="68.5" cy="38" r="5"' + f + '/><circle cx="31.5" cy="39" r="5"' + f + '/>' +
       '<path d="M40 24 Q44 21 48 23 M55 22 Q60 21 63 25" stroke="' + luz + '" stroke-width="1.2" fill="none" opacity=".4" stroke-linecap="round"/>';
@@ -1102,13 +1115,19 @@
       '<rect x="44" y="20" width="12" height="3.2" rx="1.6" fill="#7a2f2f"/>';
     if (h === "rabo") return '<path d="M30 48 C26 12 74 12 70 48 C68 37 60 31.5 50 31.5 C40 31.5 32 37 30 48Z"' + f + '/><path d="M50 22 L50 32" stroke="' + sombra + '" stroke-width="1" opacity=".4"/>' + fios("M36 30 Q42 24 49 24 M64 30 Q58 24 51 24") +
       '<rect x="64.8" y="33" width="3.6" height="10" rx="1.8" fill="#7a2f2f" transform="rotate(-18 66.6 38)"/>';
+    if (h === "chanel") return '<path d="M29.5 52 C23 8 77 8 70.5 52 C69.6 40.6 62.6 32.4 53.5 29.6 C47 33.6 38.5 34.6 32.8 43.6 C31.2 46.4 30.2 49 29.5 52Z"' + f + '/>' + fios("M34 31 Q43 20 59 22.5 M62 25 Q68 30 69 39");
+    if (h === "franja") return '<path d="M29.5 50 C23.5 8 76.5 8 70.5 50 L69.6 39 C62 33.4 38 33.4 30.4 39Z"' + f + '/>' + fios("M40 22 Q39 29 38.4 34 M50 20.6 L50 33.6 M60 22 Q61 29 61.6 34");
+    if (h === "topete") return '<path d="M30 47 C26.5 22 35 11 50 10 C64 9.5 73.5 21 70 47 C68.4 38.5 64.4 32.4 58 30.4 C51 33.4 43 32.6 37 35 C32.8 37.6 31 41.6 30 47Z"' + f + '/>' + fios("M36 22 Q45 12.5 58 14 M53 14.5 Q64 16 68 27");
+    if (h === "entradas") return '<path d="M30 48 C28.4 27 39.5 19 50 19 C60.5 19 71.6 27 70 48 C69 42 67.6 38 65.4 34.4 C62.6 28.6 58.6 27.6 55.6 29.2 C53.4 30.4 51.8 33.4 50 33.4 C48.2 33.4 46.6 30.4 44.4 29.2 C41.4 27.6 37.4 28.6 34.6 34.4 C32.4 38 31 42 30 48Z"' + f + '/>' + fios("M38 24 Q50 19.6 62 24");
+    if (h === "afro") return cachos('<path d="M29.5 47 C28 26 72 26 70.5 47 C66 38.5 58 34.6 50 34.6 C42 34.6 34 38.5 29.5 47Z"' + f + '/><circle cx="35" cy="30" r="5.6"' + f + '/><circle cx="43" cy="25.5" r="6"' + f + '/><circle cx="52" cy="24.5" r="6"' + f + '/><circle cx="60.5" cy="26.5" r="6"' + f + '/><circle cx="66.5" cy="32.5" r="5"' + f + '/><circle cx="32" cy="37.5" r="4.4"' + f + '/><circle cx="68.5" cy="39" r="3.8"' + f + '/>', luz, [[40, 24], [50, 21], [60, 24], [34, 30], [66, 31]]);
     // curto
     return '<path d="M30 47 C28 24 41 17 50 17 C60 17 72 24 70 47 C68.5 38 64.5 31.5 58.5 29.5 C52.5 33 42 33 36 35.5 C32.5 38 31 42 30 47Z"' + f + '/>' + fios("M37 26 Q44 21.5 52 22.5 M56 22 Q63 23 67 29");
   }
   function barbaSVG(b, F, luz) {
     var f = ' fill="' + F + '"';
     if (b === "barba") return '<path d="M30 51 C29.5 71 40 79.5 50 79.5 C60 79.5 70.5 71 70 51 C68 58 64 61.5 58.5 62.3 C55 60.5 45 60.5 41.5 62.3 C36 61.5 32 58 30 51Z"' + f + '/>' +
-      '<path d="M33 60 Q36 70 44 74 M67 60 Q64 70 56 74 M46 74.5 Q50 76 54 74.5" stroke="' + luz + '" stroke-width="1" fill="none" opacity=".28"/>';
+      '<path d="M33 60 Q36 70 44 74 M67 60 Q64 70 56 74 M46 74.5 Q50 76 54 74.5" stroke="' + luz + '" stroke-width="1" fill="none" opacity=".28"/>' +
+        '<ellipse cx="50" cy="73.4" rx="6.5" ry="2.4" fill="#fff" opacity=".07"/>';
     if (b === "bigode") return '<path d="M41 62.2 Q45.5 58 50 60.8 Q54.5 58 59 62.2 Q54.5 65.6 50 63.4 Q45.5 65.6 41 62.2Z"' + f + '/>';
     if (b === "cav") return '<path d="M41 62.2 Q45.5 58 50 60.8 Q54.5 58 59 62.2 Q54.5 65.6 50 63.4 Q45.5 65.6 41 62.2Z"' + f + '/><path d="M44 70 Q50 78 56 70 Q50 73.5 44 70Z"' + f + '/>';
     return "";
@@ -1118,6 +1137,10 @@
     var arm = '<path d="M35.2 47.6 L30.2 46.6 M64.8 47.6 L69.8 46.6" stroke="#23201c" stroke-width="1.4" fill="none" stroke-linecap="round"/>';
     var ponte = '<path d="M48.6 47.8 Q50 46 51.4 47.8" stroke="#23201c" stroke-width="1.5" fill="none"/>';
     var brilho = '<path d="M37.2 45.4 L40.6 43.6 M53 45.4 L56.4 43.6" stroke="#fff" stroke-width="1" opacity=".55" stroke-linecap="round"/>';
+    if (o === "gatinho") {
+      return '<path d="M34.6 44.6 C36 42.6 39 42.8 42 43.2 C46 43.8 48.6 45 48.4 48.4 C48.2 51.6 45 53 41.5 53 C37.8 53 34.8 50.6 34.6 44.6Z" fill="#cfe6f2" fill-opacity=".18" stroke="#7a2a44" stroke-width="1.6" stroke-linejoin="round"/>' +
+        '<path d="M65.4 44.6 C64 42.6 61 42.8 58 43.2 C54 43.8 51.4 45 51.6 48.4 C51.8 51.6 55 53 58.5 53 C62.2 53 65.2 50.6 65.4 44.6Z" fill="#cfe6f2" fill-opacity=".18" stroke="#7a2a44" stroke-width="1.6" stroke-linejoin="round"/>' + ponte + arm + brilho;
+    }
     if (o === "retangular") {
       return '<rect x="35.4" y="43.6" width="13" height="9.4" rx="2.4" fill="#cfe6f2" fill-opacity=".18" stroke="#23201c" stroke-width="1.7"/>' +
         '<rect x="51.6" y="43.6" width="13" height="9.4" rx="2.4" fill="#cfe6f2" fill-opacity=".18" stroke="#23201c" stroke-width="1.7"/>' + ponte + arm + brilho;
@@ -1204,12 +1227,17 @@
     s += '<path d="' + cabeca.d + '" fill="url(#' + id + 'p)"/>';
     s += '<path d="M31.4 56 C34 73 66 73 68.6 56 C64 67 36 67 31.4 56Z" fill="' + pele[1] + '" opacity=".24"/>';
     s += '<ellipse cx="37.6" cy="57.4" rx="4.6" ry="3" fill="#e0675c" opacity=".17"/><ellipse cx="62.4" cy="57.4" rx="4.6" ry="3" fill="#e0675c" opacity=".17"/>';
+    if (t.sa) {
+      [[41, 55], [43.6, 57.2], [39.4, 57.8], [44.8, 54.2], [59, 55], [56.4, 57.2], [60.6, 57.8], [55.2, 54.2], [48.2, 56.4], [51.8, 56.4]].forEach(function (q, i) {
+        s += '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="' + (0.5 + (i % 3) * 0.1).toFixed(1) + '" fill="#a0602f" opacity=".5"/>';
+      });
+    }
     if (t.ru) {
       s += '<path d="M42 33.6 Q50 32 58 33.6 M43.5 36.4 Q50 35 56.5 36.4" stroke="' + pele[1] + '" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/>' +
         '<path d="M38.4 56 Q36.8 60 38.8 64 M61.6 56 Q63.2 60 61.2 64 M34.6 47 L32.6 46 M65.4 47 L67.4 46" stroke="' + pele[1] + '" stroke-width=".8" fill="none" opacity=".55" stroke-linecap="round"/>';
     }
     // sobrancelhas
-    var g = t.s === "serio" || t.b ? 0.9 : 0.25;
+    var g = t.s === "serio" || t.b ? 0.5 : 0.2;
     s += '<path d="M35.4 43.8 Q41 39.6 47.4 42.4 L47.2 44.1 Q41.6 41.9 36 45.6Z" fill="' + cab + '" stroke="' + cab + '" stroke-width="' + g + '" stroke-linejoin="round"/>' +
       '<path d="M64.6 43.8 Q59 39.6 52.6 42.4 L52.8 44.1 Q58.4 41.9 64 45.6Z" fill="' + cab + '" stroke="' + cab + '" stroke-width="' + g + '" stroke-linejoin="round"/>';
     // olhos
@@ -1225,7 +1253,7 @@
     s += '<path d="M50.6 50 C51.4 54 52.4 57 51.2 59 Q50 60.2 48.8 59 C47.8 57.6 48.4 55.8 49 54" fill="none" stroke="' + pele[1] + '" stroke-width=".95" stroke-linecap="round" opacity=".7"/>' +
       '<path d="M52.4 53 Q53.6 57 51.8 59" fill="none" stroke="#000" stroke-width="1.6" opacity=".05"/>' +
       '<ellipse cx="48.6" cy="59.6" rx=".9" ry=".5" fill="' + pele[1] + '" opacity=".75"/><ellipse cx="51.4" cy="59.6" rx=".9" ry=".5" fill="' + pele[1] + '" opacity=".75"/>';
-    s += cabeloFrente(t.h, F, luz, sombra, id);
+    s += cabeloFrente(t.h, F, luz, sombra, id, cabeca.d);
     // boca (por cima da barba)
     var labio = t.ci ? "#b5504a" : "#9b5146";
     var boca = t.s === "serio" ? '<path d="M44.4 65.8 Q50 67.2 55.6 65.8" stroke="#7a3b2e" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M46.5 67.6 Q50 68.8 53.5 67.6" stroke="' + labio + '" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".75"/>'
