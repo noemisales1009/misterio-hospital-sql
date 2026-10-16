@@ -964,7 +964,8 @@
   // ------------------------------------------------------------------ caso encerrado: carimbo + culpado
   // quem é o culpado de cada caso (aparece só quando todas as fases do caso foram concluídas)
   var CULPADOS = {
-    "guia.html":   { nome: "Vitória Albuquerque", rotulo: "A mandante", papel: "Mandou sabotar a geladeira · executor: Rogério Valadares" },
+    "guia.html":   { nome: "Vitória Albuquerque", rotulo: "A mandante", papel: "Mandou sabotar a geladeira",
+                     extra: [{ nome: "Rogério Valadares", rotulo: "O executor", papel: "Desligou a geladeira" }] },
     "caso2.html":  { nome: "Rogério Mendonça", papel: "Cargo: Técnico de Enfermagem · Enfermaria" },
     "caso3.html":  { nome: "Edson Carvalhaes", papel: "Cargo: Técnico de Farmácia · Farmácia Central" },
     "caso4.html":  { nome: "BI-07", rotulo: "O aparelho culpado", papel: "Bomba de infusão · UTI Adulto", tipo: "aparelho" },
@@ -1171,7 +1172,8 @@
     var F = "url(#" + id + "h)";
     var cabeca = CABECAS[t.f] || CABECAS.oval;
     var ex = cabeca.ex;
-    var s = '<svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Retrato de ' + nome + '">';
+    // enquadramento fechado no rosto e nos ombros (o rosto ocupa mais a foto); ancorado embaixo
+    var s = '<svg viewBox="3 6 94 94" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Retrato de ' + nome + '">';
     s += '<defs>' +
       '<radialGradient id="' + id + 'p" cx=".4" cy=".3" r=".85"><stop offset="0" stop-color="' + clareia(pele[0], .14) + '"/><stop offset=".55" stop-color="' + pele[0] + '"/><stop offset="1" stop-color="' + pele[1] + '"/></radialGradient>' +
       '<linearGradient id="' + id + 'h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + clareia(cab, .16) + '"/><stop offset=".5" stop-color="' + cab + '"/><stop offset="1" stop-color="' + clareia(cab, -.3) + '"/></linearGradient>' +
@@ -1264,18 +1266,44 @@
     return c;
   }
   // foto presa + nome de quem fez (no cartão da home e no painel do caso)
+  // todas as pessoas culpadas de um caso (a principal e, se houver, as que agiram junto)
+  function equipeDoCaso(cul) { return [cul].concat(cul.extra || []); }
+  // retrato para a "foto do caso": uma pessoa, ou duas na mesma foto (a principal na frente)
+  function retratoCulpado(cul) {
+    var eq = equipeDoCaso(cul);
+    if (eq.length < 2) return retratoMarkup(cul.nome, cul.tipo === "aparelho");
+    var h = '<div class="duo">';
+    eq.slice().reverse().forEach(function (p) { h += '<span class="duo-p">' + retratoMarkup(p.nome, p.tipo === "aparelho") + '</span>'; });
+    return h + '</div>';
+  }
+  function nomesCurtos(cul) { return equipeDoCaso(cul).map(function (p) { return p.nome.split(" ")[0]; }).join(" e "); }
+  function nomesCompletos(cul) { return equipeDoCaso(cul).map(function (p) { return p.nome; }).join(" e "); }
   function fichaCulpado(cul, grande) {
-    var box = el("div", "ficha-culpado" + (grande ? " grande" : ""));
-    var fig = el("figure", "ficha-foto");
-    var ret = el("div", "ficha-retrato");
-    ret.innerHTML = retratoMarkup(cul.nome, cul.tipo === "aparelho");
-    fig.appendChild(ret);
-    if (grande) fig.appendChild(el("figcaption", null, cul.nome));
+    var eq = equipeDoCaso(cul);
+    var box = el("div", "ficha-culpado" + (grande ? " grande" : "") + (eq.length > 1 ? " dupla" : ""));
+    var fotos = el("div", "ficha-fotos");
+    eq.forEach(function (p) {
+      var fig = el("figure", "ficha-foto");
+      var ret = el("div", "ficha-retrato");
+      ret.innerHTML = retratoMarkup(p.nome, p.tipo === "aparelho");
+      fig.appendChild(ret);
+      if (grande) fig.appendChild(el("figcaption", null, p.nome));
+      fotos.appendChild(fig);
+    });
     var tx = el("div", "ficha-texto");
-    tx.appendChild(el("small", null, cul.rotulo || "A pessoa culpada"));
-    tx.appendChild(el("b", null, cul.nome));
-    tx.appendChild(el("span", null, cul.papel));
-    box.appendChild(fig); box.appendChild(tx);
+    tx.appendChild(el("small", null, eq.length > 1 ? "Os culpados" : (cul.rotulo || "A pessoa culpada")));
+    eq.forEach(function (p) {
+      if (eq.length > 1) {
+        var linha = el("div", "ficha-pessoa");
+        linha.appendChild(el("b", null, p.nome));
+        linha.appendChild(el("span", null, (p.rotulo ? p.rotulo + " · " : "") + p.papel));
+        tx.appendChild(linha);
+      } else {
+        tx.appendChild(el("b", null, p.nome));
+        tx.appendChild(el("span", null, p.papel));
+      }
+    });
+    box.appendChild(fotos); box.appendChild(tx);
     return box;
   }
   // cartão do caso na home
@@ -1615,7 +1643,7 @@
   }
   // tela principal: galeria dos culpados (quem já foi pego e quem ainda é um "?") e o andamento em post-its
   function svgSilhueta() {
-    return '<svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Culpado ainda desconhecido">' +
+    return '<svg viewBox="3 6 94 94" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Culpado ainda desconhecido">' +
       '<path d="M6 112 C8 88 28 80 50 80 C72 80 92 88 94 112 Z" fill="#69767e"/>' +
       '<rect x="43" y="62" width="14" height="24" rx="6" fill="#7b8890"/>' +
       '<ellipse cx="50" cy="48" rx="19.5" ry="23" fill="#7b8890"/>' +
@@ -1653,12 +1681,12 @@
       fig.appendChild(el("span", "pino pino-" + pinos[i % 4]));
       fig.appendChild(el("span", "mural-num", String(cs.n)));
       var ret = el("div", "ficha-retrato");
-      ret.innerHTML = feito && cul ? retratoMarkup(cul.nome, cul.tipo === "aparelho") : svgSilhueta();
+      ret.innerHTML = feito && cul ? retratoCulpado(cul) : svgSilhueta();
       if (feito && cul) ret.appendChild(el("span", "mural-selo", "Concluído"));
       fig.appendChild(ret);
-      var nome = feito && cul ? cul.nome : "?";
+      var nome = feito && cul ? nomesCompletos(cul) : "?";
       var leg = el("figcaption");
-      var b = el("b", null, nome.split(" ")[0]); b.title = nome;
+      var b = el("b", null, feito && cul ? nomesCurtos(cul) : "?"); b.title = nome;
       leg.appendChild(b);
       fig.appendChild(leg);
       fita.appendChild(fig);
@@ -1702,15 +1730,15 @@
       fig.appendChild(el("span", "pino pino-" + pinos[i % 4]));
       fig.appendChild(el("span", "mural-num", String(cs.n)));
       var ret = el("div", "ficha-retrato");
-      ret.innerHTML = feito && cul ? retratoMarkup(cul.nome, cul.tipo === "aparelho") : svgSilhueta();
+      ret.innerHTML = feito && cul ? retratoCulpado(cul) : svgSilhueta();
       // o carimbo fica dentro da foto, na parte de baixo do retrato (não cobre o nome)
       if (feito && cul) ret.appendChild(el("span", "mural-selo", "Concluído"));
       fig.appendChild(ret);
       var leg = el("figcaption");
-      var nomeCompleto = feito && cul ? cul.nome : "?";
-      // o nome inteiro quando cabe numa linha; senão, só o primeiro nome
+      var nomeCompleto = feito && cul ? nomesCompletos(cul) : "?";
+      // o nome inteiro quando cabe numa linha; senão, só o primeiro nome (dupla: os dois primeiros nomes)
       var cabem = Math.floor((w - 10) / 6.6);
-      var nb = el("b", null, nomeCompleto.length <= cabem ? nomeCompleto : nomeCompleto.split(" ")[0]);
+      var nb = el("b", null, nomeCompleto.length <= cabem ? nomeCompleto : (feito && cul ? nomesCurtos(cul) : "?"));
       nb.title = nomeCompleto;
       leg.appendChild(nb);
       leg.appendChild(el("small", null, feito && cul ? "Caso " + cs.n + " · " + cs.titulo : "Culpado do Caso " + cs.n));

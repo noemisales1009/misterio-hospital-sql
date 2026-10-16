@@ -1126,3 +1126,19 @@ body.gav-desliza .wrap{transform:translateX(calc(var(--gav-shift,0px) * -1))}
 .galeria-foto figcaption{margin-top:4px;text-align:center}
 .galeria-foto figcaption b{display:block;overflow:hidden;color:#2b2a26;font:700 15px/1.1 var(--f-mao);white-space:nowrap;text-overflow:ellipsis}
 .galeria-foto .ficha-retrato>.mural-selo{bottom:4px;padding:0 3px;border-width:1.5px;font-size:7px}
+
+/* mais de um culpado no mesmo caso (Caso 1: a mandante e o executor) */
+.ficha-fotos{display:flex;flex:none;align-items:flex-start;gap:8px}
+.ficha-culpado.dupla .ficha-fotos .ficha-foto{width:68px;padding:4px 4px 3px}
+.ficha-culpado.dupla .ficha-fotos .ficha-foto:nth-child(even){transform:rotate(3deg);margin-top:6px}
+.ficha-culpado.dupla.grande .ficha-fotos .ficha-foto{width:132px;padding:7px 7px 6px}
+.ficha-pessoa{display:flex;flex-direction:column;margin-top:3px}
+.ficha-culpado.dupla .ficha-texto b{font-size:21px}
+.ficha-culpado.dupla.grande .ficha-texto b{font-size:28px}
+.ficha-culpado.dupla .ficha-texto span{font-size:.74rem}
+@media (max-width:520px){.ficha-culpado.dupla.grande .ficha-fotos{justify-content:center}}
+/* duas pessoas na mesma foto (galerias) */
+.duo{display:flex;align-items:flex-end;justify-content:center;width:100%;height:100%}
+.duo-p{flex:0 0 64%;min-width:0;height:88%}
+.duo-p+.duo-p{margin-left:-28%}
+.duo-p svg,.duo-p img{display:block;width:100%;height:100%;object-fit:cover}
