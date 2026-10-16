@@ -1219,3 +1219,7 @@ body.gav-desliza .wrap{transform:translateX(calc(var(--gav-shift,0px) * -1))}
 .pasta-papel{left:8px;right:10px;top:18px;bottom:16px;border-radius:2px;background:#fbf7e8;box-shadow:0 1px 2px rgba(0,0,0,.25)}
 .pasta-frente{left:0;right:0;top:30px;bottom:0;border-radius:2px 2px 8px 8px;background:linear-gradient(#f7bb40,#eda629);box-shadow:0 -2px 4px rgba(0,0,0,.14)}
 .pasta-post{position:relative;z-index:3;margin:0 10px 12px;padding:15px 12px 10px;background:var(--cor,#fff1a0);color:#3a3520;box-shadow:0 4px 9px rgba(0,0,0,.35);transform:rotate(var(--giro-post,0deg))}
+
+/* a fonte mono (JetBrains Mono) junta "->" em seta e "!=" em um símbolo só; quem aprende SQL precisa ver os caracteres de verdade */
+html{font-variant-ligatures:no-contextual}
+code,pre,textarea,kbd{font-variant-ligatures:none}

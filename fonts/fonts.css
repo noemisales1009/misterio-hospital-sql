@@ -114,6 +114,8 @@
 @font-face {
   font-family: 'JetBrains Mono';
   font-style: normal;
+  /* sem ligaduras: "->", "->>", "!=" e "<=" precisam aparecer como se digita */
+  font-feature-settings: "calt" 0, "liga" 0;
   font-weight: 400;
   font-display: swap;
   src: url(jetbrains-mono-400-normal-latin-ext.woff2) format('woff2');
@@ -122,6 +124,8 @@
 @font-face {
   font-family: 'JetBrains Mono';
   font-style: normal;
+  /* sem ligaduras: "->", "->>", "!=" e "<=" precisam aparecer como se digita */
+  font-feature-settings: "calt" 0, "liga" 0;
   font-weight: 400;
   font-display: swap;
   src: url(jetbrains-mono-400-normal-latin.woff2) format('woff2');
@@ -130,6 +134,8 @@
 @font-face {
   font-family: 'JetBrains Mono';
   font-style: normal;
+  /* sem ligaduras: "->", "->>", "!=" e "<=" precisam aparecer como se digita */
+  font-feature-settings: "calt" 0, "liga" 0;
   font-weight: 600;
   font-display: swap;
   src: url(jetbrains-mono-400-normal-latin-ext.woff2) format('woff2');
@@ -138,6 +144,8 @@
 @font-face {
   font-family: 'JetBrains Mono';
   font-style: normal;
+  /* sem ligaduras: "->", "->>", "!=" e "<=" precisam aparecer como se digita */
+  font-feature-settings: "calt" 0, "liga" 0;
   font-weight: 600;
   font-display: swap;
   src: url(jetbrains-mono-400-normal-latin.woff2) format('woff2');
