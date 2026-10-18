@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -191,6 +191,17 @@ GROUP BY paciente_id
 ORDER BY paciente_id;</pre></div>
     <p>Para conferir: <strong>22 contas</strong>, de apenas <strong>7 pacientes</strong>, somando <strong>R$ 43.394,25</strong> de desconto fora da política. Os pacientes são os de número 12, 27, 33, 48, 59, 71 e 84, cada um com 2 a 4 contas. Os descontos legítimos do hospital (5% ou 10%, autorizados pela supervisão) não entram nessa conta.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quantas contas têm desconto <strong>dentro</strong> da política: maior que zero e de até 10% do <code>valor_bruto</code>? Mostre <strong>contas</strong> e <strong>total_desconto</strong> (a soma desses descontos).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS contas, SUM(desconto) AS total_desconto FROM ctp_conta WHERE desconto &gt; 0 AND desconto &lt;= valor_bruto * 0.10;</pre></div><p>Para conferir: <strong>1</strong> linha; o total fica entre R$ 11 mil e R$ 12 mil.</p></div></details></li>
+      <li class="extra"><p>Antes de um <code>UPDATE</code>, confira o alvo com uma consulta. Simule um reajuste de 4,5% nas contas com <code>tipo</code> 'internacao' e <code>status</code> 'aberta': mostre <strong>id</strong>, <strong>valor_bruto</strong> e <strong>novo_bruto</strong> (valor_bruto vezes 1.045, arredondado com 2 casas).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT id, valor_bruto, round(valor_bruto * 1.045, 2) AS novo_bruto FROM ctp_conta WHERE tipo = 'internacao' AND status = 'aberta' ORDER BY id;</pre></div><p>Para conferir: <strong>12</strong> linhas; a conta 346 iria de 6854.00 para 7162.43.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c14-ok1"><label for="c14-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c14-f2" data-fase="2" data-nome="Antes e depois">
@@ -236,11 +247,11 @@ FROM ctp_auditoria
 WHERE desconto_depois &lt;&gt; desconto_antes
 ORDER BY momento
 LIMIT 30;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para cada <code>usuario_db</code> da auditoria, mostre quantas alterações ele fez no total e quantas deixaram o desconto <strong>acima de 10%</strong> do bruto (compare <code>desconto_depois</code> com <code>valor_bruto_depois</code>). Ordene do login com mais alterações para o com menos.</li><li>Pegue só as alterações que deixaram o desconto acima de 10%. Calcule o percentual do desconto sobre o bruto, arredondado sem casas (<code>round(100 * desconto_depois / valor_bruto_depois)</code>), e agrupe por esse percentual, mostrando quantas alterações e o primeiro momento em que cada percentual apareceu.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para cada <code>usuario_db</code> da auditoria, mostre quantas alterações ele fez no total e quantas deixaram o desconto <strong>acima de 10%</strong> do bruto (compare <code>desconto_depois</code> com <code>valor_bruto_depois</code>). Ordene do login com mais alterações para o com menos.</li><li>Pegue só as alterações que deixaram o desconto acima de 10%. O percentual do desconto sobre o bruto é 100 vezes <code>desconto_depois</code> dividido por <code>valor_bruto_depois</code>, arredondado sem casas. Para cada percentual, mostre o percentual, quantas alterações e o primeiro momento em que ele apareceu.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, contar por login do banco as alterações da auditoria e quantas deixaram o desconto acima de 10% do bruto. Na segunda, agrupar só essas pelo percentual de desconto, com quantas e a primeira vez.</p>
     <p><strong>Como pensar:</strong></p>
-    <ul class="list"><li>A <code>ctp_auditoria</code> é a câmera do faturamento: um gatilho (função que o banco roda sozinho) grava o antes e o depois de cada <code>UPDATE</code>.</li><li>A política vale para como a conta ficou: compare <code>desconto_depois</code> com <code>valor_bruto_depois</code>, como na fase 1.</li><li><strong>Na primeira:</strong> agrupe por <code>usuario_db</code>; <code>COUNT(*)</code> conta tudo, e o mesmo <code>COUNT(*)</code> com <code>FILTER</code> conta só o que cumpre a condição.</li><li><strong>Na segunda:</strong> a condição vai no <code>WHERE</code>. Calcule o percentual com a fórmula da missão, dê um apelido, agrupe por ele e pegue o menor <code>momento</code>.</li></ul>
+    <ul class="list"><li><strong>Ferramenta:</strong> na segunda, <code>round(100 * desconto_depois / valor_bruto_depois)</code> com um apelido, <code>GROUP BY</code> nesse apelido e <code>MIN(momento)</code>.</li><li>A <code>ctp_auditoria</code> é a câmera do faturamento: um gatilho (função que o banco roda sozinho) grava o antes e o depois de cada <code>UPDATE</code>.</li><li>A política vale para como a conta ficou: compare <code>desconto_depois</code> com <code>valor_bruto_depois</code>, como na fase 1.</li><li><strong>Na primeira:</strong> agrupe por <code>usuario_db</code>; <code>COUNT(*)</code> conta tudo, e o mesmo <code>COUNT(*)</code> com <code>FILTER</code> conta só o que cumpre a condição.</li><li><strong>Na segunda:</strong> a condição vai no <code>WHERE</code>. Calcule o percentual com a fórmula da missão, dê um apelido, agrupe por ele e pegue o menor <code>momento</code>.</li></ul>
     <p><strong>Se travar:</strong></p>
     <ul class="list"><li>As duas contagens saíram iguais? A condição foi para o <code>WHERE</code>; na primeira, ela fica só no <code>FILTER</code>.</li><li>Percentual com casas decimais? Use o <code>round</code> como na missão, sem segundo número.</li></ul>
   </div></details>
@@ -261,6 +272,17 @@ GROUP BY percentual;</pre></div>
     <p>Para conferir: a primeira traz 5 logins. <code>svc_faturamento</code> (a rotina noturna) tem 345 alterações, 24 acima da política; as faturistas <code>bianca.arruda</code> (192 / 15) e <code>edson.quintela</code> (166 / 9) também aparecem; <code>silvia.miranda</code> tem 18 alterações, todas no mesmo minuto, com 1 acima; e <code>jussara.moura</code>, a única que autoriza descontos, tem 31 alterações e <strong>nenhuma</strong> acima de 10%. A segunda traz <strong>uma linha só</strong>: <strong>40%</strong>, em <strong>49 alterações</strong>, a primeira em <strong>19/09/2026 às 02:00:05</strong>.</p>
     <p>Repare no que isso quer dizer. Quatro logins diferentes, de dia e de madrugada, “deram” desconto de exatamente 40%, sempre o mesmo número, e nenhum deles é quem autoriza desconto. Uma pessoa digitando não acerta 40% redondo 49 vezes. A rotina noturna parece a culpada, mas a faturista que só lança itens também “aplicou” 40%. O desconto está sendo recalculado <strong>por dentro do banco</strong>, em qualquer <code>UPDATE</code> dessas contas, como você viu na conta 346. E isso começou na madrugada de 19 de setembro.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Para cada <code>usuario_db</code> da auditoria, conte quantas alterações mudaram o bruto (<code>valor_bruto_depois</code> diferente de <code>valor_bruto_antes</code>) e quantas mudaram o desconto. Mostre <strong>usuario_db</strong>, <strong>mudou_bruto</strong> e <strong>mudou_desconto</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT usuario_db, COUNT(*) FILTER (WHERE valor_bruto_depois &lt;&gt; valor_bruto_antes) AS mudou_bruto, COUNT(*) FILTER (WHERE desconto_depois &lt;&gt; desconto_antes) AS mudou_desconto FROM ctp_auditoria GROUP BY usuario_db ORDER BY usuario_db;</pre></div><p>Para conferir: <strong>5</strong> linhas; <code>jussara.moura</code> nunca mexe no bruto.</p></div></details></li>
+      <li class="extra"><p>Veja o antes e o depois do desconto da conta <strong>346</strong> na auditoria. Mostre <strong>momento</strong>, <strong>usuario_db</strong>, <strong>desconto_antes</strong> e <strong>desconto_depois</strong>, em ordem de momento.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT momento, usuario_db, desconto_antes, desconto_depois FROM ctp_auditoria WHERE conta_id = 346 ORDER BY momento;</pre></div><p>Para conferir: <strong>7</strong> linhas; a primeira é de 09/10 às 02:00:05, da rotina noturna.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c14-ok2"><label for="c14-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c14-f3" data-fase="3" data-nome="O gatilho">
@@ -321,6 +343,19 @@ WHERE paciente_id IN (12, 27, 33, 48, 59, 71, 84)
     <p>Para conferir: a primeira traz <strong>3 linhas</strong>. <code>ctp_trg_auditoria</code> é <code>AFTER UPDATE</code> e chama <code>ctp_fn_auditoria()</code>, a auditoria da fase 2. O outro, <code>ctp_trg_ajuste_centavos</code>, aparece duas vezes (<code>INSERT</code> e <code>UPDATE</code>), sempre <code>BEFORE</code>, e chama <code>ctp_fn_ajuste_centavos()</code>. A segunda traz as 2 funções. O comentário da suspeita diz “ajuste de arredondamento de centavos”, mas o código faz outra coisa: <code>IF NEW.paciente_id IN (12, 27, 33, 48, 59, 71, 84) THEN NEW.desconto := round(NEW.valor_bruto * 0.40, 2)</code>. Ou seja, para sete pacientes escolhidos a dedo, todo <code>INSERT</code> ou <code>UPDATE</code> sai com 40% de desconto, não importa quem rodou o comando. A terceira confirma: <strong>22 contas</strong> e <strong>R$ 43.394,25</strong>, exatamente o que a fase 1 achou.</p>
     <p>Por isso a rotina noturna e as faturistas são descartadas: elas só rodaram <code>UPDATE</code>s normais, e o gatilho reescreveu o desconto no caminho. A pergunta agora é: quem criou esse gatilho?</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Em <code>information_schema.triggers</code>, conte quantas linhas (eventos) cada gatilho da tabela <code>ctp_conta</code> tem. Mostre <strong>trigger_name</strong> e <strong>eventos</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT trigger_name, COUNT(*) AS eventos FROM information_schema.triggers WHERE event_object_table = 'ctp_conta' GROUP BY trigger_name ORDER BY trigger_name;</pre></div><p>Para conferir: <strong>2</strong> linhas; um dos gatilhos tem 2 eventos.</p></div></details></li>
+      <li class="extra"><p>Em <code>information_schema.triggers</code>, a coluna <code>action_condition</code> guarda a condição <code>WHEN</code> do gatilho. Mostre <strong>trigger_name</strong> e <strong>action_condition</strong> dos gatilhos de <code>ctp_conta</code> que têm condição (não nula).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT trigger_name, action_condition FROM information_schema.triggers WHERE event_object_table = 'ctp_conta' AND action_condition IS NOT NULL;</pre></div><p>Para conferir: <strong>1</strong> linha; a condição compara <code>old</code> com <code>new</code>.</p></div></details></li>
+      <li class="extra"><p>No catálogo <code>pg_trigger</code>, conte os gatilhos da tabela <code>ctp_conta</code>, separando os internos do banco dos criados por gente. Mostre <strong>tgisinternal</strong> e <strong>gatilhos</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT tgisinternal, COUNT(*) AS gatilhos FROM pg_trigger WHERE tgrelid = 'ctp_conta'::regclass GROUP BY tgisinternal;</pre></div><p>Para conferir: <strong>2</strong> linhas, as duas com o mesmo número de gatilhos.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c14-ok3"><label for="c14-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c14-f4" data-fase="4" data-nome="Quem criou">
@@ -338,7 +373,7 @@ WHERE paciente_id IN (12, 27, 33, 48, 59, 71, 84)
 SELECT momento, usuario_db, maquina, comando, objeto, tabela, chamado
 FROM ctp_ddl_log
 ORDER BY momento;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>No log de DDL, encontre a criação das duas funções e dos dois gatilhos da fase 3 (<code>ctp_fn_auditoria</code>, <code>ctp_trg_auditoria</code>, <code>ctp_fn_ajuste_centavos</code>, <code>ctp_trg_ajuste_centavos</code>). Mostre <code>momento</code>, <code>usuario_db</code>, <code>comando</code>, <code>objeto</code>, <code>maquina</code> e <code>chamado</code>, em ordem de momento.</li><li>Liste todas as mudanças de estrutura feitas <strong>fora do horário comercial</strong> (antes das 7h ou a partir das 19h), com a descrição e o aprovador do chamado (use <code>LEFT JOIN</code> com <code>ctp_chamado</code>). Mostre momento, login, máquina, objeto, chamado, descrição e aprovador, em ordem de momento.</li><li>O login usado no gatilho suspeito é de uma pessoa só? Veja a linha dele em <code>ctp_usuario_db</code> (login, tipo e descrição).</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>No log de DDL, encontre a criação das duas funções e dos dois gatilhos da fase 3 (<code>ctp_fn_auditoria</code>, <code>ctp_trg_auditoria</code>, <code>ctp_fn_ajuste_centavos</code>, <code>ctp_trg_ajuste_centavos</code>). Mostre <code>momento</code>, <code>usuario_db</code>, <code>comando</code>, <code>objeto</code>, <code>maquina</code> e <code>chamado</code>, em ordem de momento.</li><li>Liste todas as mudanças de estrutura feitas <strong>fora do horário comercial</strong> (antes das 7h ou a partir das 19h), com a descrição e o aprovador do chamado, que estão em <code>ctp_chamado</code>. Mudança sem chamado também entra, com descrição e aprovador vazios. Mostre <code>momento</code>, <code>usuario_db</code>, <code>maquina</code>, <code>objeto</code>, <code>chamado</code>, <code>descricao</code> e <code>aprovado_por</code>, em ordem de momento.</li><li>O login usado no gatilho suspeito é de uma pessoa só? Veja a linha dele em <code>ctp_usuario_db</code> (login, tipo e descrição).</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, achar no log de estrutura a criação das duas funções e dos dois gatilhos. Na segunda, listar as mudanças fora do horário comercial, com o chamado. Na terceira, ver se o login do gatilho suspeito é de uma pessoa só.</p>
     <p><strong>Como pensar:</strong></p>
@@ -366,6 +401,19 @@ WHERE login = 'admin_sistemas';</pre></div>
     <p>Para conferir: a primeira traz <strong>4 linhas</strong>. A auditoria foi criada por <code>regina.varela</code> em 31/08 às 16h, da máquina <code>TI-DBA-01</code>, com o chamado <code>CHG-2026-0311</code>: tudo em ordem, é o gatilho legítimo, criado pela DBA em horário comercial e com autorização. Já <code>ctp_fn_ajuste_centavos</code> e <code>ctp_trg_ajuste_centavos</code> foram criados em <strong>18/09/2026 às 23:41:12 e 23:43:05</strong>, pelo login <code>admin_sistemas</code>, da máquina <strong><code>NB-TERC-14</code></strong>, <strong>sem chamado</strong>. Isso foi poucas horas antes da madrugada de 19/09, quando os 40% apareceram.</p>
     <p>A segunda traz <strong>4 mudanças fora do horário</strong>: duas têm chamado aprovado (o índice emergencial da Regina em 27/09, com o chamado <code>CHG-2026-0402</code>, e a coluna nova do Vinícius em 06/10, com o <code>CHG-2026-0431</code>), e as outras duas são justamente as do gatilho suspeito, com chamado, descrição e aprovador em <code>NULL</code>. A terceira mostra o problema: <code>admin_sistemas</code> é uma conta <strong>compartilhada</strong>, cuja senha é usada por três pessoas: Regina Varela, Vinícius Bastos e Douglas Pacheco. O login sozinho não diz quem foi. A máquina e o horário dizem.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>No log de DDL, liste as mudanças feitas na máquina <code>NB-TERC-09</code>. Mostre <strong>momento</strong>, <strong>usuario_db</strong>, <strong>comando</strong> e <strong>objeto</strong>, em ordem de momento.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT momento, usuario_db, comando, objeto FROM ctp_ddl_log WHERE maquina = 'NB-TERC-09' ORDER BY momento;</pre></div><p>Para conferir: <strong>4</strong> linhas; a última foi feita pelo login compartilhado.</p></div></details></li>
+      <li class="extra"><p>Quais chamados de <code>ctp_chamado</code> não aparecem em nenhuma linha de <code>ctp_ddl_log</code>? Mostre <strong>codigo</strong> e <strong>descricao</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT c.codigo, c.descricao FROM ctp_chamado c LEFT JOIN ctp_ddl_log d ON d.chamado = c.codigo WHERE d.id IS NULL ORDER BY c.codigo;</pre></div><p>Para conferir: <strong>2</strong> linhas; nenhum dos dois pede mudança de estrutura.</p></div></details></li>
+      <li class="extra"><p>Quantas mudanças de estrutura o log tem em cada hora do dia? Mostre <strong>hora</strong> (só a hora do <code>momento</code>) e <strong>mudancas</strong>, em ordem de hora.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT EXTRACT(HOUR FROM momento) AS hora, COUNT(*) AS mudancas FROM ctp_ddl_log GROUP BY hora ORDER BY hora;</pre></div><p>Para conferir: <strong>9</strong> linhas; a hora com mais mudanças é a das 10h.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c14-ok4"><label for="c14-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c14-f5" data-fase="5" data-nome="Conserto">
@@ -407,7 +455,7 @@ WHERE paciente_id IN (12, 27, 33, 48, 59, 71, 84)
 COMMIT;
 SELECT COUNT(*) AS contas_fora_da_politica FROM ctp_conta WHERE desconto &gt; valor_bruto * 0.10;</pre></div>
   <div class="box"><b class="l">Atenção</b><p>Esse último bloco muda o banco de verdade: depois dele, a fase 1 vai achar 0 contas fora da política, a fase 3 não vai mais encontrar o gatilho suspeito, e a auditoria ganha 22 linhas novas. É o resultado esperado de um conserto. Para voltar ao ponto de partida, clique em <strong>Reiniciar banco</strong> (no Supabase, rode o <code>caso14.sql</code> de novo).</p></div>
-  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Quem são os sete pacientes da lista do gatilho? Mostre o <code>id</code> e o <code>nome</code> deles, em ordem de <code>id</code>. Repare nos sobrenomes.</li><li>Agora identifique o culpado: quem estava usando a máquina das duas mudanças sem chamado no momento exato em que elas foram feitas? Junte <code>ctp_ddl_log</code> com <code>ctp_sessao_estacao</code> pela máquina, com o momento do comando entre o <code>inicio</code> e o <code>fim</code> da sessão. Confira com <code>SELECT verificar_caso14('Nome Completo');</code>.</li></ul></div>
+  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Quem são os sete pacientes da lista do gatilho? Mostre o <code>id</code> e o <code>nome</code> deles, em ordem de <code>id</code>. Repare nos sobrenomes.</li><li>Agora identifique o culpado: quem estava usando a máquina das duas mudanças sem chamado no momento exato em que elas foram feitas? A sessão certa em <code>ctp_sessao_estacao</code> é a da mesma máquina do comando em <code>ctp_ddl_log</code>, com o momento do comando entre o <code>inicio</code> e o <code>fim</code> dela. Mostre <code>pessoa</code>, <code>maquina</code>, <code>inicio</code>, <code>fim</code> e <code>via</code> da sessão, uma linha por sessão. Confira com <code>SELECT verificar_caso14('Nome Completo');</code>.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, mostrar id e nome dos sete pacientes da lista do gatilho. Na segunda, descobrir quem usava a máquina das duas mudanças sem chamado no instante em que foram feitas.</p>
     <p><strong>Como pensar:</strong></p>
@@ -429,8 +477,28 @@ JOIN ctp_sessao_estacao s
 WHERE d.chamado IS NULL;</pre></div>
     <p>Para conferir: a primeira traz os 7 pacientes, e três deles são da mesma família: <strong>Marlene Pacheco</strong>, <strong>Thiago Pacheco</strong> e <strong>Luana Pacheco Vidal</strong>. A segunda traz <strong>1 linha</strong>: na <code>NB-TERC-14</code>, a única sessão aberta entre 23:41 e 23:43 de 18/09 é de <strong>Douglas Pacheco</strong>, por <strong>VPN</strong>, das 22:58 até 00:21 do dia 19. As pistas falsas caem uma a uma: o Vinícius Bastos usou essa mesma máquina naquele dia, mas das 13:31 às 18:05; à noite ele entrou por VPN em outra máquina (<code>NB-TERC-09</code>) e saiu às 23:12, antes do comando. A Regina Varela estava na <code>TI-DBA-01</code> e saiu às 17:31. A rotina noturna e a correção em massa da Sílvia Miranda (com o chamado <code>CHG-2026-0427</code>) só rodaram <code>UPDATE</code>s normais, que o gatilho reescreveu.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>O login <code>admin_sistemas</code> também fez mudanças <strong>com</strong> chamado. Quem estava na máquina em cada uma? Use a máquina e o momento dentro da sessão de <code>ctp_sessao_estacao</code>. Mostre <strong>momento</strong>, <strong>objeto</strong> e <strong>pessoa</strong>, em ordem de momento.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT d.momento, d.objeto, s.pessoa FROM ctp_ddl_log d JOIN ctp_sessao_estacao s ON s.maquina = d.maquina AND d.momento BETWEEN s.inicio AND s.fim WHERE d.usuario_db = 'admin_sistemas' AND d.chamado IS NOT NULL ORDER BY d.momento;</pre></div><p>Para conferir: <strong>2</strong> linhas, com duas pessoas diferentes.</p></div></details></li>
+      <li class="extra"><p>Antes do conserto, confira o alvo do <code>UPDATE</code>: as contas dos sete pacientes da lista (12, 27, 33, 48, 59, 71, 84) com desconto acima de 10% do bruto. Mostre <strong>status</strong>, <strong>contas</strong> e <strong>desconto</strong> (a soma), uma linha por status.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT status, COUNT(*) AS contas, SUM(desconto) AS desconto FROM ctp_conta WHERE paciente_id IN (12, 27, 33, 48, 59, 71, 84) AND desconto &gt; valor_bruto * 0.10 GROUP BY status ORDER BY status;</pre></div><p>Para conferir: <strong>2</strong> linhas; a maior parte das contas já está paga.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c14-ok5"><label for="c14-ok5">Etapa 5 concluída</label></div>
 </section>
+<!-- desafio:início -->
+<section class="fase desafio-final" id="caso14-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>Depois da criação do gatilho escondido (18/09/2026 às 23:43:05), quanto desconto a mais cada login "aplicou" sem saber nas contas dos sete pacientes da lista? Use <code>ctp_auditoria</code> e <code>ctp_conta</code>. Mostre <strong>usuario_db</strong>, <strong>alteracoes</strong> e <strong>desconto_a_mais</strong> (soma de <code>desconto_depois</code> menos <code>desconto_antes</code>).</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>SELECT a.usuario_db, COUNT(*) AS alteracoes, SUM(a.desconto_depois - a.desconto_antes) AS desconto_a_mais FROM ctp_auditoria a JOIN ctp_conta c ON c.id = a.conta_id WHERE c.paciente_id IN (12, 27, 33, 48, 59, 71, 84) AND a.momento &gt; '2026-09-18 23:43:05' GROUP BY a.usuario_db ORDER BY desconto_a_mais DESC;</pre></div><p>Para conferir: <strong>4</strong> linhas; a rotina noturna lidera, com mais de R$ 18 mil.</p></div></details>
+</section>
+<!-- desafio:fim -->
+
 <section class="fase" id="c14-cola" style="gap:12px">
   <h2 style="font-size:32px">Cola rápida</h2>
   <div class="tw"><table>
@@ -2179,12 +2247,12 @@ SELECT '✅ Caso 14 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

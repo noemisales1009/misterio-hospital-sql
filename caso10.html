@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -103,7 +103,7 @@ SELECT ip, parametro, status
 FROM portal_requisicao
 WHERE parametro LIKE '%--%'
 LIMIT 15;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantas requisições têm, no <code>parametro</code>, o padrão <code>' or </code> (um OR sempre verdadeiro) ou <code>--</code> (corta o resto do comando) ou as palavras <code>union</code> e <code>select</code> juntas? Conte o <strong>total</strong>.</li><li>Agora agrupe essas mesmas requisições por <code>ip</code> e conte quantas cada IP tem. Vai aparecer mais de um IP suspeito — guarde os dois números, a próxima fase explica qual é qual.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantas requisições têm, no <code>parametro</code>, o padrão <code>' or </code> (um OR sempre verdadeiro) ou <code>--</code> (corta o resto do comando) ou as palavras <code>union</code> e <code>select</code> juntas, em maiúsculas ou minúsculas? Mostre só o <strong>total</strong>.</li><li>Agora, para cada <code>ip</code>, mostre o ip e quantas dessas mesmas requisições ele tem. Vai aparecer mais de um IP suspeito: guarde os dois números, a próxima fase explica qual é qual.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> contar as requisições com marcas de injeção de SQL no <code>parametro</code>: <code>' or </code>, <code>--</code>, ou <code>union</code> e <code>select</code> juntos. Na segunda, contar as mesmas por <code>ip</code>.</p>
     <p><strong>Como pensar:</strong></p>
@@ -127,6 +127,22 @@ GROUP BY ip
 ORDER BY suspeitas DESC;</pre></div>
     <p>Para conferir: 59 requisições suspeitas no total, vindas de <strong>dois IPs</strong>: <code>198.51.100.23</code> com 50 e <code>203.0.113.59</code> com 9. Qual dos dois é o ataque de verdade? É o que a próxima fase descobre.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Liste as requisições com o texto <code>table</code> em qualquer lugar do <code>parametro</code>, sem diferenciar maiúsculas de minúsculas. Mostre <strong>momento</strong>, <strong>ip</strong> e <strong>parametro</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT momento, ip, parametro
+FROM portal_requisicao
+WHERE parametro ILIKE '%table%'
+ORDER BY momento;</pre></div><p>Para conferir: <strong>8</strong> linhas. Só com <code>LIKE</code> viriam 2: o <code>ILIKE</code> pega também o <code>TABLE</code> em maiúsculas.</p></div></details></li>
+      <li class="extra"><p>Quantas requisições têm uma <strong>aspa simples</strong> (<code>'</code>) em qualquer lugar do <code>parametro</code>? Mostre só <strong>com_aspa</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS com_aspa
+FROM portal_requisicao
+WHERE parametro LIKE '%''%';</pre></div><p>Para conferir: Um número um pouco maior que o total da missão. Deu erro? A aspa procurada se escreve <code>''</code> dentro do padrão.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c10-ok1"><label for="c10-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c10-f2" data-fase="2" data-nome="A linha do tempo">
@@ -165,6 +181,26 @@ GROUP BY ip
 ORDER BY sucessos DESC;</pre></div>
     <p>Para conferir: o IP <code>198.51.100.23</code> espalha tentativas pelos três dias, sempre bloqueadas (<strong>0</strong> erros 500 e <strong>0</strong> sucessos) — é só o bot de varredura, pode descartar. Já o IP <code>203.0.113.59</code> concentra tudo numa janela curta na noite de 10/10, com <strong>3</strong> erros 500 (tentando acertar a sintaxe) e <strong>3</strong> sucessos grandes — esse é o ataque de verdade.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Para cada <strong>rota</strong>, mostre <strong>rota</strong>, <strong>primeira</strong> e <strong>ultima</strong> (o primeiro e o último <code>momento</code>) e <strong>bloqueadas</strong> (quantas tiveram status 403).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT rota,
+       MIN(momento) AS primeira,
+       MAX(momento) AS ultima,
+       COUNT(*) FILTER (WHERE status = 403) AS bloqueadas
+FROM portal_requisicao
+GROUP BY rota
+ORDER BY rota;</pre></div><p>Para conferir: <strong>4</strong> rotas. Só <code>buscar_exame</code> tem bloqueadas: <strong>50</strong>.</p></div></details></li>
+      <li class="extra"><p>A linha do tempo dos erros: liste todas as requisições com status <strong>500</strong>, em ordem de horário. Mostre <strong>momento</strong>, <strong>ip</strong> e <strong>parametro</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT momento, ip, parametro
+FROM portal_requisicao
+WHERE status = 500
+ORDER BY momento;</pre></div><p>Para conferir: <strong>5</strong> linhas, todas do mesmo IP, entre 23:02 e 23:07 de 10/10.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c10-ok2"><label for="c10-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c10-f3" data-fase="3" data-nome="O que vazou">
@@ -181,7 +217,7 @@ ORDER BY sucessos DESC;</pre></div>
   <div class="code"><pre data-sql>-- Exatamente o que o atacante usou para descobrir os nomes das tabelas e colunas
 SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
 SELECT column_name FROM information_schema.columns WHERE table_name = 'exame_resultado';</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>A partir do IP confirmado na fase anterior, liste as requisições com <code>linhas &gt; 0</code> e <code>parametro</code> contendo <code>union</code> — isso mostra a escalada, do teste mais bobo até o vazamento completo.</li><li>Quantos pacientes <strong>diferentes</strong> tiveram resultado de exame exposto? (Pista: a consulta vencedora do ataque devolveu a tabela <code>exame_resultado</code> inteira, sem filtro nenhum.)</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Do IP confirmado na fase anterior, liste as requisições que trouxeram alguma linha (<code>linhas</code> maior que 0) e têm <code>union</code> no <code>parametro</code>, em maiúsculas ou minúsculas. Mostre <code>momento</code>, <code>parametro</code>, <code>status</code> e <code>linhas</code>. É a escalada, do teste mais bobo até o vazamento completo.</li><li>Quantos pacientes <strong>diferentes</strong> tiveram resultado de exame exposto? (Pista: a consulta vencedora do ataque devolveu a tabela <code>exame_resultado</code> inteira, sem filtro nenhum.)</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> listar as requisições do IP do ataque que trouxeram linhas e têm <code>union</code> no parâmetro. Na segunda, contar os pacientes diferentes com resultado de exame exposto.</p>
     <p><strong>Como pensar:</strong></p>
@@ -198,6 +234,22 @@ WHERE ip = '203.0.113.59' AND linhas &gt; 0 AND parametro ILIKE '%union%';</pre>
 FROM exame_resultado;</pre></div>
     <p>Para conferir: <strong>5 requisições</strong> mostram a escalada do <code>UNION</code> — da tentativa trivial (1 linha) até o mapeamento das tabelas, das colunas, e por fim o vazamento completo. E <strong>112 pacientes diferentes</strong> tiveram resultado de exame exposto: a tabela inteira de <code>exame_resultado</code> saiu numa única requisição.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>No catálogo, liste as colunas da tabela <code>exame_pedido</code>. Mostre <strong>column_name</strong> e <strong>data_type</strong>, na ordem em que estão na tabela (<code>ordinal_position</code>).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_name = 'exame_pedido'
+ORDER BY ordinal_position;</pre></div><p>Para conferir: <strong>5</strong> colunas. Só <code>data</code> não é <code>text</code>.</p></div></details></li>
+      <li class="extra"><p>Numa tabela só, mostre quantas linhas têm <code>exame_pedido</code> e <code>exame_resultado</code>: <strong>tabela</strong> (o nome, como texto) e <strong>linhas</strong>. Junte as duas contagens com <code>UNION</code>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT 'exame_pedido' AS tabela, COUNT(*) AS linhas FROM exame_pedido
+UNION
+SELECT 'exame_resultado', COUNT(*) FROM exame_resultado;</pre></div><p>Para conferir: <strong>2</strong> linhas. Compare com as <code>linhas</code> dos vazamentos do ataque: os números batem.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c10-ok3"><label for="c10-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c10-f4" data-fase="4" data-nome="Portas abertas">
@@ -232,6 +284,28 @@ WHERE tablename IN ('portal_usuario', 'exame_pedido', 'exame_resultado')
 ORDER BY tablename;</pre></div>
     <p>Para conferir: a primeira missão traz <strong>12 linhas</strong> — <code>SELECT</code>, <code>INSERT</code>, <code>UPDATE</code> e <code>DELETE</code> em cada uma das 3 tabelas. Um site que só precisa <em>mostrar</em> exame não devia ter <code>INSERT</code>, <code>UPDATE</code> nem <code>DELETE</code> em nada — isso é mais privilégio do que o necessário. A segunda traz <strong>3 linhas</strong>, uma por tabela, e a coluna <code>qual</code> é <code>true</code> nas três: RLS ligado, mas sem filtrar ninguém.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>As tabelas do caso estão com RLS ligado? Em <code>pg_tables</code>, mostre <strong>tablename</strong> e <strong>rowsecurity</strong> de <code>portal_usuario</code>, <code>exame_pedido</code>, <code>exame_resultado</code> e <code>portal_requisicao</code>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT tablename, rowsecurity
+FROM pg_tables
+WHERE tablename IN ('portal_usuario', 'exame_pedido', 'exame_resultado', 'portal_requisicao')
+ORDER BY tablename;</pre></div><p>Para conferir: <strong>4</strong> linhas, todas com <code>true</code>: a trava está ligada nas quatro.</p></div></details></li>
+      <li class="extra"><p>Em quantas tabelas o <code>portal_web</code> tem cada privilégio? Em <code>information_schema.role_table_grants</code>, mostre <strong>privilege_type</strong> e <strong>tabelas</strong> (a contagem).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT privilege_type, COUNT(*) AS tabelas
+FROM information_schema.role_table_grants
+WHERE grantee = 'portal_web'
+GROUP BY privilege_type
+ORDER BY privilege_type;</pre></div><p>Para conferir: <strong>4</strong> linhas, todas com o mesmo número. O site só precisava do SELECT.</p></div></details></li>
+      <li class="extra"><p>O papel <code>portal_web</code> pode entrar no banco direto, com login próprio? Em <code>pg_roles</code>, mostre <strong>rolname</strong> e <strong>rolcanlogin</strong> desse papel.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT rolname, rolcanlogin
+FROM pg_roles
+WHERE rolname = 'portal_web';</pre></div><p>Para conferir: <strong>1</strong> linha. Compare com o que o mapa do caso diz sobre o <code>portal_web</code>.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c10-ok4"><label for="c10-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c10-f5" data-fase="5" data-nome="Corrigindo">
@@ -259,7 +333,7 @@ SET app.paciente_login = 'antonio.souza';
 SELECT paciente_login, exame, resultado FROM exame_resultado;
 RESET ROLE;</pre></div>
   <div class="box"><b class="l">Atenção</b><p>Esses três comandos alteram o <strong>mesmo banco</strong> que todas as fases do caso usam — se depois disso a fase 4 parecer "errada" (a política não vai mais aparecer como <code>true</code>), é só isso: você mudou o banco de verdade. Clique em <strong>Reiniciar banco</strong> para voltar tudo ao ponto de partida.</p></div>
-  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Agora que você já viu o problema todo, identifique o culpado: qual paciente tinha <strong>login confirmado</strong> (sessão de verdade, não anônima) vindo do mesmo IP que, mais tarde naquela mesma noite, disparou o ataque? Confira com <code>SELECT verificar_caso10('Nome Completo');</code>.</li></ul></div>
+  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Agora que você já viu o problema todo, identifique o culpado: qual paciente tinha <strong>login confirmado</strong> (sessão de verdade, não anônima) vindo do mesmo IP que, mais tarde naquela mesma noite, disparou o ataque? Mostre <code>ip</code>, <code>login</code> e <code>nome</code>, sem repetir (uma linha só). Confira com <code>SELECT verificar_caso10('Nome Completo');</code>.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> descobrir qual paciente tinha login confirmado vindo do mesmo IP que, mais tarde naquela noite, disparou o ataque.</p>
     <p><strong>Como pensar:</strong></p>
@@ -275,8 +349,42 @@ JOIN portal_usuario u ON u.login = r.login
 WHERE r.ip = '203.0.113.59' AND r.login IS NOT NULL;</pre></div>
     <p>Para conferir: <strong>1 linha</strong> — o IP <code>203.0.113.59</code> aparece com login confirmado só para um paciente, nas buscas legítimas que ele fez por volta das 20h daquela mesma noite, bem antes do ataque anônimo começar às 23h.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quem usou o portal pelo IP <code>192.0.2.119</code> com login confirmado? Mostre <strong>ip</strong>, <strong>login</strong> e <strong>nome</strong>, sem repetir.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT DISTINCT r.ip, r.login, u.nome
+FROM portal_requisicao r
+JOIN portal_usuario u ON u.login = r.login
+WHERE r.ip = '192.0.2.119' AND r.login IS NOT NULL
+ORDER BY r.login;</pre></div><p>Para conferir: <strong>3</strong> pessoas diferentes no mesmo IP.</p></div></details></li>
+      <li class="extra"><p>Simule à mão a política nova para o paciente da sessão <code>antonio.souza</code>: mostre <strong>exame</strong>, <strong>data</strong> e <strong>resultado</strong> das linhas de <code>exame_resultado</code> que ela deixaria passar.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT exame, data, resultado
+FROM exame_resultado
+WHERE paciente_login = 'antonio.souza'
+ORDER BY data;</pre></div><p>Para conferir: <strong>3</strong> linhas, todas dele. Com <code>USING (true)</code>, o site devolvia as 272.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c10-ok5"><label for="c10-ok5">Etapa 5 concluída</label></div>
 </section>
+<!-- desafio:início -->
+<section class="fase desafio-final" id="caso10-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>Pegue só as requisições com uma aspa simples (<code>'</code>) no <code>parametro</code>. Para cada IP, mostre <strong>ip</strong>, <strong>bloqueadas</strong> (status 403), <strong>erros</strong> (status 500) e <strong>sucessos</strong> (status 200).</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>SELECT ip,
+       COUNT(*) FILTER (WHERE status = 403) AS bloqueadas,
+       COUNT(*) FILTER (WHERE status = 500) AS erros,
+       COUNT(*) FILTER (WHERE status = 200) AS sucessos
+FROM portal_requisicao
+WHERE parametro LIKE '%''%'
+GROUP BY ip
+ORDER BY ip;</pre></div><p>Para conferir: <strong>2</strong> linhas. Um IP só tem bloqueadas; o outro tem <strong>6</strong> sucessos.</p></div></details>
+</section>
+<!-- desafio:fim -->
+
 <section class="fase" id="c10-cola" style="gap:12px">
   <h2 style="font-size:32px">Cola rápida</h2>
   <div class="tw"><table>
@@ -1661,12 +1769,12 @@ SELECT '✅ Caso 10 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

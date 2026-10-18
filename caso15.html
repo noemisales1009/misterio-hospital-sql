@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -117,7 +117,7 @@ WHERE crm_texto !~ '^CRM-[A-Z]{2} \d{6}$'
 GROUP BY crm_texto
 ORDER BY vezes DESC, crm_texto
 LIMIT 20;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantas receitas têm o <code>crm_texto</code> no formato oficial e quantas não têm? Use <code>~ '^CRM-[A-Z]{2} \d{6}$'</code> como uma coluna (ela dá <code>true</code> ou <code>false</code>) e agrupe por ela.</li><li>Agora só as receitas <strong>fora</strong> do formato (<code>!~</code>): quantas cada atendente cadastrou? Mostre o <code>nome</code> da atendente e a contagem, da maior para a menor.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantas receitas têm o <code>crm_texto</code> no formato oficial, o molde <code>'^CRM-[A-Z]{2} \d{6}$'</code>, e quantas não têm? Mostre uma coluna <code>formato_oficial</code>, com <code>true</code> ou <code>false</code>, e quantas receitas há em cada uma.</li><li>Agora só as receitas <strong>fora</strong> desse formato: quantas cada atendente cadastrou? Mostre o <code>nome</code> da atendente e a contagem, da maior para a menor.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, contar as receitas com o CRM no formato oficial e as fora dele. Na segunda, quantas receitas fora do formato cada atendente cadastrou.</p>
     <p><strong>Como pensar:</strong></p>
@@ -139,6 +139,19 @@ GROUP BY a.nome
 ORDER BY fora_do_formato DESC;</pre></div>
     <p>Para conferir: <strong>279</strong> receitas estão no formato oficial e <strong>204</strong> não estão — quase metade! Fora do formato, por atendente: Lucimara Bonfim <strong>84</strong>, Ivo Sarandi 41, Denise Carvalhal 25, Rubens Okada 25, Taís Medeiros Lago 18 e Gervásio Toledo 11. A Lucimara chama atenção: ela digita <em>todo</em> CRM com o número primeiro e o estado depois (<code>126845-SP</code>). É um hábito, não uma fraude — na próxima fase você vê que os números dela levam a médicos ativos. E repare que quem errou menos o formato foi justamente quem tomava mais cuidado com ele. A lição: <strong>formato errado é bagunça, não prova nada</strong>. Para saber se a receita é boa, é preciso ir até o médico.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Liste os jeitos de digitar o CRM que começam com <em>crm</em> em letras <strong>minúsculas</strong>. Mostre <strong>crm_texto</strong> e <strong>vezes</strong> (quantas receitas), da maior para a menor.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT crm_texto, COUNT(*) AS vezes FROM rx_receita WHERE crm_texto ~ '^crm' GROUP BY crm_texto ORDER BY vezes DESC, crm_texto;</pre></div><p>Para conferir: <strong>9</strong> linhas; a primeira é <code>crm-sp 118204</code>, com 6.</p></div></details></li>
+      <li class="extra"><p>Por atendente, quantas receitas têm o <code>crm_texto</code> começando com CRM em <strong>qualquer</strong> caixa (CRM, crm, Crm)? Mostre <strong>nome</strong> e <strong>receitas</strong>, da maior para a menor. Quem não tem nenhuma fica de fora.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT a.nome, COUNT(*) AS receitas FROM rx_receita r JOIN rx_atendente a ON a.matricula = r.cadastrada_por WHERE r.crm_texto ~* '^crm' GROUP BY a.nome ORDER BY receitas DESC;</pre></div><p>Para conferir: <strong>5</strong> linhas; Lucimara Bonfim não aparece.</p></div></details></li>
+      <li class="extra"><p>Liste os jeitos de digitar o CRM que têm um ponto (<code>.</code>) em qualquer lugar do <code>crm_texto</code>. Mostre <strong>crm_texto</strong> e <strong>vezes</strong> (quantas receitas).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT crm_texto, COUNT(*) AS vezes FROM rx_receita WHERE crm_texto LIKE '%.%' GROUP BY crm_texto ORDER BY vezes DESC, crm_texto;</pre></div><p>Para conferir: <strong>6</strong> linhas, todas com o número 126.845.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c15-ok1"><label for="c15-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c15-f2" data-fase="2" data-nome="Limpando">
@@ -160,11 +173,11 @@ SELECT DISTINCT crm_texto,
 FROM rx_receita
 WHERE regexp_replace(crm_texto, '\D', '', 'g') = '126845'
 ORDER BY crm_texto;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Ligue cada receita ao médico pelo número limpo (<code>m.crm_numero = regexp_replace(r.crm_texto, '\D', '', 'g')</code>). Para cada médico encontrado, mostre o <code>nome</code>, a <code>situacao</code>, quantas receitas ele tem e de <strong>quantos jeitos diferentes</strong> o CRM dele foi digitado (<code>COUNT(DISTINCT r.crm_texto)</code>). Ordene pelos jeitos diferentes, do maior para o menor.</li><li>Agora o contrário: quais números limpos <strong>não acharam médico nenhum</strong>? Use <code>LEFT JOIN</code> e <code>m.id IS NULL</code>. Mostre o número, quantos dígitos ele tem (<code>length</code>) e quantas receitas.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Ligue cada receita ao médico pelo número limpo: o <code>crm_texto</code> só com os dígitos (sem letras, hífens, barras, pontos e espaços) igual a <code>crm_numero</code>. Para cada médico encontrado, mostre o <code>nome</code>, a <code>situacao</code>, quantas receitas ele tem e de <strong>quantos jeitos diferentes</strong> o CRM dele foi digitado (quantos <code>crm_texto</code> diferentes). Ordene pelos jeitos diferentes, do maior para o menor.</li><li>Agora o contrário: quais números limpos <strong>não acharam médico nenhum</strong>? Mostre o número, quantos dígitos ele tem e quantas receitas.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, ligar cada receita ao médico pelo CRM limpo e mostrar, por médico, nome, situação, receitas e jeitos de digitar. Na segunda, achar os números limpos sem médico.</p>
     <p><strong>Como pensar:</strong></p>
-    <ul class="list"><li>O <code>crm_texto</code> vem bagunçado; <code>crm_numero</code>, só com números. Para ligar, apague o que não é dígito.</li><li><code>regexp_replace</code> troca o que casa com o molde por outro texto. O molde <code>\D</code> é “não dígito”, o texto novo é vazio, e o <code>'g'</code> manda trocar todos. Isso vai direto no <code>ON</code>.</li><li><strong>Na primeira:</strong> agrupe por nome e situação; <code>COUNT(DISTINCT …)</code> do texto original conta os jeitos.</li><li><strong>Na segunda:</strong> com <code>LEFT JOIN</code>, a receita sem médico fica com o médico vazio; filtre isso e agrupe pelo número limpo e pelo tamanho dele.</li></ul>
+    <ul class="list"><li><strong>Ferramenta:</strong> <code>regexp_replace(r.crm_texto, '\D', '', 'g')</code> no <code>ON</code> e <code>COUNT(DISTINCT r.crm_texto)</code>; na segunda, <code>LEFT JOIN</code> com <code>m.id IS NULL</code> e <code>length(…)</code>.</li><li>O <code>crm_texto</code> vem bagunçado; <code>crm_numero</code>, só com números. Para ligar, apague o que não é dígito.</li><li><code>regexp_replace</code> troca o que casa com o molde por outro texto. O molde <code>\D</code> é “não dígito”, o texto novo é vazio, e o <code>'g'</code> manda trocar todos. Isso vai direto no <code>ON</code>.</li><li><strong>Na primeira:</strong> agrupe por nome e situação; <code>COUNT(DISTINCT …)</code> do texto original conta os jeitos.</li><li><strong>Na segunda:</strong> com <code>LEFT JOIN</code>, a receita sem médico fica com o médico vazio; filtre isso e agrupe pelo número limpo e pelo tamanho dele.</li></ul>
     <p><strong>Se travar:</strong></p>
     <ul class="list"><li>Quase nada ligou? Faltou o <code>'g'</code>: sem ele, só o primeiro caractere sai.</li><li>Veio receita com médico na segunda? O <code>m.id IS NULL</code> vai no <code>WHERE</code>.</li><li>Erro de <code>GROUP BY</code>? Agrupe pelos apelidos do número e dos dígitos.</li></ul>
   </div></details>
@@ -186,6 +199,17 @@ WHERE m.id IS NULL
 GROUP BY numero, digitos;</pre></div>
     <p>Para conferir: a primeira consulta traz <strong>13 médicos</strong>. A campeã da bagunça é a <strong>Dra. Iolanda Feitosa</strong>: 60 receitas e o CRM dela digitado de <strong>10 jeitos diferentes</strong> (o carimbo dela é antigo, com ponto — <code>CRM SP 126.845</code> — e cada atendente transcreve de um jeito). Mas ela é médica ativa do hospital e todos os jeitos levam ao mesmo número: é só bagunça. O alarme está na última linha: <strong>Anselmo Vilaça</strong>, <strong>aposentado</strong> (deixou o hospital em 30/06/2024), com <strong>7 receitas</strong> cadastradas em setembro e outubro de 2026. A segunda consulta traz <strong>2 números</strong> sem médico: <code>093417</code> (6 dígitos, <strong>4 receitas</strong>) e <code>45871</code> (só <strong>5 dígitos</strong>, <strong>30 receitas</strong>). Um CRM com cinco dígitos é estranho — a próxima fase explica.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Ligue cada receita ao médico pelo número limpo (o <code>crm_texto</code> só com os dígitos, igual a <code>crm_numero</code>) e conte as receitas por especialidade. Mostre <strong>especialidade</strong> e <strong>receitas</strong>, da maior para a menor.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT m.especialidade, COUNT(*) AS receitas FROM rx_receita r JOIN rx_medico m ON m.crm_numero = regexp_replace(r.crm_texto, '\D', '', 'g') GROUP BY m.especialidade ORDER BY receitas DESC;</pre></div><p>Para conferir: <strong>9</strong> linhas; Psiquiatria vem primeiro.</p></div></details></li>
+      <li class="extra"><p>Para cada atendente, de quantos números de CRM diferentes ela cadastrou receitas, depois de limpar o <code>crm_texto</code> (só os dígitos)? Mostre <strong>nome</strong> e <strong>numeros</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT a.nome, COUNT(DISTINCT regexp_replace(r.crm_texto, '\D', '', 'g')) AS numeros FROM rx_receita r JOIN rx_atendente a ON a.matricula = r.cadastrada_por GROUP BY a.nome ORDER BY a.nome;</pre></div><p>Para conferir: <strong>6</strong> linhas; o maior valor é 15.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c15-ok2"><label for="c15-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c15-f3" data-fase="3" data-nome="As partes">
@@ -210,11 +234,11 @@ SELECT crm_texto,
 FROM rx_receita
 ORDER BY id
 LIMIT 12;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para as receitas cujo número não achou médico na fase anterior (<code>45871</code> e <code>093417</code>), mostre o <code>crm_texto</code>, o <strong>número</strong> e o <strong>sufixo</strong> separados por <code>regexp_match</code>, e quantas receitas têm cada jeito de digitar.</li><li>Agora monte a chave certa para todas as receitas: o número, mais <code>'-P'</code> quando o sufixo for <code>P</code> (<code>partes[1] || CASE WHEN partes[2] = 'P' THEN '-P' ELSE '' END</code>). Ligue essa chave a <code>rx_medico.crm_numero</code> e liste as receitas que <strong>ainda</strong> ficaram sem médico: <code>id</code>, <code>cadastrada_em</code>, <code>medicamento</code> e <code>crm_texto</code>.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para as receitas cujo número não achou médico na fase anterior (<code>45871</code> e <code>093417</code>), separe as partes do CRM. Deixe o texto compacto (só letras e números, em maiúsculas): o <strong>número</strong> é a primeira sequência de dígitos, e o <strong>sufixo</strong> é o <code>P</code> logo depois dela (ou texto vazio, se não houver P). Mostre o <code>crm_texto</code>, o número, o sufixo e quantas receitas têm cada jeito de digitar.</li><li>Agora monte a chave certa para todas as receitas: o número, com <code>-P</code> no fim quando o sufixo for <code>P</code> (como <code>45871-P</code>). Ligue essa chave a <code>rx_medico.crm_numero</code> e liste as receitas que <strong>ainda</strong> ficaram sem médico: <code>id</code>, <code>cadastrada_em</code>, <code>medicamento</code> e <code>crm_texto</code>.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, separar número e sufixo dos CRMs sem médico e contar cada jeito de digitar. Na segunda, montar a chave certa e listar as receitas ainda sem médico.</p>
     <p><strong>Como pensar:</strong></p>
-    <ul class="list"><li>A limpeza da fase 2 apagou o P do registro provisório.</li><li>Compacte: tire o que não é letra nem número (<code>[^A-Za-z0-9]</code>; o <code>^</code> nos colchetes é “nenhum destes”) e passe para maiúsculas.</li><li><code>regexp_match</code> com dois grupos entre parênteses (os dígitos e um P opcional) devolve uma lista: <code>partes[1]</code> é o número, <code>partes[2]</code> o sufixo, guardados num <code>WITH</code>.</li><li><strong>Na primeira:</strong> filtre os dois números da missão e agrupe por texto, número e sufixo. <strong>Na segunda:</strong> outro passo do <code>WITH</code> cria a chave com o <code>CASE</code> da missão; depois, <code>LEFT JOIN</code> com <code>rx_medico</code> e fique com quem não achou par.</li></ul>
+    <ul class="list"><li><strong>Ferramenta:</strong> <code>regexp_match(…, '(\d+)(P?)')</code> num <code>WITH</code>; a chave é <code>partes[1] || CASE WHEN partes[2] = 'P' THEN '-P' ELSE '' END</code>.</li><li>A limpeza da fase 2 apagou o P do registro provisório.</li><li>Compacte: tire o que não é letra nem número (<code>[^A-Za-z0-9]</code>; o <code>^</code> nos colchetes é “nenhum destes”) e passe para maiúsculas.</li><li><code>regexp_match</code> com dois grupos entre parênteses (os dígitos e um P opcional) devolve uma lista: <code>partes[1]</code> é o número, <code>partes[2]</code> o sufixo, guardados num <code>WITH</code>.</li><li><strong>Na primeira:</strong> filtre os dois números da missão e agrupe por texto, número e sufixo. <strong>Na segunda:</strong> outro passo do <code>WITH</code> cria a chave com esse <code>CASE</code>; depois, <code>LEFT JOIN</code> com <code>rx_medico</code> e fique com quem não achou par.</li></ul>
     <p><strong>Se travar:</strong></p>
     <ul class="list"><li>Sufixo sempre vazio? Faltou compactar antes.</li><li>Sumiu o <code>093417</code>? É texto: entre aspas, com o zero.</li><li>Erro: <code>partes</code> não existe? Crie o apelido no <code>WITH</code> e use fora.</li></ul>
   </div></details>
@@ -245,6 +269,17 @@ WHERE m.id IS NULL
 ORDER BY c.cadastrada_em;</pre></div>
     <p>Para conferir: a primeira consulta traz <strong>4 linhas</strong>: os três jeitos de digitar o 45871 (<code>CRM-SP 45871-P</code>, <code>CRM/SP 45871-P</code> e <code>CRM-SP 45871 P</code>, somando 30 receitas) têm o sufixo <strong>P</strong>; o <code>093417</code> não tem sufixo nenhum. Com a chave certa, <code>45871-P</code>, as 30 receitas encontram o <strong>Dr. Josué Prates</strong>, residente de Clínica Médica com <strong>registro provisório</strong>: é tudo legítimo, o <code>regexp_replace</code> é que tinha apagado o P. A segunda consulta deixa <strong>4 receitas</strong> sem médico nenhum — ids <strong>322, 354, 381 e 402</strong>, de 30/09 a 09/10, todas de controlados (oxicodona, zolpidem, metilfenidato e clonazepam), com um CRM <code>093417</code> que não existe no hospital. Somando com as 7 do médico aposentado, são <strong>11 receitas com CRM inválido</strong>. Falta saber se foram feitas pela mesma mão.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>O primeiro número que aparece no <code>crm_texto</code> (a primeira sequência de dígitos) nem sempre é o CRM inteiro. Liste, sem repetir, os <code>crm_texto</code> em que ele tem menos de 6 dígitos. Mostre <strong>crm_texto</strong> e <strong>primeiro_numero</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT DISTINCT crm_texto, substring(crm_texto from '\d+') AS primeiro_numero FROM rx_receita WHERE length(substring(crm_texto from '\d+')) &lt; 6 ORDER BY crm_texto;</pre></div><p>Para conferir: <strong>9</strong> linhas; em seis delas o primeiro número é só <code>126</code>.</p></div></details></li>
+      <li class="extra"><p>A data da receita está no fim do <code>texto_receita</code>, como <code>29/08/2026</code>. Separe o mês com um grupo de parênteses e conte as receitas por mês. Mostre <strong>mes</strong> (dois dígitos, como <code>09</code>) e <strong>receitas</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT (regexp_match(texto_receita, '(\d{2})/(\d{2})/(\d{4})$'))[2] AS mes, COUNT(*) AS receitas FROM rx_receita GROUP BY mes ORDER BY mes;</pre></div><p>Para conferir: <strong>3</strong> linhas; a maioria das receitas é de setembro.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c15-ok3"><label for="c15-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c15-f4" data-fase="4" data-nome="A marca">
@@ -266,7 +301,7 @@ SELECT COUNT(*) FILTER (WHERE texto_receita ~ ' {2}')                       AS n
        COUNT(*) FILTER (WHERE split_part(texto_receita, ' | ', 4) ~ ' {2}') AS so_no_carimbo,
        COUNT(*) FILTER (WHERE position('comprimido' in texto_receita) &gt; 0)   AS tem_comprimido
 FROM rx_receita;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste todas as palavras que começam com <code>compr</code> nos textos das receitas, em minúsculas, e quantas vezes cada uma aparece. Uma delas está escrita errado.</li><li>Pegue só as receitas com a palavra errada e agrupe pelo <strong>carimbo</strong> (o 4º pedaço do texto, com <code>split_part</code>). Mostre o carimbo e quantas receitas.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste todas as palavras que começam com <code>compr</code> nos textos das receitas, em minúsculas, e quantas vezes cada uma aparece. Uma delas está escrita errado.</li><li>Pegue só as receitas com a palavra errada. Para cada <strong>carimbo</strong> (o 4º pedaço do <code>texto_receita</code>, cujas partes são separadas por <code>' | '</code>), mostre o carimbo e quantas receitas.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, listar as palavras que começam com <code>compr</code> nos textos, em minúsculas, e quantas vezes cada uma aparece. Na segunda, agrupar pelo carimbo as receitas com a palavra escrita errado.</p>
     <p><strong>Como pensar:</strong></p>
@@ -288,6 +323,19 @@ GROUP BY carimbo
 ORDER BY receitas DESC;</pre></div>
     <p>Para conferir: a primeira consulta traz <strong>3 palavras</strong>: <code>comprimidos</code> (343), <code>comprimido</code> (257) e <strong><code>comprimdo</code></strong> (13), sem o i. Das 13 receitas com o erro, <strong>11</strong> têm exatamente o mesmo carimbo: <code>Dr. Anselmo Vilaça  ·  Clínica Médica  ·  CRM-SP 071530</code>, com <strong>dois espaços</strong> de cada lado dos pontinhos (nos carimbos normais, é um espaço só). É o carimbo do médico aposentado, copiado sempre igual — e ele aparece até nas receitas em que o campo do CRM diz <code>093417</code>: as 7 do aposentado e as 4 do CRM inexistente são da <strong>mesma mão</strong>. As outras <strong>2</strong> receitas com o erro têm carimbos normais de médicos ativos (Fernando Ishikawa e Priscila Amaral Duarte): um erro de digitação isolado, que acontece com qualquer um. Na exploração, 51 textos têm espaço duplo em algum lugar, mas só 11 no carimbo: o <code>split_part</code> separou o ruído da pista.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Liste todas as palavras que começam com <code>fras</code> nos textos das receitas, sem diferenciar maiúsculas, escritas em minúsculas, e quantas vezes cada uma aparece. Mostre <strong>palavra</strong> e <strong>vezes</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT lower(m[1]) AS palavra, COUNT(*) AS vezes FROM rx_receita, regexp_matches(texto_receita, 'fras\w*', 'gi') AS m GROUP BY palavra ORDER BY vezes DESC;</pre></div><p>Para conferir: <strong>2</strong> linhas: o singular e o plural.</p></div></details></li>
+      <li class="extra"><p>Quantas receitas usam a abreviação <code>cp</code> no 3º pedaço do <code>texto_receita</code> (o como tomar)? Mostre <strong>medicamento</strong> e <strong>receitas</strong>, da maior para a menor.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT medicamento, COUNT(*) AS receitas FROM rx_receita WHERE position('cp' in split_part(texto_receita, ' | ', 3)) &gt; 0 GROUP BY medicamento ORDER BY receitas DESC;</pre></div><p>Para conferir: <strong>11</strong> linhas; Zolpidem 10 mg vem primeiro, com 10.</p></div></details></li>
+      <li class="extra"><p>Espaço duplo também aparece fora do carimbo. Por atendente, quantas receitas têm dois espaços seguidos no 2º pedaço do <code>texto_receita</code> (o Rx)? Mostre <strong>nome</strong> e <strong>receitas</strong>, da maior para a menor.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT a.nome, COUNT(*) AS receitas FROM rx_receita r JOIN rx_atendente a ON a.matricula = r.cadastrada_por WHERE split_part(r.texto_receita, ' | ', 2) ~ ' {2}' GROUP BY a.nome ORDER BY receitas DESC;</pre></div><p>Para conferir: <strong>6</strong> linhas; Rubens Okada vem primeiro.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c15-ok4"><label for="c15-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c15-f5" data-fase="5" data-nome="Quem cadastrou">
@@ -300,11 +348,11 @@ ORDER BY receitas DESC;</pre></div>
     <tr><td><code>JOIN rx_atendente</code></td><td>da matrícula para o nome</td><td>“quem cadastrou”</td></tr>
   </table></div>
   <div class="box novo"><b class="l">Juntando tudo · uma linha por atendente</b><p>Com vários <code>COUNT(*) FILTER (…)</code> no mesmo <code>SELECT</code>, cada atendente ganha uma linha com uma coluna para cada sinal. Quem tem um sinal só, provavelmente errou por acaso. Quem tem os três, em todas as receitas, deixou a assinatura.</p></div>
-  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Para cada atendente, mostre o <code>nome</code>, o <code>turno</code> e três contagens: receitas com <strong>CRM inválido</strong> (<code>m.id IS NULL OR m.situacao &lt;&gt; 'ativo'</code>, usando a chave da fase 3), receitas com <code>comprimdo</code> e receitas com <strong>espaço duplo no carimbo</strong>.</li><li>Liste as receitas que têm <strong>os três sinais ao mesmo tempo</strong>: <code>id</code>, <code>cadastrada_em</code>, o nome de quem cadastrou, o <code>medicamento</code> e a <code>lista</code> dele (de <code>rx_medicamento</code>).</li><li>Junte as pistas e confira: <code>SELECT verificar_caso15('Nome Completo');</code></li></ul></div>
+  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Para cada atendente, mostre o <code>nome</code>, o <code>turno</code> e três contagens: receitas com <strong>CRM inválido</strong> (com a chave da fase 3, não acha médico nenhum ou acha um médico com <code>situacao</code> diferente de <code>'ativo'</code>), receitas com <code>comprimdo</code> e receitas com <strong>espaço duplo no carimbo</strong> (dois espaços seguidos no 4º pedaço).</li><li>Liste as receitas que têm <strong>os três sinais ao mesmo tempo</strong>: <code>id</code>, <code>cadastrada_em</code>, o nome de quem cadastrou, o <code>medicamento</code> e a <code>lista</code> dele (de <code>rx_medicamento</code>).</li><li>Junte as pistas e confira: <code>SELECT verificar_caso15('Nome Completo');</code></li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, por atendente: nome, turno e três contagens (CRM inválido, <code>comprimdo</code>, espaço duplo no carimbo). Na segunda, as receitas com os três sinais juntos, com medicamento e lista.</p>
     <p><strong>Como pensar:</strong></p>
-    <ul class="list"><li>Um sinal sozinho pode ser acaso; os três na mesma receita são uma assinatura.</li><li>Reaproveite os dois passos do <code>WITH</code> da fase 3. Junte <code>rx_atendente</code> pela matrícula e <code>rx_medico</code> pela chave, com <code>LEFT JOIN</code>: receita sem médico também é inválida.</li><li>Os sinais: a condição de CRM da missão (com <code>OR</code>), a palavra errada com <code>~</code> e dois espaços seguidos no carimbo (o 4º pedaço, via <code>split_part</code>).</li><li><strong>Na primeira:</strong> agrupe por nome e turno; cada sinal é um <code>COUNT(*) FILTER</code>. <strong>Na segunda:</strong> os três no <code>WHERE</code>, com <code>AND</code>, e um <code>JOIN</code> com <code>rx_medicamento</code> pelo nome.</li></ul>
+    <ul class="list"><li><strong>Ferramenta:</strong> CRM inválido é <code>m.id IS NULL OR m.situacao &lt;&gt; 'ativo'</code>, depois de um <code>LEFT JOIN</code> com <code>rx_medico</code>.</li><li>Um sinal sozinho pode ser acaso; os três na mesma receita são uma assinatura.</li><li>Reaproveite os dois passos do <code>WITH</code> da fase 3. Junte <code>rx_atendente</code> pela matrícula e <code>rx_medico</code> pela chave, com <code>LEFT JOIN</code>: receita sem médico também é inválida.</li><li>Os sinais: a condição de CRM da missão (com <code>OR</code>), a palavra errada com <code>~</code> e dois espaços seguidos no carimbo (o 4º pedaço, via <code>split_part</code>).</li><li><strong>Na primeira:</strong> agrupe por nome e turno; cada sinal é um <code>COUNT(*) FILTER</code>. <strong>Na segunda:</strong> os três no <code>WHERE</code>, com <code>AND</code>, e um <code>JOIN</code> com <code>rx_medicamento</code> pelo nome.</li></ul>
     <p><strong>Se travar:</strong></p>
     <ul class="list"><li>CRM inválido contou de menos? Com <code>JOIN</code> comum, a receita sem médico some.</li><li>Receita sem os três sinais na segunda? Ponha o <code>OR</code> do CRM entre parênteses.</li><li>Espaço duplo demais? Procure só no carimbo.</li></ul>
   </div></details>
@@ -346,8 +394,28 @@ WHERE (m.id IS NULL OR m.situacao &lt;&gt; 'ativo')
 ORDER BY c.cadastrada_em;</pre></div>
     <p>Para conferir: a primeira consulta traz <strong>6 linhas</strong>, e só uma tem os três sinais: <strong>Gervásio Toledo</strong>, do turno da <strong>noite</strong>, com <strong>11</strong> receitas de CRM inválido, <strong>11</strong> com <code>comprimdo</code> e <strong>11</strong> com o carimbo de espaço duplo. Ivo Sarandi tem 2 <code>comprimdo</code>, mas com CRM válido e carimbo normal: foi só erro de digitação. Lucimara Bonfim, que liderava a fase 1, tem zero em tudo. A segunda consulta traz as <strong>11 receitas falsas</strong>, de 09/09 a 09/10, uma a cada três dias, todas cadastradas de madrugada (entre 22h44 e 4h05) e todas de controlados das listas A1, A3 e B1. Repare também nos pacientes: só quatro nomes se revezam nas 11 receitas. Gervásio digitava o CRM sempre no formato perfeito — por isso a fase 1 não pegou —, mas copiava o mesmo carimbo e repetia o mesmo erro. Confira com <code>SELECT verificar_caso15('Gervásio Toledo');</code></p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Para cada atendente, quantas receitas de remédio controlado e quantas de não controlado ela cadastrou (coluna <code>controlado</code> de <code>rx_medicamento</code>)? Mostre <strong>nome</strong>, <strong>controladas</strong> e <strong>nao_controladas</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT a.nome, COUNT(*) FILTER (WHERE md.controlado) AS controladas, COUNT(*) FILTER (WHERE NOT md.controlado) AS nao_controladas FROM rx_receita r JOIN rx_atendente a ON a.matricula = r.cadastrada_por JOIN rx_medicamento md ON md.nome = r.medicamento GROUP BY a.nome ORDER BY a.nome;</pre></div><p>Para conferir: <strong>6</strong> linhas; Denise Carvalhal tem mais controladas.</p></div></details></li>
+      <li class="extra"><p>Só remédios controlados: para cada <code>lista</code>, quantas receitas têm CRM válido e quantas têm CRM inválido? Use a chave da fase 3; inválido é sem médico ou com médico que não está <code>ativo</code>. Mostre <strong>lista</strong>, <strong>validas</strong> e <strong>invalidas</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH t AS (SELECT r.*, regexp_match(upper(regexp_replace(r.crm_texto, '[^A-Za-z0-9]', '', 'g')), '(\d+)(P?)') AS partes FROM rx_receita r), c AS (SELECT t.*, partes[1] || CASE WHEN partes[2] = 'P' THEN '-P' ELSE '' END AS chave FROM t) SELECT md.lista, COUNT(*) FILTER (WHERE m.situacao = 'ativo') AS validas, COUNT(*) FILTER (WHERE m.id IS NULL OR m.situacao &lt;&gt; 'ativo') AS invalidas FROM c JOIN rx_medicamento md ON md.nome = c.medicamento LEFT JOIN rx_medico m ON m.crm_numero = c.chave WHERE md.controlado GROUP BY md.lista ORDER BY md.lista;</pre></div><p>Para conferir: <strong>5</strong> linhas; duas listas não têm nenhuma receita inválida.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c15-ok5"><label for="c15-ok5">Etapa 5 concluída</label></div>
 </section>
+<!-- desafio:início -->
+<section class="fase desafio-final" id="caso15-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>O carimbo do Dr. Anselmo Vilaça (o 4º pedaço do <code>texto_receita</code> tem <em>Anselmo</em>) só aparece nas receitas falsas. Para cada remédio dessas receitas, mostre <strong>medicamento</strong>, <strong>quantidade</strong> (o número logo antes da palavra <em>comprimidos</em>, no 2º pedaço) e <strong>receitas</strong>.</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>SELECT medicamento, substring(split_part(texto_receita, ' | ', 2) from '(\d+) comprimidos') AS quantidade, COUNT(*) AS receitas FROM rx_receita WHERE split_part(texto_receita, ' | ', 4) ~ 'Anselmo' GROUP BY medicamento, quantidade ORDER BY receitas DESC, medicamento;</pre></div><p>Para conferir: <strong>4</strong> linhas; a quantidade é a mesma em todas.</p></div></details>
+</section>
+<!-- desafio:fim -->
+
 <section class="fase" id="c15-cola" style="gap:12px">
   <h2 style="font-size:32px">Cola rápida</h2>
   <div class="tw"><table>
@@ -1032,12 +1100,12 @@ SELECT '✅ Caso 15 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

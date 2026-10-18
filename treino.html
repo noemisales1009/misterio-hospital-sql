@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -245,11 +245,11 @@ CREATE TABLE a_b (
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> rodar as internações do passo 1, criar remédios e prescrições e listar os ainda internados, com setor e remédio, inclusive quem não tem remédio.</p>
     <p><strong>Como pensar:</strong></p>
-    <ul class="list"><li><code>REFERENCES</code> aponta para outra tabela: só entram números que existem lá. Por isso, remédio antes de prescrição.</li><li>Na prescrição, as duas colunas que apontam têm <code>REFERENCES</code>; só a do paciente leva <code>ON DELETE CASCADE</code>. A dose leva <code>CHECK</code>, e a chave do par segue o molde do passo 4.</li><li>Para prescrever, o <code>INSERT … SELECT</code> do passo 1 acha os ids pelo nome.</li><li><strong>Na lista:</strong> parta das internações sem saída. Paciente e leito: <code>JOIN</code>. Prescrição e remédio podem faltar: <code>LEFT JOIN</code>, como na fase D do Caso 1. Mostre nome, leito, setor, remédio e dose, nessa ordem.</li></ul>
+    <ul class="list"><li><code>REFERENCES</code> aponta para outra tabela: só entram números que existem lá. Por isso, remédio antes de prescrição.</li><li>Na prescrição, as duas colunas que apontam têm <code>REFERENCES</code>; só a do paciente leva <code>ON DELETE CASCADE</code>. A dose leva <code>CHECK</code>, e a chave do par segue o molde do passo 4.</li><li>Para prescrever, o <code>INSERT … SELECT</code> do passo 1 acha os ids pelo nome.</li><li><strong>Na lista:</strong> parta das internações sem saída. Paciente e leito: <code>JOIN</code>. Prescrição e remédio podem faltar: <code>LEFT JOIN</code>, como na fase 13 do Caso 1. Mostre nome, leito, setor, remédio e dose, nessa ordem.</li></ul>
     <p><strong>Se travar:</strong></p>
     <ul class="list"><li>“A tabela enf_medicamento não existe”? Crie o remédio antes.</li><li>Sumiu quem não tem remédio? Use <code>LEFT JOIN</code> na prescrição e no remédio.</li><li>Colunas não batem? As cinco, nesta ordem: paciente, leito, setor, remédio, dose.</li></ul>
   </div></details>
-  <details><summary>Dica</summary><div><p>Na consulta final, parta de <code>enf_internacao</code> com <code>WHERE saida IS NULL</code>, ligue paciente e leito com <code>JOIN</code> e use <code>LEFT JOIN</code> para a prescrição e o medicamento: assim quem não tem remédio não some (você viu isso no Caso 1, fase D).</p></div></details>
+  <details><summary>Dica</summary><div><p>Na consulta final, parta de <code>enf_internacao</code> com <code>WHERE saida IS NULL</code>, ligue paciente e leito com <code>JOIN</code> e use <code>LEFT JOIN</code> para a prescrição e o medicamento: assim quem não tem remédio não some (você viu isso no Caso 1, fase 13).</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>CREATE TABLE enf_medicamento (
   id       bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -495,12 +495,12 @@ SELECT * FROM enf_internados;</pre></div>
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

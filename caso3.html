@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -131,6 +131,17 @@ JOIN (SELECT item_id, SUM(quantidade) AS total_prescrito
 JOIN item_controlado i ON i.id = s.item_id
 ORDER BY diferenca DESC;</pre></div>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Some a quantidade das saídas (<code>tipo = 'saida'</code>) por destino. Mostre <strong>destino</strong> e <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT destino, SUM(quantidade) AS total FROM movimento_estoque WHERE tipo = 'saida' GROUP BY destino;</pre></div><p>Para conferir: <strong>5</strong> linhas; a UTI tem o maior total.</p></div></details></li>
+      <li class="extra"><p>Quanto saiu de cada item em setembro de 2026 (de 20260901 a 20260930)? Some as saídas e mostre o <strong>nome</strong> do item e o <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT i.nome, SUM(m.quantidade) AS total FROM movimento_estoque m JOIN item_controlado i ON i.id = m.item_id WHERE m.tipo = 'saida' AND m.data BETWEEN 20260901 AND 20260930 GROUP BY i.nome;</pre></div><p>Para conferir: <strong>6</strong> linhas; dois itens empatam no maior total.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c3-ok1"><label for="c3-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c3-f2" data-fase="2" data-nome="Sem receita">
@@ -163,6 +174,17 @@ WHERE m.tipo = 'saida'
 FROM movimento_estoque
 WHERE tipo = 'saida' AND item_id = 1 AND receita_id IS NULL;</pre></div>
     <p>Para conferir: <strong>4</strong> saídas, todas por <em>urgência</em>, somando <strong>9</strong>. Sobram <strong>47 − 9 = 38</strong> sem explicação.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Liste as saídas sem receita que <em>não</em> são de morfina (<code>item_id</code> diferente de 1). Mostre <strong>id</strong>, <strong>data</strong>, <strong>item_id</strong>, o <strong>nome</strong> de quem retirou e a <strong>quantidade</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT m.id, m.data, m.item_id, c.nome, m.quantidade FROM movimento_estoque m JOIN colaborador c ON c.id = m.colaborador_id WHERE m.tipo = 'saida' AND m.item_id &lt;&gt; 1 AND m.receita_id IS NULL;</pre></div><p>Para conferir: <strong>4</strong> linhas; o Gilson Amorim aparece duas vezes.</p></div></details></li>
+      <li class="extra"><p>Quem fez saídas sem receita? Para cada pessoa, mostre o <strong>nome</strong>, <strong>saidas</strong> (quantas fez) e <strong>total</strong> (a soma da quantidade).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT c.nome, COUNT(*) AS saidas, SUM(m.quantidade) AS total FROM movimento_estoque m JOIN colaborador c ON c.id = m.colaborador_id WHERE m.tipo = 'saida' AND m.receita_id IS NULL GROUP BY c.nome;</pre></div><p>Para conferir: <strong>3</strong> linhas; o Gilson Amorim tem mais saídas.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c3-ok2"><label for="c3-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c3-f3" data-fase="3" data-nome="A mais">
@@ -197,6 +219,17 @@ WHERE m.item_id = 1
 GROUP BY c.nome
 ORDER BY excesso DESC;</pre></div>
     <p>Para conferir: <strong>4</strong> pessoas. Edson Carvalhaes <strong>9</strong> ocorrências e excesso <strong>28</strong>; Leila Sandoval 3 e 6; Sônia Zanella 2 e 2; Solange Portela 2 e 2. Total: <strong>38</strong>.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Liste as saídas de morfina em que o excesso (retirado menos prescrito) foi de 3 ampolas ou mais. Mostre <strong>id</strong>, <strong>data</strong>, o <strong>nome</strong> de quem retirou e o <strong>excesso</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT m.id, m.data, c.nome, m.quantidade - r.quantidade AS excesso FROM movimento_estoque m JOIN receita r ON r.id = m.receita_id JOIN colaborador c ON c.id = m.colaborador_id WHERE m.item_id = 1 AND m.quantidade - r.quantidade &gt;= 3;</pre></div><p>Para conferir: <strong>8</strong> linhas, todas da mesma pessoa.</p></div></details></li>
+      <li class="extra"><p>Para cada item, conte as saídas em que a quantidade retirada é <em>igual</em> à da receita. Mostre o <strong>nome</strong> do item e <strong>iguais</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT i.nome, COUNT(*) AS iguais FROM movimento_estoque m JOIN receita r ON r.id = m.receita_id JOIN item_controlado i ON i.id = m.item_id WHERE m.quantidade = r.quantidade GROUP BY i.nome;</pre></div><p>Para conferir: <strong>6</strong> linhas; somadas, dão 495 saídas.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c3-ok3"><label for="c3-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c3-f4" data-fase="4" data-nome="Justificativa">
@@ -232,6 +265,17 @@ WHERE m.item_id = 1
 GROUP BY c.nome, situacao
 ORDER BY excesso DESC;</pre></div>
     <p>Para conferir: sem justificativa ficam <strong>Edson Carvalhaes (28)</strong> e <strong>Solange Portela (2)</strong>. Leila Sandoval e Sônia Zanella são justificadas.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Classifique as saídas de morfina pela quantidade: <code>'pequena'</code> (1 ampola), <code>'média'</code> (2 ou 3) e <code>'grande'</code> (4 ou mais). Mostre <strong>tamanho</strong> e <strong>total</strong> (quantas saídas).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT CASE WHEN quantidade = 1 THEN 'pequena' WHEN quantidade &lt;= 3 THEN 'média' ELSE 'grande' END AS tamanho, COUNT(*) AS total FROM movimento_estoque WHERE tipo = 'saida' AND item_id = 1 GROUP BY tamanho;</pre></div><p>Para conferir: <strong>3</strong> linhas; <code>'média'</code> tem mais saídas, e as três somam 104.</p></div></details></li>
+      <li class="extra"><p>Para as saídas de morfina com receita, crie a coluna <strong>situacao</strong>: <code>'a mais'</code> quando retirou mais que a receita, senão <code>'conforme'</code>. Mostre <strong>situacao</strong> e <strong>total</strong> (quantas saídas).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT CASE WHEN m.quantidade &gt; r.quantidade THEN 'a mais' ELSE 'conforme' END AS situacao, COUNT(*) AS total FROM movimento_estoque m JOIN receita r ON r.id = m.receita_id WHERE m.item_id = 1 GROUP BY situacao;</pre></div><p>Para conferir: <strong>2</strong> linhas; juntas, dão 100 saídas.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c3-ok4"><label for="c3-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c3-f5" data-fase="5" data-nome="Madrugada">
@@ -268,8 +312,28 @@ WHERE m.item_id = 1
 GROUP BY c.nome
 HAVING COUNT(DISTINCT m.data) &gt;= 5;</pre></div>
     <p>Para conferir: <strong>Edson Carvalhaes</strong>, em <strong>8 noites</strong> e com excesso de <strong>28</strong>. A outra pessoa fez em só 2 noites. É um técnico de farmácia.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Entre todas as saídas de morfina feitas de madrugada (<code>hora &gt;= 2200</code> ou <code>hora &lt;= 459</code>), em quantas noites diferentes cada pessoa retirou? Mostre <strong>nome</strong> e <strong>noites</strong>, só de quem tem 3 ou mais.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT c.nome, COUNT(DISTINCT m.data) AS noites FROM movimento_estoque m JOIN colaborador c ON c.id = m.colaborador_id WHERE m.tipo = 'saida' AND m.item_id = 1 AND (m.hora &gt;= 2200 OR m.hora &lt;= 459) GROUP BY c.nome HAVING COUNT(DISTINCT m.data) &gt;= 3;</pre></div><p>Para conferir: <strong>3</strong> linhas; o Edson Carvalhaes tem mais noites.</p></div></details></li>
+      <li class="extra"><p>Fora a morfina (<code>item_id &lt;&gt; 1</code>), em quantas noites diferentes cada item teve saída de madrugada? Mostre o <strong>nome</strong> do item e <strong>noites</strong>, só dos itens com 15 noites ou mais.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT i.nome, COUNT(DISTINCT m.data) AS noites FROM movimento_estoque m JOIN item_controlado i ON i.id = m.item_id WHERE m.tipo = 'saida' AND m.item_id &lt;&gt; 1 AND (m.hora &gt;= 2200 OR m.hora &lt;= 459) GROUP BY i.nome HAVING COUNT(DISTINCT m.data) &gt;= 15;</pre></div><p>Para conferir: <strong>3</strong> linhas; duas delas empatam.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c3-ok5"><label for="c3-ok5">Etapa 5 concluída</label></div>
 </section>
+<!-- desafio:início -->
+<section class="fase desafio-final" id="caso3-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>Edson Carvalhaes retirou morfina a mais que a receita várias vezes. Separe por mês: mostre <strong>mes</strong> (<code>'agosto'</code> ou <code>'setembro'</code>), <strong>ocorrencias</strong> (quantas saídas a mais) e <strong>excesso</strong> (retirado menos prescrito, somado).</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>SELECT CASE WHEN m.data &lt; 20260901 THEN 'agosto' ELSE 'setembro' END AS mes, COUNT(*) AS ocorrencias, SUM(m.quantidade - r.quantidade) AS excesso FROM movimento_estoque m JOIN receita r ON r.id = m.receita_id JOIN colaborador c ON c.id = m.colaborador_id WHERE c.nome = 'Edson Carvalhaes' AND m.item_id = 1 AND m.quantidade &gt; r.quantidade GROUP BY mes;</pre></div><p>Para conferir: <strong>2</strong> linhas; somadas, dão 9 ocorrências e 28 de excesso.</p></div></details>
+</section>
+<!-- desafio:fim -->
+
 <section class="fase" id="c3-cola" style="gap:12px">
   <h2 style="font-size:32px">Cola rápida</h2>
   <div class="tw"><table>
@@ -1577,12 +1641,12 @@ SELECT '✅ Caso 3 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

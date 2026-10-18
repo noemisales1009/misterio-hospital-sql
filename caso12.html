@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -166,6 +166,40 @@ SELECT COUNT(*) AS guias, MAX(nivel) AS niveis
 FROM arvore;</pre></div>
     <p>Para conferir: a árvore tem <strong>16 guias</strong> em <strong>5 níveis</strong>. No nível 1 está a entrada (guia 1021, ALM → FC, 120 frascos). No nível 2, três guias saem da Farmácia Central: uma para a <code>SAT-UTI</code> e duas para a <code>SAT-ONC</code>. No nível 3 estão as 10 entregas das satélites. Os níveis 4 e 5 têm uma guia cada: a Quimioterapia devolveu 2 frascos para a satélite, que mandou os dois para o Hospital-Dia.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Monte a árvore do lote <code>'TRZ-2609-040'</code>, da guia de entrada até a última guia. Mostre <strong>id</strong>, <strong>origem</strong>, <strong>destino</strong> e <strong>nivel</strong> (1 para a guia de entrada).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH RECURSIVE arvore AS (
+  SELECT id, origem, destino, 1 AS nivel
+  FROM lote_guia
+  WHERE lote = 'TRZ-2609-040'
+  UNION ALL
+  SELECT g.id, g.origem, g.destino, a.nivel + 1
+  FROM lote_guia g
+  JOIN arvore a ON g.guia_anterior = a.id
+)
+SELECT id, origem, destino, nivel
+FROM arvore
+ORDER BY nivel, id;</pre></div><p>Para conferir: <strong>10</strong> linhas em <strong>3</strong> níveis; no nível 2 há duas guias para a <code>SAT-ONC</code>.</p></div></details></li>
+      <li class="extra"><p>Na árvore do lote <code>'PBZ-2609-021'</code>, conte quantas guias há em cada nível. Mostre <strong>nivel</strong> (1 para a guia de entrada) e <strong>guias</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH RECURSIVE arvore AS (
+  SELECT id, 1 AS nivel
+  FROM lote_guia
+  WHERE lote = 'PBZ-2609-021'
+  UNION ALL
+  SELECT g.id, a.nivel + 1
+  FROM lote_guia g
+  JOIN arvore a ON g.guia_anterior = a.id
+)
+SELECT nivel, COUNT(*) AS guias
+FROM arvore
+GROUP BY nivel
+ORDER BY nivel;</pre></div><p>Para conferir: <strong>5</strong> linhas; o nível 3 é o mais cheio, com <strong>7</strong> guias.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c12-ok1"><label for="c12-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c12-f2" data-fase="2" data-nome="O caminho">
@@ -220,6 +254,41 @@ HAVING SUM(qtd_enviada - qtd_recebida) &gt; 0
 ORDER BY perda DESC;</pre></div>
     <p>Para conferir: a primeira traz as <strong>16 guias</strong>, e o caminho mais longo é <code>ALM → FC → SAT-ONC → QT-AMB → SAT-ONC → HD</code>. O lugar <code>SAT-ONC</code> aparece duas vezes, mas as guias são diferentes (uma ida e uma devolução), então a árvore não anda em círculo. A segunda traz <strong>9 lotes</strong> com perda; o <code>IGH-2609-114</code> lidera, com <strong>3 frascos</strong>, seguido de <code>DAP-2609-344</code> e <code>MIC-2609-071</code>, com 2. Só que a auditoria disse que faltam <strong>13</strong>. Os outros <strong>10</strong> não aparecem como diferença: as guias deles "fecham" certinho. Para onde foram?</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Para cada guia da árvore do lote <code>'ALT-2609-012'</code>, mostre <strong>id</strong> e <strong>caminho</strong>, no formato <code>ALM → FC → SAT-UTI</code>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH RECURSIVE arvore AS (
+  SELECT id, origem || ' → ' || destino AS caminho
+  FROM lote_guia
+  WHERE lote = 'ALT-2609-012'
+  UNION ALL
+  SELECT g.id, a.caminho || ' → ' || g.destino
+  FROM lote_guia g
+  JOIN arvore a ON g.guia_anterior = a.id
+)
+SELECT id, caminho
+FROM arvore
+ORDER BY caminho;</pre></div><p>Para conferir: <strong>4</strong> linhas; o caminho mais longo termina em <code>UTI-A</code>.</p></div></details></li>
+      <li class="extra"><p>Monte as árvores de <strong>todos</strong> os lotes, levando o <code>lote</code> até o fim. Conte as guias de cada lote e mostre só os lotes com <strong>15 guias ou mais</strong>: <strong>lote</strong> e <strong>guias</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH RECURSIVE arvore AS (
+  SELECT id, lote
+  FROM lote_guia
+  WHERE guia_anterior IS NULL
+  UNION ALL
+  SELECT g.id, a.lote
+  FROM lote_guia g
+  JOIN arvore a ON g.guia_anterior = a.id
+)
+SELECT lote, COUNT(*) AS guias
+FROM arvore
+GROUP BY lote
+HAVING COUNT(*) &gt;= 15
+ORDER BY guias DESC;</pre></div><p>Para conferir: <strong>7</strong> linhas; o maior é o <code>MIC-2609-071</code>, com <strong>23</strong> guias.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c12-ok2"><label for="c12-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c12-f3" data-fase="3" data-nome="Rotas e ciclos">
@@ -297,6 +366,42 @@ WHERE destino NOT IN (SELECT destino FROM alcance)
 ORDER BY enviado_em;</pre></div>
     <p>Para conferir: <strong>12 locais</strong> são alcançáveis, da <code>FC</code> (1 passo) até os setores (3 passos). O <code>ALM</code> não entra: ele já está na lista desde o começo, e a rota <code>FC → ALM</code> (devolução) fecharia o círculo. A segunda missão traz <strong>2 guias</strong>, as duas da <code>SAT-ONC</code> para <code>ONC-ANX</code>: a 1097, com <strong>6 frascos</strong>, às 22h40 de 19/09, e a 1198, com <strong>4 frascos</strong>, às 23h15 de 03/10. São os <strong>10 frascos</strong> que faltavam, mandados tarde da noite para um lugar fora do mapa. E em <code>lote_local</code>, <code>ONC-ANX</code> é a “Oncologia Anexo (sala 2)”, com <code>ativo = false</code>: um setor desativado, que não recebe mais nada.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Partindo de <code>'SAT-UTI'</code> e seguindo <code>lote_rota</code> sem repetir lugar, liste cada local alcançável uma vez só, com o menor número de passos. O próprio <code>SAT-UTI</code> não entra. Mostre <strong>destino</strong> e <strong>passos</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH RECURSIVE alcance AS (
+  SELECT destino, ARRAY['SAT-UTI', destino] AS caminho, 1 AS nivel
+  FROM lote_rota
+  WHERE origem = 'SAT-UTI'
+  UNION ALL
+  SELECT r.destino, a.caminho || r.destino, a.nivel + 1
+  FROM alcance a
+  JOIN lote_rota r ON r.origem = a.destino
+  WHERE NOT (r.destino = ANY(a.caminho))
+)
+SELECT destino, MIN(nivel) AS passos
+FROM alcance
+GROUP BY destino
+ORDER BY passos, destino;</pre></div><p>Para conferir: <strong>12</strong> linhas; <strong>5</strong> locais ficam a 1 passo, e o <code>ALM</code> fica a 2.</p></div></details></li>
+      <li class="extra"><p>Partindo de <code>'ALM'</code> e seguindo <code>lote_rota</code> sem repetir lugar, quantos caminhos diferentes chegam a <code>'UTI-A'</code>? Numa linha, mostre <strong>caminhos</strong>, <strong>menor</strong> (passos do caminho mais curto) e <strong>maior</strong> (passos do mais longo).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH RECURSIVE alcance AS (
+  SELECT destino, ARRAY['ALM', destino] AS caminho, 1 AS nivel
+  FROM lote_rota
+  WHERE origem = 'ALM'
+  UNION ALL
+  SELECT r.destino, a.caminho || r.destino, a.nivel + 1
+  FROM alcance a
+  JOIN lote_rota r ON r.origem = a.destino
+  WHERE NOT (r.destino = ANY(a.caminho))
+)
+SELECT COUNT(*) AS caminhos, MIN(nivel) AS menor, MAX(nivel) AS maior
+FROM alcance
+WHERE destino = 'UTI-A';</pre></div><p>Para conferir: <strong>1</strong> linha: <strong>3</strong> caminhos, o mais curto com <strong>3</strong> passos.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c12-ok3"><label for="c12-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c12-f4" data-fase="4" data-nome="O elo quebrado">
@@ -352,6 +457,34 @@ FROM arvore a
 LEFT JOIN lote_baixa b ON b.guia_id = a.id;</pre></div>
     <p>Para conferir: são <strong>2 elos quebrados</strong>. A guia <strong>1040</strong> (<code>SAT-ONC → HD</code>) saiu com 12 e chegou com 11; quem recebeu foi Lúcia Nogueira, e há termo de baixa: “Frasco caiu do carrinho no corredor e quebrou”. Perda justificada. A guia <strong>1065</strong> (<code>SAT-ONC → QT-AMB</code>) saiu com 10 e chegou com <strong>8</strong>, <strong>sem termo nenhum</strong>, e quem assinou o recebimento foi <strong>Hélio Loureiro</strong>. Na segunda missão: <code>com_baixa</code> = <strong>1</strong> e <code>sem_baixa</code> = <strong>2</strong>. A conta da auditoria fecha: 1 quebrado + 2 sumidos neste elo + 10 mandados para o setor desativado = <strong>13</strong>. Só que Hélio é técnico de enfermagem da <strong>UTI Adulto</strong>, não da Quimioterapia. Naquela manhã ele estava cobrindo uma folga. Foi ele? A última fase decide.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Na árvore do lote <code>'MIC-2609-071'</code>, liste as guias em que <code>qtd_recebida</code> é menor que <code>qtd_enviada</code>. Mostre <strong>id</strong>, <strong>destino</strong>, o nome de quem assinou o recebimento (<strong>recebeu</strong>) e o <strong>motivo</strong> do termo de baixa (vazio se não houver).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH RECURSIVE arvore AS (
+  SELECT id, destino, qtd_enviada, qtd_recebida, recebido_por
+  FROM lote_guia
+  WHERE lote = 'MIC-2609-071'
+  UNION ALL
+  SELECT g.id, g.destino, g.qtd_enviada, g.qtd_recebida, g.recebido_por
+  FROM lote_guia g
+  JOIN arvore a ON g.guia_anterior = a.id
+)
+SELECT a.id, a.destino, f.nome AS recebeu, b.motivo
+FROM arvore a
+JOIN lote_funcionario f ON f.id = a.recebido_por
+LEFT JOIN lote_baixa b ON b.guia_id = a.id
+WHERE a.qtd_recebida &lt; a.qtd_enviada
+ORDER BY a.id;</pre></div><p>Para conferir: <strong>2</strong> linhas, as duas com termo de baixa; uma foi para a <code>UTI-P</code>.</p></div></details></li>
+      <li class="extra"><p>Agora em <strong>todas</strong> as guias de <code>lote_guia</code>, de todos os lotes. Numa linha só, mostre quantos frascos se perderam <strong>com</strong> termo de baixa (<strong>com_baixa</strong>) e quantos <strong>sem</strong> termo (<strong>sem_baixa</strong>).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT SUM(g.qtd_enviada - g.qtd_recebida) FILTER (WHERE b.id IS NOT NULL) AS com_baixa,
+       SUM(g.qtd_enviada - g.qtd_recebida) FILTER (WHERE b.id IS NULL) AS sem_baixa
+FROM lote_guia g
+LEFT JOIN lote_baixa b ON b.guia_id = g.id;</pre></div><p>Para conferir: <strong>1</strong> linha; com termo são <strong>11</strong> frascos.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c12-ok4"><label for="c12-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c12-f5" data-fase="5" data-nome="Quem responde">
@@ -451,8 +584,67 @@ WHERE (a.destino NOT IN (SELECT destino FROM alcance)
 GROUP BY f.nome;</pre></div>
     <p>Para conferir: a equipe da <code>SAT-ONC</code> tem <strong>4 pessoas</strong> em 3 níveis: Sueli Arantes (farmacêutica responsável, nível 1), Ivo Matos (técnico líder, nível 2) e, no nível 3, <strong>Joana Leal</strong> e <strong>Wagner Veloso</strong>, auxiliares de farmácia. A cadeia de Hélio Loureiro sobe por Fátima Quaresma (enfermeira-chefe da UTI Adulto), Telma Guerra (Gerente de Enfermagem) e Heloísa Brandão (Diretora Assistencial): <strong>ninguém da farmácia</strong>. Hélio não mexia no estoque da satélite: só assinou o que chegou na Quimioterapia, e contou 8. Joana também sai limpa: a única perda dela tem termo de baixa. A missão final traz <strong>1 linha</strong>: <strong>Wagner Veloso</strong>, com <strong>3 guias</strong> e <strong>12 frascos</strong>. Ele registrou 10 frascos numa guia que chegou com 8, e mandou 6 + 4 frascos, tarde da noite, para o setor desativado <code>ONC-ANX</code>. Nessas duas guias, quem assinou o recebimento foi <strong>ele mesmo</strong>.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Desça a chefia a partir de <code>'Adelaide Pimentel'</code>: ela e todas as pessoas abaixo dela. Mostre <strong>nome</strong>, <strong>cargo</strong> e <strong>nivel</strong> (1 para a própria Adelaide).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH RECURSIVE equipe AS (
+  SELECT id, nome, cargo, 1 AS nivel
+  FROM lote_funcionario
+  WHERE nome = 'Adelaide Pimentel'
+  UNION ALL
+  SELECT f.id, f.nome, f.cargo, e.nivel + 1
+  FROM lote_funcionario f
+  JOIN equipe e ON f.chefe_id = e.id
+)
+SELECT nome, cargo, nivel
+FROM equipe
+ORDER BY nivel, nome;</pre></div><p>Para conferir: <strong>6</strong> linhas; todas as outras pessoas estão no nível <strong>2</strong>.</p></div></details></li>
+      <li class="extra"><p>Quantas pessoas respondem a <code>'Telma Guerra'</code>? Numa linha, mostre <strong>pessoas</strong> (todas abaixo dela, em qualquer nível, sem contar ela) e <strong>diretos</strong> (só quem tem ela como chefe direta).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH RECURSIVE equipe AS (
+  SELECT id, 1 AS nivel
+  FROM lote_funcionario
+  WHERE nome = 'Telma Guerra'
+  UNION ALL
+  SELECT f.id, e.nivel + 1
+  FROM lote_funcionario f
+  JOIN equipe e ON f.chefe_id = e.id
+)
+SELECT COUNT(*) FILTER (WHERE nivel &gt; 1) AS pessoas,
+       COUNT(*) FILTER (WHERE nivel = 2) AS diretos
+FROM equipe;</pre></div><p>Para conferir: <strong>1</strong> linha; ela tem <strong>6</strong> pessoas diretas.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c12-ok5"><label for="c12-ok5">Etapa 5 concluída</label></div>
 </section>
+
+<!-- desafio:início -->
+<section class="fase desafio-final" id="caso12-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>Quanto dinheiro sumiu nas diferenças entre <code>qtd_enviada</code> e <code>qtd_recebida</code>? Monte as árvores de todos os lotes e, para cada medicamento com perda, mostre <strong>medicamento</strong>, <strong>frascos</strong> perdidos e <strong>valor</strong> (os frascos vezes o <code>valor_frasco</code> de <code>lote_produto</code>).</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>WITH RECURSIVE arvore AS (
+  SELECT id, lote, qtd_enviada, qtd_recebida
+  FROM lote_guia
+  WHERE guia_anterior IS NULL
+  UNION ALL
+  SELECT g.id, a.lote, g.qtd_enviada, g.qtd_recebida
+  FROM lote_guia g
+  JOIN arvore a ON g.guia_anterior = a.id
+)
+SELECT p.medicamento,
+       SUM(a.qtd_enviada - a.qtd_recebida) AS frascos,
+       SUM((a.qtd_enviada - a.qtd_recebida) * p.valor_frasco) AS valor
+FROM arvore a
+JOIN lote_produto p ON p.lote = a.lote
+GROUP BY p.medicamento
+HAVING SUM(a.qtd_enviada - a.qtd_recebida) &gt; 0
+ORDER BY valor DESC;</pre></div><p>Para conferir: <strong>6</strong> linhas; o maior valor é o do Nivolumabe: <strong>2</strong> frascos, R$ <strong>19.600,00</strong>.</p></div></details>
+</section>
+<!-- desafio:fim -->
+
 <section class="fase" id="c12-cola" style="gap:12px">
   <h2 style="font-size:32px">Cola rápida</h2>
   <div class="tw"><table>
@@ -1032,12 +1224,12 @@ SELECT '✅ Caso 12 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

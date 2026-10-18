@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -99,7 +99,7 @@ erDiagram
     <tr><td><code>SUM(a - b)</code></td><td>soma a diferença de todas as linhas</td><td>“excesso total”</td></tr>
     <tr><td><code>ROUND(x, 2)</code></td><td>arredonda em reais e centavos</td><td>“R$ 9.897,86”</td></tr>
   </table></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as linhas de <code>cobranca</code> em que <code>valor_cobrado</code> é maior que <code>valor_tabela * quantidade</code>, mostrando o id da linha, o lote, a descrição do procedimento, a quantidade, o valor cobrado e o valor esperado (<code>valor_tabela * quantidade</code>), nessa ordem.</li><li>Quantas são, e qual o <strong>excesso total</strong> em reais, com 2 casas decimais?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as linhas de <code>cobranca</code> cobradas acima do <strong>valor esperado</strong>, que é o <code>valor_tabela</code> do procedimento vezes a <code>quantidade</code>. Mostre o id da linha, o lote, a descrição do procedimento, a quantidade, o valor cobrado e o valor esperado, nessa ordem.</li><li>Numa segunda consulta, mostre quantas são e o <strong>excesso total</strong> (cobrado menos esperado, somando todas as linhas), em reais com 2 casas decimais, nessa ordem.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, listar as cobranças acima do preço de tabela vezes a quantidade. Na segunda, contar essas linhas e somar o excesso, com 2 casas decimais.</p>
     <p><strong>Como pensar:</strong></p>
@@ -122,6 +122,30 @@ FROM cobranca c
 JOIN procedimento p ON p.id = c.procedimento_id
 WHERE c.valor_cobrado &gt; p.valor_tabela * c.quantidade;</pre></div>
     <p>Para conferir: <strong>27</strong> linhas e excesso de <strong>R$ 9.897,86</strong>.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Liste as cobranças de <strong>Diária de UTI</strong> com <code>quantidade</code> igual a 4. Mostre <strong>id</strong>, <strong>lote</strong>, <strong>valor_cobrado</strong> e <strong>esperado</strong> (o <code>valor_tabela</code> vezes a quantidade).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT c.id, c.lote, c.valor_cobrado,
+       p.valor_tabela * c.quantidade AS esperado
+FROM cobranca c
+JOIN procedimento p ON p.id = c.procedimento_id
+WHERE p.descricao = 'Diária de UTI'
+  AND c.quantidade = 4
+ORDER BY c.id;</pre></div><p>Para conferir: <strong>14</strong> linhas; só a de id 570 foi cobrada acima do esperado.</p></div></details></li>
+      <li class="extra"><p>Para cada lote que começa com <code>L-0831</code>, some o valor cobrado e o esperado (<code>valor_tabela</code> vezes a quantidade). Mostre <strong>lote</strong>, <strong>cobrado</strong> e <strong>esperado</strong>, com 2 casas decimais.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT c.lote,
+       ROUND(SUM(c.valor_cobrado), 2) AS cobrado,
+       ROUND(SUM(p.valor_tabela * c.quantidade), 2) AS esperado
+FROM cobranca c
+JOIN procedimento p ON p.id = c.procedimento_id
+WHERE c.lote LIKE 'L-0831%'
+GROUP BY c.lote
+ORDER BY c.lote;</pre></div><p>Para conferir: <strong>5</strong> linhas; só nos lotes L-0831-A e L-0831-B o cobrado passa do esperado.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c5-ok1"><label for="c5-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c5-f2" data-fase="2" data-nome="Repetidas">
@@ -135,7 +159,7 @@ WHERE c.valor_cobrado &gt; p.valor_tabela * c.quantidade;</pre></div>
     <tr><td><code>NOT IN (SELECT MIN(id) …)</code></td><td>fica com tudo, menos a original</td><td>“só as cópias”</td></tr>
   </table></div>
   <div class="box alerta"><b class="l">Cuidado</b><p>Se você apontar as duas linhas do par como erro, vai contar o dobro. A original é legítima. Erro é só a cópia: a linha cujo <code>id</code> não é o menor do grupo.</p></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Ache os pares (atendimento e procedimento) que aparecem mais de uma vez em <code>cobranca</code>.</li><li>Liste só as <strong>linhas repetidas</strong> (as cópias), com o lote. Quantas são?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Ache os pares (atendimento e procedimento) que aparecem mais de uma vez em <code>cobranca</code>. Mostre <code>atendimento_id</code>, <code>procedimento_id</code> e quantas vezes o par aparece, nessa ordem.</li><li>Numa segunda consulta, liste só as <strong>linhas repetidas</strong> (as cópias). Em cada par, a linha de menor <code>id</code> é a original e fica de fora. Mostre <code>id</code>, <code>lote</code>, <code>atendimento_id</code>, <code>procedimento_id</code> e <code>valor_cobrado</code>, nessa ordem. Quantas são?</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, achar os pares (atendimento e procedimento) que aparecem mais de uma vez em <code>cobranca</code>. Na segunda, listar só as cópias, sem a linha original.</p>
     <p><strong>Como pensar:</strong></p>
@@ -159,6 +183,25 @@ WHERE id NOT IN (
 )
 ORDER BY id;</pre></div>
     <p>Para conferir: <strong>31</strong> pares, e portanto <strong>31</strong> linhas repetidas.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Em <code>atendimento</code>, quais pares de convênio e data têm <strong>9 ou mais</strong> atendimentos? Mostre <strong>convenio_id</strong>, <strong>data</strong> e <strong>atendimentos</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT convenio_id, data, COUNT(*) AS atendimentos
+FROM atendimento
+GROUP BY convenio_id, data
+HAVING COUNT(*) &gt;= 9
+ORDER BY convenio_id, data;</pre></div><p>Para conferir: <strong>5</strong> linhas; a maior é a do convênio 1 em 01/08, com 10.</p></div></details></li>
+      <li class="extra"><p>A primeira linha de cada lote é a de <strong>menor id</strong>. Mostre a primeira linha de cada lote que começa com <code>L-0831</code>: <strong>id</strong> e <strong>lote</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT id, lote
+FROM cobranca
+WHERE id IN (SELECT MIN(id) FROM cobranca GROUP BY lote)
+  AND lote LIKE 'L-0831%'
+ORDER BY id;</pre></div><p>Para conferir: <strong>5</strong> linhas; a de menor id é a 1537, do lote L-0831-B.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c5-ok2"><label for="c5-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c5-f3" data-fase="3" data-nome="Fantasmas">
@@ -170,7 +213,7 @@ ORDER BY id;</pre></div>
     <tr><td><code>e.atendimento_id IS NULL</code></td><td>sem par em execucao: não foi realizado</td><td>“cobrado, mas não consta como feito”</td></tr>
     <tr><td><code>COUNT(*)  e  SUM(valor)</code></td><td>quantas linhas e quanto dinheiro</td><td>“30 linhas, R$ 25.462,00”</td></tr>
   </table></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as linhas de <code>cobranca</code> que <strong>não têm correspondente</strong> em <code>execucao</code> (mesmo atendimento e mesmo procedimento).</li><li>Quantas são, e qual o valor total cobrado nelas?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as linhas de <code>cobranca</code> que <strong>não têm correspondente</strong> em <code>execucao</code> (mesmo atendimento e mesmo procedimento). Mostre <code>id</code>, <code>lote</code>, <code>atendimento_id</code>, <code>procedimento_id</code> e <code>valor_cobrado</code>, nessa ordem.</li><li>Numa segunda consulta, mostre quantas são e o valor total cobrado nelas, nessa ordem.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, listar as cobranças sem correspondente em <code>execucao</code> (cobradas, mas não realizadas). Na segunda, contar essas linhas e somar o valor cobrado.</p>
     <p><strong>Como pensar:</strong></p>
@@ -194,6 +237,32 @@ LEFT JOIN execucao e
  and e.procedimento_id = c.procedimento_id
 WHERE e.atendimento_id IS NULL;</pre></div>
     <p>Para conferir: <strong>30</strong> linhas, somando <strong>R$ 25.462,00</strong> cobrados por serviços que não constam como realizados.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>No atendimento <strong>254</strong>, ligue cada linha de <code>cobranca</code> à <code>execucao</code> (mesmo atendimento e mesmo procedimento), sem perder nenhuma linha. Mostre <strong>id</strong>, <strong>procedimento_id</strong> e <strong>realizado</strong> (a <code>quantidade</code> que está em <code>execucao</code>).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT c.id, c.procedimento_id, e.quantidade AS realizado
+FROM cobranca c
+LEFT JOIN execucao e
+  ON e.atendimento_id = c.atendimento_id
+ AND e.procedimento_id = c.procedimento_id
+WHERE c.atendimento_id = 254
+ORDER BY c.id;</pre></div><p>Para conferir: <strong>3</strong> linhas; a do procedimento 17 fica com <strong>realizado</strong> vazio.</p></div></details></li>
+      <li class="extra"><p>Quais procedimentos foram cobrados sem correspondente em <code>execucao</code> <strong>3 vezes ou mais</strong>? Mostre <strong>descricao</strong> e <strong>vezes</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.descricao, COUNT(*) AS vezes
+FROM cobranca c
+JOIN procedimento p ON p.id = c.procedimento_id
+LEFT JOIN execucao e
+  ON e.atendimento_id = c.atendimento_id
+ AND e.procedimento_id = c.procedimento_id
+WHERE e.atendimento_id IS NULL
+GROUP BY p.descricao
+HAVING COUNT(*) &gt;= 3
+ORDER BY vezes DESC;</pre></div><p>Para conferir: <strong>4</strong> linhas; a Apendicectomia lidera, com 5.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c5-ok3"><label for="c5-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c5-f4" data-fase="4" data-nome="Juntar">
@@ -207,7 +276,7 @@ WHERE e.atendimento_id IS NULL;</pre></div>
     <tr><td><code>ORDER BY erros DESC</code></td><td>o campeão primeiro</td><td>“o lote que foge do padrão”</td></tr>
   </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · WITH com vários blocos e UNION ALL</b><p>Dá para ter vários blocos num <code>WITH</code>, separados por vírgula. <code>UNION ALL</code> empilha resultados com as <strong>mesmas colunas</strong>, mantendo todas as linhas. Aqui cada bloco devolve só o <code>lote</code>.</p></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Escreva um <code>WITH</code> com três blocos, <code>acima</code>, <code>repetidas</code> e <code>fantasmas</code>, cada um devolvendo o <code>lote</code> das linhas com aquele erro.</li><li>Empilhe os três e conte os erros <strong>por lote</strong>, do maior para o menor. Qual lote foge do padrão?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Junte numa consulta só as três listas de erros: as linhas acima da tabela (etapa 1), as cópias (etapa 2) e as não realizadas (etapa 3). De cada linha com erro basta o <code>lote</code>, e cada erro conta 1.</li><li>Conte os erros <strong>por lote</strong>. Mostre o lote e o número de erros, nessa ordem, do maior para o menor. Qual lote foge do padrão?</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> juntar os três erros das etapas 1, 2 e 3 numa consulta só e contar os erros de cada lote, do maior para o menor.</p>
     <p><strong>Como pensar:</strong></p>
@@ -245,6 +314,69 @@ FROM (SELECT lote FROM acima
 GROUP BY lote
 ORDER BY erros DESC;</pre></div>
     <p>Para conferir: o lote <strong>L-0830-C</strong> tem <strong>34</strong> erros. O segundo colocado tem 4.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Junte os erros das etapas 1, 2 e 3 e conte por <strong>convênio</strong>, em vez de por lote. O convênio vem de <code>atendimento</code>. Mostre <strong>nome</strong> do convênio e <strong>erros</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH acima AS (
+  SELECT c.atendimento_id
+  FROM cobranca c
+  JOIN procedimento p ON p.id = c.procedimento_id
+  WHERE c.valor_cobrado &gt; p.valor_tabela * c.quantidade
+),
+repetidas AS (
+  SELECT atendimento_id
+  FROM cobranca
+  WHERE id NOT IN (SELECT MIN(id) FROM cobranca
+                   GROUP BY atendimento_id, procedimento_id)
+),
+fantasmas AS (
+  SELECT c.atendimento_id
+  FROM cobranca c
+  LEFT JOIN execucao e
+    ON e.atendimento_id = c.atendimento_id
+   AND e.procedimento_id = c.procedimento_id
+  WHERE e.atendimento_id IS NULL
+)
+SELECT v.nome, COUNT(*) AS erros
+FROM (SELECT atendimento_id FROM acima
+      UNION ALL SELECT atendimento_id FROM repetidas
+      UNION ALL SELECT atendimento_id FROM fantasmas) t
+JOIN atendimento a ON a.id = t.atendimento_id
+JOIN convenio v ON v.id = a.convenio_id
+GROUP BY v.nome
+ORDER BY erros DESC;</pre></div><p>Para conferir: <strong>5</strong> linhas; a soma dos erros dá 88, o mesmo total das etapas 1, 2 e 3.</p></div></details></li>
+      <li class="extra"><p>Confira as três contagens numa consulta só. Empilhe as três listas, cada uma com um texto fixo na coluna <strong>tipo</strong>: <code>'acima'</code>, <code>'repetidas'</code> ou <code>'fantasmas'</code>. Conte por tipo. Mostre <strong>tipo</strong> e <strong>linhas</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH acima AS (
+  SELECT c.id
+  FROM cobranca c
+  JOIN procedimento p ON p.id = c.procedimento_id
+  WHERE c.valor_cobrado &gt; p.valor_tabela * c.quantidade
+),
+repetidas AS (
+  SELECT id
+  FROM cobranca
+  WHERE id NOT IN (SELECT MIN(id) FROM cobranca
+                   GROUP BY atendimento_id, procedimento_id)
+),
+fantasmas AS (
+  SELECT c.id
+  FROM cobranca c
+  LEFT JOIN execucao e
+    ON e.atendimento_id = c.atendimento_id
+   AND e.procedimento_id = c.procedimento_id
+  WHERE e.atendimento_id IS NULL
+)
+SELECT tipo, COUNT(*) AS linhas
+FROM (SELECT 'acima' AS tipo FROM acima
+      UNION ALL SELECT 'repetidas' FROM repetidas
+      UNION ALL SELECT 'fantasmas' FROM fantasmas) t
+GROUP BY tipo
+ORDER BY linhas DESC;</pre></div><p>Para conferir: <strong>3</strong> linhas, com os mesmos números das etapas 1, 2 e 3.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c5-ok4"><label for="c5-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c5-f5" data-fase="5" data-nome="Assinatura">
@@ -257,7 +389,7 @@ ORDER BY erros DESC;</pre></div>
     <tr><td><code>COUNT(*)  e  SUM(…)</code></td><td>tamanho e valor do lote</td><td>“100 linhas, R$ 88.045,91”</td></tr>
     <tr><td><code>SELECT verificar_caso5('…')</code></td><td>função do jogo que confere a resposta</td><td>“perguntar ao sistema se acertei”</td></tr>
   </table></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Mostre o <strong>nome do faturista</strong> responsável pelo lote encontrado.</li><li>Conte o número de linhas desse lote e some o <strong>valor total</strong> cobrado nele, nessa ordem.</li><li>Confira o código do lote com <code>SELECT verificar_caso5('L-0000-X');</code>.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Mostre o <strong>nome do faturista</strong> responsável pelo lote encontrado, uma vez só.</li><li>Numa segunda consulta, mostre o número de linhas desse lote e o <strong>valor total</strong> cobrado nele, nessa ordem.</li><li>Confira o código do lote com <code>SELECT verificar_caso5('L-0000-X');</code>.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> com o lote que se destacou na etapa 4, descobrir quem o assinou e, numa segunda consulta, quantas linhas e quanto dinheiro ele tem.</p>
     <p><strong>Como pensar:</strong></p>
@@ -275,8 +407,64 @@ WHERE c.lote = 'L-0830-C';</pre></div>
 FROM cobranca
 WHERE lote = 'L-0830-C';</pre></div>
     <p>Para conferir: <strong>Bianca Furtado</strong> assinou o lote <strong>L-0830-C</strong>. O lote tem <strong>100</strong> linhas e <strong>R$ 88.045,91</strong> cobrados. A resposta do caso é o código do lote.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quais lotes o faturista <strong>Maurício Brandt</strong> assinou? Mostre <strong>lote</strong>, <strong>linhas</strong> e <strong>total</strong> cobrado em cada um.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT c.lote, COUNT(*) AS linhas, SUM(c.valor_cobrado) AS total
+FROM cobranca c
+JOIN faturista f ON f.id = c.faturista_id
+WHERE f.nome = 'Maurício Brandt'
+GROUP BY c.lote
+ORDER BY c.lote;</pre></div><p>Para conferir: <strong>5</strong> linhas; o maior lote é o L-0830-A, com 90 linhas.</p></div></details></li>
+      <li class="extra"><p>Quais faturistas assinaram cobranças de atendimentos do convênio <strong>Vida Mais</strong>? Mostre só o <strong>nome</strong>, cada um uma vez.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT DISTINCT f.nome
+FROM cobranca c
+JOIN atendimento a ON a.id = c.atendimento_id
+JOIN convenio v ON v.id = a.convenio_id
+JOIN faturista f ON f.id = c.faturista_id
+WHERE v.nome = 'Vida Mais';</pre></div><p>Para conferir: <strong>3</strong> nomes; um deles é Anselmo Rocha.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c5-ok5"><label for="c5-ok5">Etapa 5 concluída</label></div>
 </section>
+<!-- desafio:início -->
+<section class="fase desafio-final" id="caso5-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>No lote <strong>L-0830-C</strong>, quanto dinheiro cada tipo de erro representa? Mostre <strong>tipo</strong> (<code>'acima'</code>, <code>'repetidas'</code> ou <code>'fantasmas'</code>) e <strong>valor</strong>, com 2 casas decimais. Em acima, some só o excesso; nos outros dois, o <code>valor_cobrado</code> inteiro.</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>WITH acima AS (
+  SELECT c.lote, c.valor_cobrado - p.valor_tabela * c.quantidade AS valor
+  FROM cobranca c
+  JOIN procedimento p ON p.id = c.procedimento_id
+  WHERE c.valor_cobrado &gt; p.valor_tabela * c.quantidade
+),
+repetidas AS (
+  SELECT lote, valor_cobrado AS valor
+  FROM cobranca
+  WHERE id NOT IN (SELECT MIN(id) FROM cobranca
+                   GROUP BY atendimento_id, procedimento_id)
+),
+fantasmas AS (
+  SELECT c.lote, c.valor_cobrado AS valor
+  FROM cobranca c
+  LEFT JOIN execucao e
+    ON e.atendimento_id = c.atendimento_id
+   AND e.procedimento_id = c.procedimento_id
+  WHERE e.atendimento_id IS NULL
+)
+SELECT tipo, ROUND(SUM(valor), 2) AS valor
+FROM (SELECT 'acima' AS tipo, lote, valor FROM acima
+      UNION ALL SELECT 'repetidas', lote, valor FROM repetidas
+      UNION ALL SELECT 'fantasmas', lote, valor FROM fantasmas) t
+WHERE lote = 'L-0830-C'
+GROUP BY tipo
+ORDER BY valor DESC;</pre></div><p>Para conferir: <strong>3</strong> linhas; as cópias são o erro mais caro, com mais de R$ 14 mil.</p></div></details>
+</section>
+<!-- desafio:fim -->
+
 <section class="fase" id="c5-cola" style="gap:12px">
   <h2 style="font-size:32px">Cola rápida</h2>
   <div class="tw"><table>
@@ -4318,12 +4506,12 @@ SELECT '✅ Caso 5 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

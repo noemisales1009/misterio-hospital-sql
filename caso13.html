@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -139,6 +139,28 @@ WHERE aparelho = 'BMB-14'
 ORDER BY momento;</pre></div>
     <p>Para conferir: são <strong>7 tipos</strong> — <code>login</code> (275), <code>programacao</code> (215), <code>alarme</code> (111), <code>sincronizacao</code> (80), <code>retomada</code> (47), <code>relatorio</code> (8) e <code>biblioteca</code> (5). Na madrugada, a <code>BMB-14</code> tem <strong>9 eventos</strong>: um alarme à 1h12 (sem usuário), o crachá <code>C-4410</code> fazendo login e uma retomada, depois o crachá <code>C-2207</code> fazendo login às 2h29, um alarme às 2h31, uma sincronização às 2h41 e a programação das <strong>2h43</strong>; por fim, o crachá <code>C-5120</code> (a Rosana) entra às 3h09 e reprograma às 3h10. Guarde o <code>C-2207</code>: é dele a programação das 2h43.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Só os eventos do tipo <code>programacao</code>: quantos há de cada fármaco (a chave <code>farmaco</code> do JSON)? Mostre <strong>farmaco</strong> e <strong>programacoes</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT dados -&gt;&gt; 'farmaco' AS farmaco, COUNT(*) AS programacoes
+FROM bomba_evento
+WHERE dados -&gt;&gt; 'tipo' = 'programacao'
+GROUP BY dados -&gt;&gt; 'farmaco'
+ORDER BY programacoes DESC;</pre></div><p>Para conferir: <strong>5</strong> linhas; a noradrenalina lidera, com <strong>58</strong>.</p></div></details></li>
+      <li class="extra"><p>Liste as programações da <code>BMB-14</code> no dia 11/10/2026. Mostre <strong>momento</strong>, <strong>farmaco</strong> e <strong>dose</strong> (a chave <code>dose</code> que fica dentro da ficha <code>infusao</code>).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT momento,
+       dados -&gt;&gt; 'farmaco' AS farmaco,
+       dados -&gt; 'infusao' -&gt;&gt; 'dose' AS dose
+FROM bomba_evento
+WHERE aparelho = 'BMB-14'
+  AND dados -&gt;&gt; 'tipo' = 'programacao'
+  AND momento &gt;= '2026-10-11' AND momento &lt; '2026-10-12'
+ORDER BY momento;</pre></div><p>Para conferir: <strong>3</strong> linhas; a primeira é das 06:18, noradrenalina <strong>0.2</strong>.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c13-ok1"><label for="c13-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c13-f2" data-fase="2" data-nome="A dose">
@@ -162,7 +184,7 @@ FROM bomba_evento
 WHERE dados -&gt;&gt; 'tipo' = 'programacao'
 ORDER BY momento
 LIMIT 15;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Junte cada evento do tipo <code>programacao</code> com a prescrição do <strong>mesmo paciente</strong> e do <strong>mesmo fármaco</strong>, e mostre só as programações em que a dose programada ficou <strong>acima</strong> da dose prescrita. Mostre: <code>momento</code>, <code>aparelho</code>, o <code>usuario</code>, o fármaco, o <code>modo</code> da prescrição, a dose programada e a dose prescrita.</li><li>Repare no <code>modo</code> do resultado. Refaça ligando também pelo <strong>modo</strong> (o JSON tem a chave <code>modo</code>), e traga o <strong>nome</strong> do dono do crachá (de <code>bomba_equipe</code>). Mostre: <code>momento</code>, <code>aparelho</code>, <code>nome</code>, fármaco, dose programada e dose prescrita.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Compare cada evento do tipo <code>programacao</code> com a prescrição (<code>bomba_prescricao</code>) do <strong>mesmo paciente</strong> e do <strong>mesmo fármaco</strong>, e mostre só as programações em que a dose programada ficou <strong>acima</strong> da dose prescrita. Mostre: <code>momento</code>, <code>aparelho</code>, o <code>usuario</code>, o fármaco, o <code>modo</code> da prescrição, a dose programada e a dose prescrita.</li><li>Repare no <code>modo</code> do resultado. Refaça ligando também pelo <strong>modo</strong> (o JSON tem a chave <code>modo</code>), e traga o <strong>nome</strong> do dono do crachá (de <code>bomba_equipe</code>). Mostre: <code>momento</code>, <code>aparelho</code>, <code>nome</code>, fármaco, dose programada e dose prescrita.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, ligar cada programação à prescrição do mesmo paciente e fármaco e mostrar só as acima da dose prescrita. Na segunda, ligar também pelo modo e mostrar o nome do dono do crachá.</p>
     <p><strong>Como pensar:</strong></p>
@@ -198,6 +220,29 @@ WHERE e.dados -&gt;&gt; 'tipo' = 'programacao'
   AND (e.dados #&gt;&gt; '{infusao,dose}')::numeric &gt; p.dose;</pre></div>
     <p>Para conferir: a primeira consulta traz <strong>4 linhas</strong>. Três são <strong>bolus de heparina</strong> (5000, 4000 e 5000 UI) comparados com a prescrição <em>contínua</em> (1200, 900 e 1000 UI/h) — uma comparação injusta, de modos diferentes. Uma delas é da enfermeira de crachá <code>C-1875</code>, às 2h05 da mesma madrugada, na <code>BMB-03</code>: parece suspeito, mas o paciente tinha um <strong>bolus de 5000 UI prescrito</strong>. A quarta linha é a de verdade: <code>BMB-14</code>, noradrenalina <strong>2.4</strong> contra <strong>0.3</strong> prescrito. Ligando também pelo modo, sobra <strong>1 linha</strong>: os bolus somem (estavam dentro da prescrição de bolus) e fica só a noradrenalina das 2h43, programada com o crachá de <strong>Simone Leitão</strong>. Mas crachá não é pessoa: guarde o nome com um ponto de interrogação.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Liste as programações de <code>insulina</code> com dose programada <strong>maior que 10</strong>, comparando como número. Mostre <strong>momento</strong>, <strong>aparelho</strong> e <strong>dose</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT momento, aparelho,
+       (dados #&gt;&gt; '{infusao,dose}')::numeric AS dose
+FROM bomba_evento
+WHERE dados -&gt;&gt; 'tipo' = 'programacao'
+  AND dados -&gt;&gt; 'farmaco' = 'insulina'
+  AND (dados #&gt;&gt; '{infusao,dose}')::numeric &gt; 10
+ORDER BY momento;</pre></div><p>Para conferir: <strong>2</strong> linhas, as duas na <code>BMB-07</code>. Veio muito mais? Você comparou texto.</p></div></details></li>
+      <li class="extra"><p>Ligue cada programação ao paciente dela (<code>bomba_paciente</code>) e conte as programações de cada um. Mostre só quem teve <strong>15 ou mais</strong>: <strong>nome</strong>, <strong>leito</strong> e <strong>programacoes</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.nome, p.leito, COUNT(*) AS programacoes
+FROM bomba_evento e
+JOIN bomba_paciente p ON p.id = (e.dados -&gt;&gt; 'paciente')::int
+WHERE e.dados -&gt;&gt; 'tipo' = 'programacao'
+GROUP BY p.nome, p.leito
+HAVING COUNT(*) &gt;= 15
+ORDER BY programacoes DESC;</pre></div><p>Para conferir: <strong>3</strong> linhas; a primeira é Lourdes Sarmento, com <strong>19</strong>.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c13-ok2"><label for="c13-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c13-f3" data-fase="3" data-nome="Os alarmes">
@@ -221,7 +266,7 @@ WHERE e.dados -&gt;&gt; 'tipo' = 'programacao'
   <div class="code"><pre data-sql>-- Uma lista com 2 alarmes vira 2 linhas (não é missão)
 SELECT a -&gt;&gt; 'codigo' AS codigo, a -&gt;&gt; 'prioridade' AS prioridade
 FROM jsonb_array_elements('[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta"},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}]') AS a;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Abra a lista de alarmes de todos os eventos que têm a chave <code>alarmes</code> e conte quantas vezes cada <strong>código</strong> de alarme aparece, do mais comum para o menos comum.</li><li>Use <code>@&gt;</code> para achar os eventos cuja lista de alarmes tem um <code>LIMITE_RIGIDO</code> (a bomba recusou a dose). Mostre <code>momento</code>, <code>aparelho</code> e <code>usuario</code>.</li><li>Abra os alarmes da <code>BMB-14</code> na madrugada (<code>2026-10-12 00:00</code> a <code>06:00</code>) e mostre: <code>momento</code>, código, a causa (<code>detalhe</code> → <code>causa</code>), a dose tentada (<code>detalhe</code> → <code>dose_tentada</code>) e o limite (<code>detalhe</code> → <code>limite</code>).</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Abra a lista de alarmes de todos os eventos que têm a chave <code>alarmes</code> e conte quantas vezes cada <strong>código</strong> de alarme aparece, do mais comum para o menos comum.</li><li>Quais eventos têm, na lista de alarmes, um alarme de código <code>LIMITE_RIGIDO</code> (a bomba recusou a dose)? Mostre <code>momento</code>, <code>aparelho</code> e <code>usuario</code>.</li><li>Abra os alarmes da <code>BMB-14</code> na madrugada (<code>2026-10-12 00:00</code> a <code>06:00</code>) e mostre: <code>momento</code>, código, a causa (<code>detalhe</code> → <code>causa</code>), a dose tentada (<code>detalhe</code> → <code>dose_tentada</code>) e o limite (<code>detalhe</code> → <code>limite</code>).</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, contar cada código de alarme. Na segunda, achar com <code>@&gt;</code> os eventos com <code>LIMITE_RIGIDO</code>. Na terceira, abrir os alarmes da <code>BMB-14</code> na madrugada: código, causa, dose tentada e limite.</p>
     <p><strong>Como pensar:</strong></p>
@@ -251,6 +296,24 @@ WHERE e.aparelho = 'BMB-14'
 ORDER BY e.momento;</pre></div>
     <p>Para conferir: <strong>7 códigos</strong>; o mais comum é <code>INFUSAO_PAUSADA</code> (47), depois <code>FIM_DE_INFUSAO</code> (37), <code>OCLUSAO_JUSANTE</code> (28), <code>BATERIA_BAIXA</code> (19) e <code>AR_NA_LINHA</code> (19), <code>PORTA_ABERTA</code> (6) e, raríssimo, <code>LIMITE_RIGIDO</code> (2). Os dois limites rígidos: um em 06/10 na <code>BMB-06</code> (crachá <code>C-4127</code>, que digitou 60 de insulina em vez de 6 e corrigiu um minuto depois — erro de digitação comum, a trava funcionou) e outro às <strong>2h31 de 12/10 na BMB-14</strong>, com o crachá <code>C-2207</code>. A madrugada da <code>BMB-14</code> traz <strong>3 linhas</strong>: à 1h12 uma <code>OCLUSAO_JUSANTE</code> com causa <strong>"equipo dobrado"</strong> e a <code>INFUSAO_PAUSADA</code> que vem junto — problema mecânico, resolvido pelo técnico de crachá <code>C-4410</code> (chave <code>resolvido_por</code>), que só retomou a infusão. E às 2h31 o <code>LIMITE_RIGIDO</code>: dose tentada <strong>2.4</strong>, limite <strong>0.5</strong>. A bomba <strong>recusou</strong>. Doze minutos depois, às 2h43, a mesma dose passou. O que mudou no meio? Lembre do evento das 2h41 na linha do tempo: uma <code>sincronizacao</code>.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Abra a lista de alarmes dos eventos que têm a chave <code>alarmes</code> e conte os alarmes de cada prioridade (a chave <code>prioridade</code> de cada item). Mostre <strong>prioridade</strong> e <strong>vezes</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT a -&gt;&gt; 'prioridade' AS prioridade, COUNT(*) AS vezes
+FROM bomba_evento e, jsonb_array_elements(e.dados -&gt; 'alarmes') AS a
+WHERE e.dados ? 'alarmes'
+GROUP BY a -&gt;&gt; 'prioridade'
+ORDER BY vezes DESC;</pre></div><p>Para conferir: <strong>3</strong> linhas; a prioridade <code>media</code> é a mais comum, com <strong>90</strong>.</p></div></details></li>
+      <li class="extra"><p>Ache os eventos cuja lista de alarmes tem um <code>PORTA_ABERTA</code>. Mostre <strong>momento</strong> e <strong>aparelho</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT momento, aparelho
+FROM bomba_evento
+WHERE dados @&gt; '{"alarmes":[{"codigo":"PORTA_ABERTA"}]}'
+ORDER BY momento;</pre></div><p>Para conferir: <strong>6</strong> linhas; a <code>BMB-03</code> aparece duas vezes.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c13-ok3"><label for="c13-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c13-f4" data-fase="4" data-nome="A chave que falta">
@@ -266,7 +329,7 @@ ORDER BY e.momento;</pre></div>
   <div class="code"><pre data-sql>-- Experimente nas fichas escritas na mão (não é missão)
 SELECT jsonb_object_keys('{"farmaco":"insulina","limite":{"antes":15,"depois":20}}') AS chave;
 SELECT key, value FROM jsonb_each('{"campo":"dose_max_rigido","antes":15,"depois":20}');</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para os eventos do tipo <code>biblioteca</code>, liste cada <strong>chave</strong> que aparece e em <strong>quantos</strong> eventos ela aparece. Uma das chaves não está em todos.</li><li>Ache o evento de biblioteca que <strong>não tem</strong> a chave <code>usuario</code> e abra a ficha <code>limite</code> dele com <code>jsonb_each</code>. Mostre: <code>momento</code>, a <code>sessao</code>, o fármaco, e as colunas <code>key</code> e <code>value</code> do limite.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para os eventos do tipo <code>biblioteca</code>, liste cada <strong>chave</strong> que aparece e em <strong>quantos</strong> eventos ela aparece. Uma das chaves não está em todos.</li><li>Ache o evento de biblioteca que <strong>não tem</strong> a chave <code>usuario</code> e abra a ficha <code>limite</code> dele em pares, uma linha para cada chave: o nome da chave (<code>key</code>) e o valor dela (<code>value</code>). Mostre: <code>momento</code>, a <code>sessao</code>, o fármaco, <code>key</code> e <code>value</code>.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, ver que chaves aparecem nos eventos do tipo <code>biblioteca</code> e em quantos eventos cada uma está. Na segunda, achar o evento de biblioteca sem a chave <code>usuario</code> e abrir a ficha <code>limite</code> dele.</p>
     <p><strong>Como pensar:</strong></p>
@@ -290,6 +353,30 @@ WHERE e.dados -&gt;&gt; 'tipo' = 'biblioteca'
   AND NOT e.dados ? 'usuario';</pre></div>
     <p>Para conferir: há <strong>5 eventos de biblioteca</strong>, e as chaves <code>farmaco</code>, <code>limite</code>, <code>motivo</code>, <code>sessao</code>, <code>tipo</code> e <code>unidade</code> aparecem nos 5. Só <code>usuario</code> aparece em <strong>4</strong>. Os outros quatro são da farmácia, em horário comercial, com motivo de protocolo. O evento sem usuário é das <strong>2h38 de 12/10</strong>: sessão <code>S-5763</code>, noradrenalina, e o limite traz 3 linhas — <code>campo</code> = <code>dose_max_rigido</code>, <code>antes</code> = <strong>0.5</strong>, <code>depois</code> = <strong>3</strong>. Alguém subiu o limite rígido seis vezes, três minutos antes da sincronização e cinco antes da dose passar. O software da central não gravou quem foi — gravou só a <strong>sessão</strong>. E toda sessão começa com um login.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Para os eventos do tipo <code>alarme</code>, liste cada chave que aparece e em quantos eventos ela está. Mostre <strong>chave</strong> e <strong>eventos</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT chave, COUNT(*) AS eventos
+FROM bomba_evento, jsonb_object_keys(dados) AS chave
+WHERE dados @&gt; '{"tipo":"alarme"}'
+GROUP BY chave
+ORDER BY eventos DESC, chave;</pre></div><p>Para conferir: <strong>5</strong> linhas; <code>resolvido_por</code> está em <strong>47</strong> eventos.</p></div></details></li>
+      <li class="extra"><p>Abra em pares a ficha <code>infusao</code> da programação da <code>BMB-14</code> feita em <code>2026-10-12 02:43</code>, um par por linha. Mostre <strong>key</strong> e <strong>value</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT i.key, i.value
+FROM bomba_evento e, jsonb_each(e.dados -&gt; 'infusao') AS i
+WHERE e.aparelho = 'BMB-14'
+  AND e.momento = '2026-10-12 02:43'
+  AND e.dados -&gt;&gt; 'tipo' = 'programacao';</pre></div><p>Para conferir: <strong>3</strong> linhas; a <code>dose</code> é <strong>2.4</strong>.</p></div></details></li>
+      <li class="extra"><p>Quantos eventos do tipo <code>alarme</code> <strong>não têm</strong> a chave <code>resolvido_por</code>? Mostre <strong>alarmes</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS alarmes
+FROM bomba_evento
+WHERE dados -&gt;&gt; 'tipo' = 'alarme'
+  AND NOT dados ? 'resolvido_por';</pre></div><p>Para conferir: <strong>1</strong> linha, com <strong>64</strong>.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c13-ok4"><label for="c13-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c13-f5" data-fase="5" data-nome="O dono da sessão">
@@ -326,8 +413,44 @@ JOIN bomba_equipe q ON q.cracha = e.dados -&gt;&gt; 'usuario'
 WHERE e.dados @&gt; '{"tipo":"login","sessao":"S-5763"}';</pre></div>
     <p>Para conferir: às 2h43 havia <strong>4 pessoas</strong> de plantão — Amélia Chagas, Heloísa Brandini, Rosana Damasceno e Wesley Coutinho. <strong>Simone Leitão não está</strong>, e a segunda consulta (1 linha) mostra por quê: ela entrou de manhã no dia 11, dobrou o plantão e bateu o ponto de saída à <strong>1h04</strong> do dia 12. Quem usou o crachá dela às 2h29 estava com ele na mão, não era ela. A sessão <code>S-5763</code> foi aberta na <code>CENTRAL</code> às <strong>2h35</strong> com o crachá de <strong>Heloísa Brandini</strong>, enfermeira do plantão noturno. A sequência fecha: a bomba recusa a dose às 2h31 → Heloísa entra na central com o próprio crachá às 2h35 → sobe o limite de 0,5 para 3,0 às 2h38 → a bomba sincroniza às 2h41 → a dose de 2,4 passa às 2h43 no crachá esquecido da Simone. Amélia fez um bolus prescrito, Wesley desdobrou um equipo, Rosana salvou o paciente. Confira com <code>SELECT verificar_caso13('Heloísa Brandini');</code></p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Pelo ponto (<code>bomba_escala</code>), quem estava de plantão no instante <code>2026-10-06 10:00</code>? Mostre <strong>nome</strong> e <strong>cargo</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT q.nome, q.cargo
+FROM bomba_escala s
+JOIN bomba_equipe q ON q.cracha = s.cracha
+WHERE '2026-10-06 10:00' BETWEEN s.entrada AND s.saida
+ORDER BY q.nome;</pre></div><p>Para conferir: <strong>6</strong> linhas, entre elas dois farmacêuticos.</p></div></details></li>
+      <li class="extra"><p>Liste os logins do crachá <code>C-5120</code> em 12/10/2026, das 00:00 às 06:00. Mostre <strong>momento</strong> e <strong>aparelho</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT momento, aparelho
+FROM bomba_evento
+WHERE dados @&gt; '{"tipo":"login","usuario":"C-5120"}'
+  AND momento BETWEEN '2026-10-12 00:00' AND '2026-10-12 06:00'
+ORDER BY momento;</pre></div><p>Para conferir: <strong>3</strong> linhas; o primeiro login é às 03:09, na <code>BMB-14</code>.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c13-ok5"><label for="c13-ok5">Etapa 5 concluída</label></div>
 </section>
+
+<!-- desafio:início -->
+<section class="fase desafio-final" id="caso13-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>Quais eventos usaram o crachá (<code>usuario</code>) de alguém que <strong>não estava de plantão</strong> pelo ponto (<code>bomba_escala</code>) naquele momento? Mostre <strong>momento</strong>, <strong>aparelho</strong>, <strong>tipo</strong> do evento e <strong>nome</strong> do dono do crachá.</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>SELECT e.momento, e.aparelho, e.dados -&gt;&gt; 'tipo' AS tipo, q.nome
+FROM bomba_evento e
+JOIN bomba_equipe q ON q.cracha = e.dados -&gt;&gt; 'usuario'
+LEFT JOIN bomba_escala s
+       ON s.cracha = q.cracha
+      AND e.momento BETWEEN s.entrada AND s.saida
+WHERE s.id IS NULL
+ORDER BY e.momento;</pre></div><p>Para conferir: <strong>3</strong> linhas, todas na <code>BMB-14</code>, entre 02:29 e 02:43.</p></div></details>
+</section>
+<!-- desafio:fim -->
+
 <section class="fase" id="c13-cola" style="gap:12px">
   <h2 style="font-size:32px">Cola rápida</h2>
   <div class="tw"><table>
@@ -1418,12 +1541,12 @@ SELECT '✅ Caso 13 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

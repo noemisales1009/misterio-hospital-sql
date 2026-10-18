@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -119,6 +119,25 @@ WHERE germe = 'Klebsiella pneumoniae'
   AND data_coleta BETWEEN '2026-08-01' AND '2026-08-31'
 ORDER BY data_coleta;</pre></div>
     <p>Para conferir: <strong>7</strong> casos, nos pacientes 1 a 7, com coletas de 5 a 22 de agosto. A positiva de 28 de julho fica de fora.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Liste as culturas <strong>positivas</strong> de <code>'Escherichia coli'</code> coletadas em agosto de 2026, em ordem de data. Mostre <strong>paciente_id</strong> e <strong>data_coleta</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT paciente_id, data_coleta
+FROM cultura
+WHERE germe = 'Escherichia coli'
+  AND resultado = 'positivo'
+  AND data_coleta BETWEEN '2026-08-01' AND '2026-08-31'
+ORDER BY data_coleta;</pre></div><p>Para conferir: <strong>5</strong> linhas; a primeira é do paciente 109, em 16/08.</p></div></details></li>
+      <li class="extra"><p>Quantas culturas <strong>positivas</strong>, de qualquer germe, foram coletadas em <strong>julho</strong> de 2026? Mostre uma coluna só, <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS total
+FROM cultura
+WHERE resultado = 'positivo'
+  AND data_coleta BETWEEN '2026-07-01' AND '2026-07-31';</pre></div><p>Para conferir: Uma linha só: <strong>13</strong>.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c4-ok1"><label for="c4-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c4-f2" data-fase="2" data-nome="Onde">
@@ -154,6 +173,31 @@ WHERE c.germe = 'Klebsiella pneumoniae'
   AND c.data_coleta BETWEEN '2026-08-01' AND '2026-08-31'
 ORDER BY c.data_coleta;</pre></div>
     <p>Para conferir: <strong>6</strong> estavam na UTI Adulto. O <strong>paciente 7</strong> foi transferido para a Enfermaria e estava lá na coleta, mas passou antes pela UTI. A bactéria pode ter sido adquirida na UTI.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Para cada cultura <strong>positiva</strong> de <code>'Pseudomonas aeruginosa'</code> coletada em agosto de 2026, mostre onde o paciente estava no dia da coleta: <strong>paciente_id</strong>, <strong>data_coleta</strong>, <strong>setor</strong> e <strong>leito</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT c.paciente_id, c.data_coleta, i.setor, i.leito
+FROM cultura c
+JOIN internacao i
+  ON i.paciente_id = c.paciente_id
+ AND c.data_coleta &gt;= i.data_entrada
+ AND (i.data_saida IS NULL OR c.data_coleta &lt;= i.data_saida)
+WHERE c.germe = 'Pseudomonas aeruginosa'
+  AND c.resultado = 'positivo'
+  AND c.data_coleta BETWEEN '2026-08-01' AND '2026-08-31'
+ORDER BY c.data_coleta;</pre></div><p>Para conferir: <strong>5</strong> linhas; só uma é da UTI Adulto, no leito 12.</p></div></details></li>
+      <li class="extra"><p>Quem estava internado na <strong>UTI Adulto</strong> no dia <code>2026-08-15</code>? Conte quem entrou ou saiu nesse dia e quem ainda está internado. Mostre <strong>paciente_id</strong> e <strong>leito</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT paciente_id, leito
+FROM internacao
+WHERE setor = 'UTI Adulto'
+  AND data_entrada &lt;= '2026-08-15'
+  AND (data_saida IS NULL OR data_saida &gt;= '2026-08-15')
+ORDER BY leito;</pre></div><p>Para conferir: <strong>16</strong> linhas; o paciente 5, no leito 11, ainda está internado.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c4-ok2"><label for="c4-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c4-f3" data-fase="3" data-nome="Em comum">
@@ -196,6 +240,45 @@ GROUP BY e.codigo, e.tipo
 HAVING COUNT(DISTINCT c.paciente_id) = 7
 ORDER BY e.codigo;</pre></div>
     <p>Para conferir: <strong>3</strong> aparelhos nos 7 casos: duas bombas de infusão, <strong>BI-02</strong> e <strong>BI-07</strong>, e o ventilador <strong>VT-03</strong>. Os demais aparecem em no máximo 2 casos.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Monte uma consulta <code>casos</code> com as culturas positivas de <code>'Staphylococcus aureus'</code> de agosto de 2026. Junte com <code>uso_equipamento</code> nos 7 dias até a coleta. Quais aparelhos foram usados por <strong>2 ou mais</strong> pacientes diferentes desses? Mostre <strong>codigo</strong> e <strong>pacientes</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH casos AS (
+  SELECT DISTINCT paciente_id, data_coleta
+  FROM cultura
+  WHERE germe = 'Staphylococcus aureus'
+    AND resultado = 'positivo'
+    AND data_coleta BETWEEN '2026-08-01' AND '2026-08-31'
+)
+SELECT e.codigo, COUNT(DISTINCT c.paciente_id) AS pacientes
+FROM casos c
+JOIN uso_equipamento u
+  ON u.paciente_id = c.paciente_id
+ AND u.data BETWEEN c.data_coleta - 7 AND c.data_coleta
+JOIN equipamento e ON e.id = u.equipamento_id
+GROUP BY e.codigo
+HAVING COUNT(DISTINCT c.paciente_id) &gt;= 2
+ORDER BY e.codigo;</pre></div><p>Para conferir: <strong>2</strong> linhas, as duas de bombas de infusão; a BI-02 tem 3 pacientes.</p></div></details></li>
+      <li class="extra"><p>Quantos pacientes <strong>diferentes</strong> usaram cada ventilador (<code>tipo = 'ventilador'</code>) em agosto de 2026? Mostre <strong>codigo</strong> e <strong>pacientes</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT e.codigo, COUNT(DISTINCT u.paciente_id) AS pacientes
+FROM uso_equipamento u
+JOIN equipamento e ON e.id = u.equipamento_id
+WHERE e.tipo = 'ventilador'
+  AND u.data BETWEEN '2026-08-01' AND '2026-08-31'
+GROUP BY e.codigo
+ORDER BY e.codigo;</pre></div><p>Para conferir: <strong>6</strong> linhas; o VT-01 lidera, com 12 pacientes.</p></div></details></li>
+      <li class="extra"><p>Para as culturas positivas de <code>'Candida albicans'</code> de agosto de 2026, mostre <strong>paciente_id</strong>, <strong>data_coleta</strong> e <strong>inicio_janela</strong>: a data 7 dias antes da coleta.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT paciente_id, data_coleta, data_coleta - 7 AS inicio_janela
+FROM cultura
+WHERE germe = 'Candida albicans'
+  AND resultado = 'positivo'
+  AND data_coleta BETWEEN '2026-08-01' AND '2026-08-31'
+ORDER BY data_coleta;</pre></div><p>Para conferir: <strong>9</strong> linhas; a primeira coleta é de 03/08, e a janela dela começa em 27/07.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c4-ok3"><label for="c4-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c4-f4" data-fase="4" data-nome="Taxa">
@@ -241,6 +324,42 @@ WHERE u.data BETWEEN '2026-08-01' AND '2026-08-31'
 GROUP BY e.codigo
 ORDER BY taxa_pct DESC;</pre></div>
     <p>Para conferir: <strong>BI-07</strong> com 8 usuários, 7 doentes e <strong>87,5%</strong>; <strong>VT-03</strong> com 10, 7 e 70,0%; <strong>BI-02</strong> com 29, 7 e 24,1%.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Calcule a taxa de ataque dos <strong>aspiradores</strong> (<code>tipo = 'aspirador'</code>) em agosto de 2026, com os 7 casos de Klebsiella da etapa 1. Mostre <strong>codigo</strong>, <strong>usaram</strong>, <strong>doentes</strong> e <strong>taxa_pct</strong> (em %, com 1 casa decimal).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH casos AS (
+  SELECT DISTINCT paciente_id
+  FROM cultura
+  WHERE germe = 'Klebsiella pneumoniae'
+    AND resultado = 'positivo'
+    AND data_coleta BETWEEN '2026-08-01' AND '2026-08-31'
+)
+SELECT e.codigo,
+       COUNT(DISTINCT u.paciente_id) AS usaram,
+       COUNT(DISTINCT CASE WHEN c.paciente_id IS NOT NULL THEN u.paciente_id END) AS doentes,
+       ROUND(100.0 * COUNT(DISTINCT CASE WHEN c.paciente_id IS NOT NULL THEN u.paciente_id END)
+                   / COUNT(DISTINCT u.paciente_id), 1) AS taxa_pct
+FROM uso_equipamento u
+JOIN equipamento e ON e.id = u.equipamento_id
+LEFT JOIN casos c ON c.paciente_id = u.paciente_id
+WHERE u.data BETWEEN '2026-08-01' AND '2026-08-31'
+  AND e.tipo = 'aspirador'
+GROUP BY e.codigo
+ORDER BY taxa_pct DESC;</pre></div><p>Para conferir: <strong>4</strong> linhas; a maior taxa é a do AS-03, com 66,7%.</p></div></details></li>
+      <li class="extra"><p>Para cada germe, olhe as culturas coletadas em agosto de 2026. Mostre <strong>germe</strong>, <strong>total</strong> de culturas, <strong>positivas</strong> e <strong>pct</strong>: a porcentagem de positivas, com 1 casa decimal.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT germe,
+       COUNT(*) AS total,
+       COUNT(CASE WHEN resultado = 'positivo' THEN 1 END) AS positivas,
+       ROUND(100.0 * COUNT(CASE WHEN resultado = 'positivo' THEN 1 END) / COUNT(*), 1) AS pct
+FROM cultura
+WHERE data_coleta BETWEEN '2026-08-01' AND '2026-08-31'
+GROUP BY germe
+ORDER BY pct DESC;</pre></div><p>Para conferir: <strong>5</strong> linhas; a maior é a de Staphylococcus aureus, com 42,9%.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c4-ok4"><label for="c4-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c4-f5" data-fase="5" data-nome="Limpeza">
@@ -273,8 +392,55 @@ WHERE e.codigo IN ('BI-02', 'BI-07', 'VT-03')
 GROUP BY e.codigo, e.tipo
 HAVING MAX(l.data) IS NULL;</pre></div>
     <p>Para conferir: <strong>BI-07</strong>. A bomba de infusão ficou sem desinfecção desde junho e foi usada por 7 pacientes que adoeceram.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quais ventiladores (<code>tipo = 'ventilador'</code>) <strong>não</strong> têm nenhuma limpeza registrada entre <code>2026-08-28</code> e <code>2026-08-31</code>? Mostre só <strong>codigo</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT e.codigo
+FROM equipamento e
+LEFT JOIN limpeza_equipamento l
+  ON l.equipamento_id = e.id
+ AND l.data BETWEEN '2026-08-28' AND '2026-08-31'
+WHERE e.tipo = 'ventilador'
+GROUP BY e.codigo
+HAVING MAX(l.data) IS NULL;</pre></div><p>Para conferir: <strong>2</strong> linhas: VT-01 e VT-05.</p></div></details></li>
+      <li class="extra"><p>Qual foi a <strong>última</strong> limpeza de cada aspirador (<code>tipo = 'aspirador'</code>)? Mostre <strong>codigo</strong> e <strong>ultima_limpeza</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT e.codigo, MAX(l.data) AS ultima_limpeza
+FROM equipamento e
+JOIN limpeza_equipamento l ON l.equipamento_id = e.id
+WHERE e.tipo = 'aspirador'
+GROUP BY e.codigo
+ORDER BY e.codigo;</pre></div><p>Para conferir: <strong>4</strong> linhas; a mais recente é a do AS-04, em 29/08.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c4-ok5"><label for="c4-ok5">Etapa 5 concluída</label></div>
 </section>
+<!-- desafio:início -->
+<section class="fase desafio-final" id="caso4-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>Para cada um dos 7 casos do surto (etapa 1), ache o <strong>primeiro dia</strong> em que o paciente usou a bomba <strong>BI-07</strong>. Mostre <strong>paciente_id</strong>, <strong>primeiro_uso</strong> e <strong>dias</strong>: a data da coleta menos o primeiro uso.</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>WITH casos AS (
+  SELECT paciente_id, data_coleta
+  FROM cultura
+  WHERE germe = 'Klebsiella pneumoniae'
+    AND resultado = 'positivo'
+    AND data_coleta BETWEEN '2026-08-01' AND '2026-08-31'
+)
+SELECT c.paciente_id,
+       MIN(u.data) AS primeiro_uso,
+       c.data_coleta - MIN(u.data) AS dias
+FROM casos c
+JOIN uso_equipamento u ON u.paciente_id = c.paciente_id
+JOIN equipamento e ON e.id = u.equipamento_id
+WHERE e.codigo = 'BI-07'
+GROUP BY c.paciente_id, c.data_coleta
+ORDER BY c.paciente_id;</pre></div><p>Para conferir: <strong>7</strong> linhas; os dias vão de 6 a 8. É o tempo entre a exposição e a coleta.</p></div></details>
+</section>
+<!-- desafio:fim -->
+
 <section class="fase" id="c4-cola" style="gap:12px">
   <h2 style="font-size:32px">Cola rápida</h2>
   <div class="tw"><table>
@@ -2655,12 +2821,12 @@ SELECT '✅ Caso 4 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

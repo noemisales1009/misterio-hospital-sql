@@ -9,6 +9,10 @@
   var K_CODIGO = "misterio-sql-codigo";
   var K_CONF = "misterio-sql-conferido";
   var K_MINHAS = "misterio-sql-minhas-tabelas";
+  var K_TENTOU = "misterio-sql-tentou";   // fases em que a pessoa já tentou: libera a solução
+  var K_REV = "misterio-sql-revisao";     // quando cada fase foi revisada pela última vez
+  // revisão: a página abre com ?revisao=<id da fase> e essa fase vira "resolva de memória"
+  var REVISAO = (function () { var m = /[?&]revisao=([^&#]+)/.exec(location.search); return m ? decodeURIComponent(m[1]) : null; })();
   var MAX_LINHAS = 100;
   var MAX_MINHAS = 300;
   var SEM_ANIMACAO = false;
@@ -25,6 +29,17 @@
     return e;
   }
   function toast(m) { if (window.MisterioNuvem) window.MisterioNuvem.toast(m); }
+  // progresso (fases, treinos extras e desafio) fica no app.js, que sincroniza com a nuvem
+  function faseFeita(id) {
+    var n = window.MisterioNuvem;
+    if (n && n.feito) return n.feito(id);
+    return !!ler("misterio-sql-progresso", {})[id];
+  }
+  function marcaFeito(id) {
+    var n = window.MisterioNuvem;
+    if (n && n.marcar) { n.marcar(id); return; }
+    var st = ler("misterio-sql-progresso", {}); st[id] = true; gravar("misterio-sql-progresso", st);
+  }
   function espera(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
   // ------------------------------------------------------------------ tira-dúvidas em janela
@@ -195,7 +210,8 @@
     var J = janela;
     J.passos = passos;
     J.sec = det.closest("section[data-fase]");
-    var num = J.sec ? J.sec.getAttribute("data-fase") : "";
+    var numEl = J.sec ? J.sec.querySelector(".num") : null;
+    var num = numEl ? numEl.textContent.trim() : (J.sec ? J.sec.getAttribute("data-fase") : "");
     var nome = J.sec ? J.sec.getAttribute("data-nome") : "";
     J.sub.textContent = [num ? "Fase " + num : "", nome || ""].filter(Boolean).join(" · ");
     J.dica = null;
@@ -390,13 +406,164 @@
     return linhas.map(function (r) { return r.map(norm).join("␟"); }).sort().join("␞");
   }
   function somenteLeitura(sql) {
-    var limpo = sql.replace(/--[^\n]*/g, "").trim();
+    // textos entre aspas não contam: ILIKE '%drop%' continua sendo só leitura
+    var limpo = sql.replace(/--[^\n]*/g, "").replace(/'(?:[^']|'')*'/g, "''").trim();
     if (/\b(insert|update|delete|drop|alter|create|truncate|grant|revoke)\b/i.test(limpo)) return false;
     var partes = limpo.split(";").map(function (p) { return p.trim(); }).filter(Boolean);
     return partes.length > 0 && partes.every(function (p) { return /^(select|with)\b/i.test(p); });
   }
   function solucoesDa(sec) {
     return [].map.call(sec.querySelectorAll("details.sol pre[data-sql]"), function (p) { return p.textContent; });
+  }
+
+  // ------------------------------------------------------------------ treinos extras
+  // <details class="extras"> com <li class="extra">, cada um com a resposta em <pre data-sql-extra>.
+  // A pessoa escreve no computador da fase; o corretor reconhece qual treino ela resolveu.
+  function extrasDa(sec) {
+    return [].map.call(sec.querySelectorAll("details.extras li.extra"), function (li, i) {
+      var pre = li.querySelector("pre[data-sql-extra]");
+      return { li: li, n: i + 1, sql: pre ? pre.textContent : "" };
+    }).filter(function (x) { return x.sql; });
+  }
+  function idExtra(faseId, n) { return "x:" + faseId + ":" + n; }
+  function pintaExtras(sec) {
+    var box = sec.querySelector("details.extras");
+    if (!box) return;
+    var itens = extrasDa(sec), feitos = 0;
+    itens.forEach(function (x) {
+      var ok = faseFeita(idExtra(sec.id, x.n));
+      x.li.classList.toggle("feito", ok);
+      if (ok) feitos++;
+    });
+    var conta = box.querySelector(".extras-conta");
+    if (conta) conta.textContent = feitos ? feitos + " de " + itens.length + " feitos" : itens.length + " treinos";
+    box.classList.toggle("completo", itens.length > 0 && feitos === itens.length);
+  }
+  function preparaExtras(sec) {
+    var box = sec.querySelector("details.extras");
+    if (!box) return;
+    var s = box.querySelector("summary");
+    if (s && !s.querySelector(".extras-conta")) s.appendChild(el("span", "extras-conta"));
+    extrasDa(sec).forEach(function (x) {
+      if (x.li.querySelector(".extra-ir")) return;
+      var b = el("button", "btn ghost extra-ir", "✍️ Fazer no computador"); b.type = "button";
+      b.addEventListener("click", function () { vaiProEditor(sec); });
+      x.li.insertBefore(b, x.li.querySelector("details.sol-extra"));
+    });
+    pintaExtras(sec);
+  }
+
+  // ------------------------------------------------------------------ solução só depois de tentar
+  // A solução (e as respostas dos treinos) libera depois de rodar uma consulta na fase ou de abrir a dica.
+  // Fase já concluída fica sempre liberada. A fase 0 (montar) não tem trava.
+  function marcaTentou(faseId) {
+    var t = ler(K_TENTOU, {});
+    if (t[faseId]) return;
+    t[faseId] = 1;
+    gravar(K_TENTOU, t);
+  }
+  function preparaTravas(sec) {
+    if (sec.getAttribute("data-fase") === "0") return;
+    var travas = [].slice.call(sec.querySelectorAll("details.sol, details.sol-extra")).filter(function (d) {
+      return !d.classList.contains("sol-desafio");
+    });
+    if (!travas.length) return;
+    function pinta() {
+      var livre = !!ler(K_TENTOU, {})[sec.id] || faseFeita(sec.id);
+      travas.forEach(function (d) {
+        d.classList.toggle("trancada", !livre);
+        if (!livre) d.open = false;
+      });
+    }
+    travas.forEach(function (d) {
+      var s = d.querySelector("summary");
+      if (!s) return;
+      s.appendChild(el("span", "trava-aviso", "🔒 tente antes"));
+      s.addEventListener("click", function (e) {
+        if (!d.classList.contains("trancada")) return;
+        e.preventDefault();
+        d.classList.remove("balanca"); void d.offsetWidth; d.classList.add("balanca");
+        toast("Tente primeiro: rode uma consulta no computador ou abra a dica.");
+      });
+    });
+    [].forEach.call(sec.querySelectorAll("details"), function (d) {
+      if (/\b(sol|sol-extra|duvida|extras)\b/.test(d.className)) return;
+      var s = d.querySelector("summary");
+      if (!s || !/^\s*Dica/i.test(s.textContent)) return;
+      d.addEventListener("toggle", function () { if (d.open) { marcaTentou(sec.id); pinta(); } });
+    });
+    var cb = sec.querySelector('.done-row input[type="checkbox"]');
+    if (cb) cb.addEventListener("change", function () { setTimeout(pinta, 0); });
+    sec._pintaTravas = pinta;
+    pinta();
+  }
+
+  // ------------------------------------------------------------------ revisão: refazer de memória
+  function preparaRevisao(sec, corpo) {
+    if (REVISAO !== sec.id) return;
+    sec.classList.add("em-revisao");
+    var missao = corpo.querySelector(".missao");
+    var esconder = [];
+    for (var n = corpo.firstElementChild; n && n !== missao; n = n.nextElementSibling) {
+      var rot = n.querySelector(":scope > b.l");
+      if (n.classList.contains("box") && rot && /^Situação/i.test(rot.textContent)) continue;
+      esconder.push(n);
+    }
+    esconder.forEach(function (x) { x.classList.add("rev-oculto"); });
+    var faixa = el("div", "rev-faixa");
+    faixa.appendChild(el("b", null, "🔁 Revisão: resolva de memória."));
+    faixa.appendChild(document.createTextNode(" A explicação da fase está escondida. Se precisar, ela está aqui:"));
+    var mostrar = el("button", "btn ghost", "Mostrar a explicação"); mostrar.type = "button";
+    mostrar.addEventListener("click", function () {
+      esconder.forEach(function (x) { x.classList.remove("rev-oculto"); });
+      mostrar.remove();
+    });
+    faixa.appendChild(mostrar);
+    corpo.insertBefore(faixa, corpo.firstChild);
+  }
+
+  // ------------------------------------------------------------------ desafio final do caso
+  // <section class="fase desafio-final" data-desafio>: libera quando todas as fases do caso estão concluídas.
+  // Sem dica e sem tira-dúvidas; a resposta só aparece depois de acertar ou de desistir.
+  function idDesafio() { return "d:" + paginaAtual(); }
+  function idDesistiu() { return "v:" + paginaAtual(); }
+  function preparaDesafio(sec, corpo) {
+    var fases = [].slice.call(document.querySelectorAll("section[data-fase]"));
+    var sol = sec.querySelector("details.sol-desafio");
+    var trava = el("p", "desafio-trava");
+    corpo.insertBefore(trava, corpo.firstChild);
+    function pinta() {
+      var falta = fases.filter(function (f) { return !faseFeita(f.id); }).length;
+      sec.classList.toggle("desafio-trancado", falta > 0);
+      trava.hidden = !falta;
+      trava.textContent = falta ? "🔒 Termine as fases do caso para liberar o desafio. " + (falta === 1 ? "Falta 1 fase." : "Faltam " + falta + " fases.") : "";
+      var venceu = faseFeita(idDesafio());
+      sec.classList.toggle("vencido", venceu);
+      var sub = sec.querySelector(".fase-head .sub");
+      if (sub) sub.textContent = venceu ? "🏆 vencido · sem ajuda" : "sem ajuda · opcional";
+      if (sol) {
+        var livre = venceu || faseFeita(idDesistiu());
+        sol.classList.toggle("trancada", !livre);
+        if (!livre) sol.open = false;
+      }
+    }
+    if (sol) {
+      var s = sol.querySelector("summary");
+      if (s) s.addEventListener("click", function (e) {
+        if (!sol.classList.contains("trancada")) return;
+        e.preventDefault();
+        if (!window.confirm("Ver a resposta agora? O troféu só vale para quem acerta sem ver a resposta.")) return;
+        marcaFeito(idDesistiu());
+        pinta();
+        sol.open = true;
+      });
+    }
+    document.addEventListener("change", function (e) {
+      var t = e.target;
+      if (t && t.matches && t.matches('section[data-fase] input[type="checkbox"]')) setTimeout(pinta, 0);
+    });
+    sec._pintaDesafio = pinta;
+    pinta();
   }
   function esperado(sql) {
     if (!somenteLeitura(sql)) return Promise.resolve(null);
@@ -409,8 +576,14 @@
   }
 
   // ------------------------------------------------------------------ mensagens de erro em português
-  function traduz(msg) {
+  function traduz(msg, sql) {
     var m;
+    // apelido do SELECT usado no WHERE ou no HAVING: o banco ainda não chegou no SELECT
+    if ((m = /column "([^"]+)" does not exist/.exec(msg)) && sql &&
+        new RegExp("\\bAS\\s+\"?" + m[1].replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\"?(?![\\w])", "i").test(sql)) {
+      return "\"" + m[1] + "\" é um apelido criado no SELECT. O banco lê o WHERE e o HAVING antes do SELECT, então ali o apelido ainda não existe. Repita a conta, como COUNT(*), ou use o apelido só no ORDER BY.";
+    }
+    if (/aggregate functions are not allowed in WHERE/.test(msg)) return "COUNT, SUM e as outras contas não podem ficar no WHERE: ele olha uma linha por vez, antes de agrupar. Filtre a contagem no HAVING, depois do GROUP BY.";
     if ((m = /relation "([^"]+)" does not exist/.exec(msg))) return "A tabela \"" + m[1] + "\" não existe. Veja os nomes no mapa de tabelas.";
     if ((m = /column "([^"]+)" does not exist/.exec(msg))) return "A coluna \"" + m[1] + "\" não existe. Confira o nome no mapa de tabelas.";
     if ((m = /syntax error at or near "([^"]*)"/.exec(msg))) return "Erro de escrita perto de \"" + m[1] + "\". Confira vírgulas, parênteses, aspas e a ordem dos comandos.";
@@ -477,7 +650,10 @@
     area.setAttribute("aria-label", "Digite sua consulta SQL");
     area.placeholder = "Digite sua consulta aqui e aperte Ctrl+Enter…";
     var rascunhos = ler(K_CODIGO, {});
-    area.value = rascunhos[faseId] || "";
+    // na revisão o editor começa vazio, com rascunho separado (o da fase fica guardado)
+    var chaveRasc = REVISAO === faseId ? faseId + "|rev" : faseId;
+    var ehDesafio = sec.hasAttribute("data-desafio");
+    area.value = rascunhos[chaveRasc] || "";
     editor.appendChild(area);
     principal.appendChild(editor);
 
@@ -562,7 +738,7 @@
     }
     function guardaRascunho() {
       var r = ler(K_CODIGO, {});
-      r[faseId] = area.value;
+      r[chaveRasc] = area.value;
       gravar(K_CODIGO, r);
     }
 
@@ -570,7 +746,8 @@
     var errosSeguidos = 0, duvidaAberta = false;
     function contaErro() {
       errosSeguidos++;
-      if (errosSeguidos < 3 || duvidaAberta) return;
+      // fase já concluída (treinos extras, revisão): não interrompe com a janela
+      if (errosSeguidos < 3 || duvidaAberta || faseFeita(faseId)) return;
       var duvida = sec.querySelector("details.duvida");
       if (!duvida) return;
       duvidaAberta = true;
@@ -685,28 +862,36 @@
         saida.appendChild(tabelaDe(c));
       }).catch(function () {});
     }
+    // a mesma correção serve para a missão, para os treinos extras e para o desafio final
     function veredito(res) {
-      var sols = solucoesDa(sec);
-      if (!sols.length || res.semTabela) return Promise.resolve();
+      var sols = solucoesDa(sec), extras = extrasDa(sec);
+      if ((!sols.length && !extras.length) || res.semTabela) return Promise.resolve();
       var minha = { campos: res.campos.length, n: res.linhas.length, sig: assinatura(res.linhas) };
-      return Promise.all(sols.map(esperado)).then(function (exps) {
+      return Promise.all([
+        Promise.all(sols.map(esperado)),
+        Promise.all(extras.map(function (x) { return esperado(x.sql); }))
+      ]).then(function (tudo) {
+        var exps = tudo[0], expsX = tudo[1];
         var comparaveis = [];
         exps.forEach(function (x, i) { if (x) comparaveis.push(i); });
-        if (!comparaveis.length) return;
-        var achou = -1;
+        if (!comparaveis.length && !expsX.some(Boolean)) return;
+        var achou = -1, achouX = -1;
         comparaveis.forEach(function (i) { if (achou === -1 && exps[i].sig === minha.sig) achou = i; });
+        if (achou === -1) expsX.forEach(function (x, i) { if (achouX === -1 && x && x.sig === minha.sig) achouX = i; });
         var aviso = el("div", "pc-veredito");
         if (achou > -1) {
           errosSeguidos = 0;
+          aviso.classList.add("ok");
+          if (ehDesafio) { venceuDesafio(aviso); saida.appendChild(aviso); return; }
           var feitos = marcarConferido(achou, comparaveis.length);
           var certos = comparaveis.filter(function (i) { return feitos.indexOf(i) > -1; }).length;
-          aviso.classList.add("ok");
           aviso.appendChild(el("b", null, "✅ Resultado certo!"));
           if (comparaveis.length > 1) {
             aviso.appendChild(document.createTextNode(" Missões conferidas nesta fase: " + certos + " de " + comparaveis.length + "."));
           }
           saida.appendChild(aviso);
           if (certos === comparaveis.length) {
+            if (REVISAO === faseId) { revisaoCerta(aviso); return; }
             var cb = sec.querySelector('input[type="checkbox"]');
             if (cb && !cb.checked) {
               var b = el("button", "pc-botao pc-concluir", "🏁 Concluir esta fase"); b.type = "button";
@@ -714,25 +899,92 @@
               aviso.appendChild(document.createElement("br"));
               aviso.appendChild(b);
             }
+            convidaExtras(aviso);
           }
-        } else {
-          var alvo = null;
-          comparaveis.forEach(function (i) { if (!alvo && exps[i].campos === minha.campos) alvo = exps[i]; });
-          alvo = alvo || exps[comparaveis[0]];
-          aviso.classList.add("quase");
-          aviso.appendChild(el("b", null, "Ainda não bate com o esperado."));
-          var dica = " O seu resultado tem " + minha.n + " linha(s) e " + minha.campos + " coluna(s); o esperado tem " + alvo.n + " linha(s) e " + alvo.campos + " coluna(s).";
-          if (minha.n === alvo.n && minha.campos === alvo.campos) dica = " O formato está igual, mas algum valor difere. Confira filtros, colunas e arredondamento.";
-          aviso.appendChild(document.createTextNode(dica));
-          saida.appendChild(aviso);
-          contaErro();
+          return;
         }
+        if (achouX > -1) {
+          errosSeguidos = 0;
+          extraCerto(extras[achouX], aviso);
+          saida.appendChild(aviso);
+          return;
+        }
+        // não bateu: compara com o que tiver o mesmo número de colunas (missão primeiro, depois os treinos)
+        var alvo = null, nome = "", de = "";
+        var daMissao = function (x) { alvo = x; nome = "a missão"; de = "da missão"; };
+        var doTreino = function (x, i) { alvo = x; nome = "o treino " + extras[i].n; de = "do treino " + extras[i].n; };
+        comparaveis.forEach(function (i) { if (!alvo && exps[i].campos === minha.campos) daMissao(exps[i]); });
+        expsX.forEach(function (x, i) { if (!alvo && x && x.campos === minha.campos) doTreino(x, i); });
+        if (!alvo && comparaveis.length) daMissao(exps[comparaveis[0]]);
+        expsX.forEach(function (x, i) { if (!alvo && x) doTreino(x, i); });
+        var comTreinos = extras.length > 0 && !ehDesafio;
+        aviso.classList.add("quase");
+        aviso.appendChild(el("b", null, comTreinos ? "Ainda não bate com a missão nem com os treinos extras." : "Ainda não bate com o esperado."));
+        var dica = " O seu resultado tem " + minha.n + " linha(s) e " + minha.campos + " coluna(s); " +
+          (comTreinos ? "o mais parecido é " + nome + ", que espera " : "o esperado tem ") +
+          alvo.n + " linha(s) e " + alvo.campos + " coluna(s).";
+        if (minha.n === alvo.n && minha.campos === alvo.campos) {
+          dica = " O formato " + (comTreinos ? "é igual ao " + de : "está igual") + ", mas algum valor difere. Confira filtros, colunas e arredondamento.";
+        }
+        aviso.appendChild(document.createTextNode(dica));
+        saida.appendChild(aviso);
+        contaErro();
       });
+    }
+    function extraCerto(x, aviso) {
+      marcaFeito(idExtra(faseId, x.n));
+      pintaExtras(sec);
+      aviso.classList.add("ok");
+      aviso.appendChild(el("b", null, "✅ Treino extra " + x.n + " certo!"));
+      var todos = extrasDa(sec);
+      var feitos = todos.filter(function (e) { return faseFeita(idExtra(faseId, e.n)); }).length;
+      aviso.appendChild(document.createTextNode(feitos === todos.length
+        ? " Você fez todos os treinos desta fase. 💪"
+        : " Treinos feitos nesta fase: " + feitos + " de " + todos.length + "."));
+    }
+    // depois de acertar a missão, lembra que há treinos extras (sem obrigar)
+    function convidaExtras(aviso) {
+      var box = sec.querySelector("details.extras");
+      if (!box || REVISAO === faseId) return;
+      var faltam = extrasDa(sec).filter(function (e) { return !faseFeita(idExtra(faseId, e.n)); }).length;
+      if (!faltam) return;
+      var b = el("button", "pc-botao", "🏋️ Ver os treinos extras"); b.type = "button";
+      b.addEventListener("click", function () {
+        box.open = true;
+        box.scrollIntoView({ behavior: SEM_ANIMACAO ? "auto" : "smooth", block: "start" });
+      });
+      aviso.appendChild(document.createElement("br"));
+      aviso.appendChild(b);
+    }
+    function revisaoCerta(aviso) {
+      var r = ler(K_REV, {}); r[faseId] = Date.now(); gravar(K_REV, r);
+      aviso.appendChild(document.createElement("br"));
+      aviso.appendChild(el("span", null, "🔁 Revisão feita! Lembrar sem olhar é o que fixa o SQL."));
+      var linha = el("div", "pc-rev-acoes");
+      var prox = window.MisterioRevisao ? window.MisterioRevisao.proxima(faseId) : null;
+      if (prox) { var a = el("a", "pc-botao pc-concluir", "Próxima revisão →"); a.href = prox; linha.appendChild(a); }
+      var casa = el("a", "pc-botao", "Voltar ao início"); casa.href = "index.html";
+      linha.appendChild(casa);
+      aviso.appendChild(linha);
+    }
+    function venceuDesafio(aviso) {
+      if (faseFeita(idDesistiu())) {
+        aviso.appendChild(el("b", null, "✅ Resultado certo!"));
+        aviso.appendChild(document.createTextNode(" O troféu vale só para quem acerta sem ver a resposta, mas a prática conta do mesmo jeito."));
+        return;
+      }
+      var ja = faseFeita(idDesafio());
+      marcaFeito(idDesafio());
+      aviso.appendChild(el("b", null, "🏆 Desafio vencido!"));
+      aviso.appendChild(document.createTextNode(ja ? " Você já tinha vencido, e acertou de novo." : " Você resolveu sem ajuda. O troféu deste caso é seu."));
+      if (sec._pintaDesafio) sec._pintaDesafio();
     }
     function roda() {
       var sql = area.value.trim();
       if (!sql) { mensagem("Digite uma consulta primeiro. Dica: clique no nome de uma tabela, à esquerda.", "dica"); area.focus(); return; }
       guardaRascunho();
+      marcaTentou(faseId);
+      if (sec._pintaTravas) sec._pintaTravas();
       var prepara = motor.pronto ? Promise.resolve() : liga();
       prepara.then(function () {
         marca("ligado", "rodando…");
@@ -759,7 +1011,7 @@
         marca("ligado", "ligado");
         var msg = String(e && e.message ? e.message : e);
         var p = mensagem("ERRO: " + msg, "erro");
-        var t = traduz(msg);
+        var t = traduz(msg, sql);
         if (t) {
           var d = el("div", "pc-veredito quase");
           d.appendChild(el("b", null, "Dica: "));
@@ -940,13 +1192,25 @@
       }
       // exemplos viram "levar para o computador"
       [].forEach.call(corpo.querySelectorAll(".code"), function (bloco) {
-        if (bloco.closest("details.sol")) return;
+        if (bloco.closest("details.sol, details.sol-extra")) return;
         var pre = bloco.querySelector("pre[data-sql]");
         if (!pre || bloco.querySelector(".pc-leva")) return;
         var b = el("button", "btn pc-leva", "Levar para o computador"); b.type = "button";
         b.addEventListener("click", function () { pc._leva(pre.textContent); });
         bloco.appendChild(b);
       });
+      preparaTravas(sec);
+      preparaExtras(sec);
+      preparaRevisao(sec, corpo);
+    });
+    // desafio final: computador próprio, sem dica e sem tira-dúvidas
+    [].forEach.call(document.querySelectorAll("section[data-desafio]"), function (sec) {
+      var corpo = sec.querySelector(".fase-corpo") || sec;
+      if (corpo.querySelector(".pc")) return;
+      var pc = criaComputador(sec);
+      var missao = corpo.querySelector(".missao");
+      corpo.insertBefore(pc, missao ? missao.nextSibling : null);
+      preparaDesafio(sec, corpo);
     });
   }
 

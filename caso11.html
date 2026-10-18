@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -113,7 +113,7 @@ SELECT paciente, cor, chegada, inicio_medico,
 FROM ps_atendimento
 ORDER BY chegada
 LIMIT 10;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Mostre o atendimento da paciente <code>'Ivone Siqueira'</code>: nome, cor, chegada, início do atendimento, a espera como <strong>intervalo</strong> (<code>espera</code>) e a espera em <strong>minutos</strong>, arredondada (<code>espera_min</code>).</li><li>No mês inteiro, quantos atendimentos <strong>estouraram</strong> o tempo-alvo da própria cor? Junte com <code>ps_cor</code> e mostre a cor, o tempo-alvo e a quantidade, da cor mais urgente para a menos urgente.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Mostre o atendimento da paciente <code>'Ivone Siqueira'</code>: nome, cor, chegada, início do atendimento, a espera como <strong>intervalo</strong> (<code>espera</code>) e a espera em <strong>minutos</strong>, arredondada sem casas decimais (<code>espera_min</code>).</li><li>No mês inteiro, quantos atendimentos <strong>estouraram</strong> o tempo-alvo da própria cor? O tempo-alvo de cada cor está em <code>ps_cor</code>. Mostre a cor, o tempo-alvo e a quantidade, da cor mais urgente para a menos urgente.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> mostrar o atendimento da Ivone Siqueira com a espera como intervalo e em minutos arredondados. Na segunda, quantos atendimentos do mês estouraram o tempo-alvo da própria cor, por cor.</p>
     <p><strong>Como pensar:</strong></p>
@@ -136,6 +136,25 @@ GROUP BY a.cor, c.tempo_alvo_min, c.ordem
 ORDER BY c.ordem;</pre></div>
     <p>Para conferir: Dona Ivone chegou à <strong>01:12</strong> e foi atendida às <strong>03:07</strong> — espera de <code>01:55:00</code>, ou <strong>115 minutos</strong>, onze vezes e meia o alvo do laranja. No mês, <strong>120</strong> atendimentos estouraram o alvo: 4 vermelhos, <strong>38 laranjas</strong>, 46 amarelos, 29 verdes e 3 azuis. O laranja é o que mais assusta: são pacientes que deviam ver o médico em 10 minutos. Os poucos vermelhos da lista chegaram com outra cor e pioraram na espera (a conta mede desde a chegada). A espera foi ruim sempre, ou em alguns horários? É o que a próxima fase investiga.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Liste os pacientes <code>'vermelho'</code> que chegaram no dia 12/09/2026. Mostre <strong>paciente</strong>, <strong>chegada</strong>, <strong>inicio_medico</strong> e a espera em minutos, arredondada sem casas (<strong>espera_min</strong>).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT paciente, chegada, inicio_medico,
+       ROUND(EXTRACT(EPOCH FROM inicio_medico - chegada) / 60) AS espera_min
+FROM ps_atendimento
+WHERE cor = 'vermelho'
+  AND chegada &gt;= '2026-09-12' AND chegada &lt; '2026-09-13'
+ORDER BY chegada;</pre></div><p>Para conferir: <strong>4</strong> linhas; a maior espera é de <strong>24</strong> minutos.</p></div></details></li>
+      <li class="extra"><p>Quantos atendimentos esperaram <strong>mais de 3 horas</strong>? Conte por cor. Mostre <strong>cor</strong> e <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT cor, COUNT(*) AS total
+FROM ps_atendimento
+WHERE inicio_medico - chegada &gt; INTERVAL '3 hours'
+GROUP BY cor;</pre></div><p>Para conferir: <strong>3</strong> linhas; o amarelo tem <strong>16</strong>.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c11-ok1"><label for="c11-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c11-f2" data-fase="2" data-nome="A média mente">
@@ -156,11 +175,11 @@ SELECT AVG(x) AS media,
        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY x) AS mediana,
        PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY x) AS p90
 FROM (VALUES (10), (12), (15), (18), (300)) AS t(x);</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para os pacientes <strong>laranja e amarelo</strong>, mostre por <strong>turno</strong> (manhã de 7h a 12h59, tarde de 13h a 18h59, noite no resto, pela hora da <code>chegada</code>): a quantidade de pacientes, a média, a mediana e o P90 da espera em minutos, os três com uma casa decimal. Ordene da maior média para a menor.</li><li>Agora repita a mesma conta <strong>sem o dia 12/09</strong> (<code>chegada::date &lt;&gt; '2026-09-12'</code>). O que acontece com a tarde?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para os pacientes <strong>laranja e amarelo</strong>, mostre por <strong>turno</strong> (manhã de 7h a 12h59, tarde de 13h a 18h59, noite no resto, pela hora da <code>chegada</code>): a quantidade de pacientes, a média, a mediana e o P90 da espera em minutos, os três com uma casa decimal. Ordene da maior média para a menor.</li><li>Agora repita a mesma conta <strong>sem o dia 12/09</strong>: tire todos os pacientes que chegaram nesse dia. O que acontece com a tarde?</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> para laranja e amarelo, mostrar por turno da chegada: quantidade, média, mediana e P90 da espera em minutos, com 1 casa. Na segunda, o mesmo sem o dia 12/09.</p>
     <p><strong>Como pensar:</strong></p>
-    <ul class="list"><li>Poucos casos extremos puxam a média para cima. A mediana é o valor do meio da fila ordenada; o P90, o valor que só 10% ultrapassam.</li><li>Num <code>WITH</code>, calcule o turno de cada paciente laranja ou amarelo (um <code>CASE</code> pela hora da chegada) e a espera em minutos, como na fase 1.</li><li>Fora, agrupe por turno: <code>COUNT(*)</code>, <code>AVG</code> e <code>PERCENTILE_CONT</code> (0.5 e 0.9) com <code>WITHIN GROUP (ORDER BY espera)</code>.</li><li><strong>Na segunda:</strong> some a condição do dia ao filtro de cores, dentro do <code>WITH</code>.</li></ul>
+    <ul class="list"><li><strong>Ferramenta:</strong> para tirar o dia 12/09, <code>chegada::date &lt;&gt; '2026-09-12'</code> (o <code>::date</code> fica só com a data, sem a hora).</li><li>Poucos casos extremos puxam a média para cima. A mediana é o valor do meio da fila ordenada; o P90, o valor que só 10% ultrapassam.</li><li>Num <code>WITH</code>, calcule o turno de cada paciente laranja ou amarelo (um <code>CASE</code> pela hora da chegada) e a espera em minutos, como na fase 1.</li><li>Fora, agrupe por turno: <code>COUNT(*)</code>, <code>AVG</code> e <code>PERCENTILE_CONT</code> (0.5 e 0.9) com <code>WITHIN GROUP (ORDER BY espera)</code>.</li><li><strong>Na segunda:</strong> some a condição do dia ao filtro de cores, dentro do <code>WITH</code>.</li></ul>
     <p><strong>Se travar:</strong></p>
     <ul class="list"><li>Erro <em>function round(double precision, integer)</em>? Converta o percentil com <code>::numeric</code> antes do <code>ROUND</code>.</li><li>Turnos estranhos? Manhã é hora 7 a 12 (até 12:59), tarde é 13 a 18, o resto é noite.</li></ul>
   </div></details>
@@ -201,6 +220,25 @@ GROUP BY turno
 ORDER BY media DESC;</pre></div>
     <p>Para conferir: na primeira, a <strong>tarde</strong> tem a maior média (<strong>49,1</strong> minutos), mas a mediana dela é <strong>24,0</strong>, quase igual à da manhã (20,0): metade dos graves da tarde foi atendida em até 24 minutos, como em qualquer turno. Média lá em cima com mediana normal é a marca de <strong>poucos valores extremos</strong>. A noite tem média 41,5, mediana 25,5 e, de longe, o maior P90: <strong>109,8</strong> minutos. Na segunda, sem o dia 12/09, a média da tarde despenca para <strong>21,7</strong> e o P90 dela fica igual ao da manhã (44,0): todos aqueles extremos vinham de uma tarde só. Foi o dia do <strong>acidente com um ônibus</strong> (várias queixas desse dia terminam em “acidente de ônibus”), com vítimas chegando juntas a partir das 14h35. Uma tarde ruim, mas por um motivo conhecido e legítimo: a equipe do Dr. Celso Drumond sai da suspeita. Já a noite quase não muda (média 41,9, P90 110,3): o problema dela não é um dia só.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Para cada cor, mostre <strong>cor</strong>, a média da espera em minutos (<strong>media</strong>) e a mediana da espera em minutos (<strong>mediana</strong>), as duas com 1 casa.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT cor,
+       ROUND(AVG(EXTRACT(EPOCH FROM inicio_medico - chegada) / 60), 1) AS media,
+       ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM inicio_medico - chegada) / 60)::numeric, 1) AS mediana
+FROM ps_atendimento
+GROUP BY cor;</pre></div><p>Para conferir: <strong>5</strong> linhas; no laranja a média é <strong>18,1</strong> e a mediana é <strong>7,0</strong>.</p></div></details></li>
+      <li class="extra"><p>Para cada <strong>desfecho</strong>, mostre <strong>desfecho</strong>, quantos atendimentos teve (<strong>pacientes</strong>) e a mediana da idade (<strong>mediana_idade</strong>), com 1 casa.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT desfecho,
+       COUNT(*) AS pacientes,
+       ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY idade)::numeric, 1) AS mediana_idade
+FROM ps_atendimento
+GROUP BY desfecho;</pre></div><p>Para conferir: <strong>4</strong> linhas; a evasão tem <strong>9</strong> pacientes e mediana <strong>49,0</strong>.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c11-ok2"><label for="c11-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c11-f3" data-fase="3" data-nome="As piores noites">
@@ -223,7 +261,7 @@ SELECT paciente, chegada,
 FROM ps_atendimento
 WHERE chegada &gt;= '2026-09-19 22:00' AND chegada &lt; '2026-09-20 03:00'
 ORDER BY chegada;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para os pacientes laranja e amarelo que chegaram <strong>à noite</strong>, calcule o <strong>P90 da espera</strong> de cada noite (com uma casa decimal), divida as noites em 4 grupos com <code>NTILE(4)</code> do maior P90 para o menor (desempate pela data) e mostre só as noites do <strong>grupo 1</strong>: a data da noite e o P90, em ordem de data.</li><li>Junte essas noites com a escala (<code>ps_escala</code>, turno <code>'noite'</code>) e conte em quantas delas cada profissional estava de plantão. Mostre nome, função e a contagem, da maior para a menor (desempate pelo nome).</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para os pacientes laranja e amarelo que chegaram <strong>à noite</strong>, calcule o <strong>P90 da espera</strong> de cada noite (com uma casa decimal), divida as noites em <strong>4 grupos de tamanho igual</strong> (ou quase), do maior P90 para o menor (desempate pela data), e mostre só as noites do <strong>grupo 1</strong>: a data da noite e o P90, em ordem de data.</li><li>Em quantas dessas noites cada profissional estava de plantão? A escala está em <code>ps_escala</code> (turno <code>'noite'</code>). Mostre nome, função e a contagem, da maior para a menor (desempate pelo nome).</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> achar o P90 de cada noite (laranja e amarelo), dividir as noites em 4 grupos com <code>NTILE(4)</code> e mostrar o grupo das piores. Na segunda, em quantas delas cada profissional estava de plantão.</p>
     <p><strong>Como pensar:</strong></p>
@@ -280,6 +318,36 @@ GROUP BY p.nome, p.funcao
 ORDER BY piores_noites DESC, p.nome;</pre></div>
     <p>Para conferir: na primeira, <strong>8 noites</strong> ficam no grupo 1: <strong>03, 07, 09, 13, 17, 19, 23 e 27</strong> de setembro, todas com P90 acima de 100 minutos (a de 19/09, da Dona Ivone, com 115,0). A 9ª pior já cai para 58,3. Repare: são todas datas ímpares. Na segunda, <strong>Fabíola Silveira</strong> (supervisora de enfermagem) e <strong>Eliseu Quintana</strong> (enfermeiro de triagem) estavam nas <strong>8</strong>; os médicos se revezam e aparecem em 5 ou 6. Os dois trabalham na mesma escala, noite sim, noite não — a escala sozinha não separa um do outro. Guarde os dois nomes.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Para cada dia de setembro (pela data da <code>chegada</code>; quem chegou em 01/10 fica de fora), calcule a média da espera em minutos com 1 casa. Divida os dias em <strong>5 grupos</strong>, da maior média para a menor (desempate pela data). Mostre <strong>dia</strong> e <strong>media</strong> do grupo 1.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH por_dia AS (
+  SELECT chegada::date AS dia,
+         ROUND(AVG(EXTRACT(EPOCH FROM inicio_medico - chegada) / 60), 1) AS media
+  FROM ps_atendimento
+  WHERE chegada &lt; '2026-10-01'
+  GROUP BY chegada::date
+),
+com_grupo AS (
+  SELECT dia, media, NTILE(5) OVER (ORDER BY media DESC, dia) AS grupo
+  FROM por_dia
+)
+SELECT dia, media
+FROM com_grupo
+WHERE grupo = 1
+ORDER BY dia;</pre></div><p>Para conferir: <strong>6</strong> linhas; a maior média é a do dia 12/09, com <strong>151,4</strong>.</p></div></details></li>
+      <li class="extra"><p>Conte os pacientes que chegaram em cada uma das noites de <strong>18, 19 e 20/09</strong> (das 19h às 6h59 do dia seguinte). Mostre <strong>noite</strong> (a data em que a noite começou) e <strong>pacientes</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT (chegada - INTERVAL '7 hours')::date AS noite, COUNT(*) AS pacientes
+FROM ps_atendimento
+WHERE (EXTRACT(HOUR FROM chegada) &gt;= 19 OR EXTRACT(HOUR FROM chegada) &lt; 7)
+  AND (chegada - INTERVAL '7 hours')::date BETWEEN '2026-09-18' AND '2026-09-20'
+GROUP BY (chegada - INTERVAL '7 hours')::date
+ORDER BY noite;</pre></div><p>Para conferir: <strong>3</strong> linhas; a noite de 19/09 tem <strong>11</strong> pacientes.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c11-ok3"><label for="c11-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c11-f4" data-fase="4" data-nome="A grade de horas">
@@ -333,6 +401,29 @@ GROUP BY h.hora
 ORDER BY h.hora;</pre></div>
     <p>Para conferir: na primeira, <strong>23h</strong> é de longe a pior hora do dia, com <strong>27</strong> estouros, seguida de 0h (9) e 22h (8). O outro pico, 14h e 15h (8 e 12), é a tarde do acidente. E várias horas aparecem com <strong>0</strong> — 4h, 5h, 6h, 8h, 9h, 13h e 18h —, linhas que um <code>GROUP BY</code> comum teria escondido: as 24 horas aparecem. Na segunda, são 12 linhas, das 19:00 às 06:00. A fila de graves fica vazia até as 23h, tem 2 pessoas à 00h e à 01h, chega a <strong>4</strong> às <strong>02h</strong> e esvazia a partir das 04h. A Dona Ivone estava nela às 02h e às 03h. Quem foi atendido enquanto ela esperava?</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Para cada hora do dia (0 a 23), conte quantas reclassificações de <code>ps_reclassificacao</code> aconteceram naquela hora, pela hora do <code>momento</code>. Mostre <strong>hora</strong> e <strong>reclassificacoes</strong>, inclusive as horas com zero.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT h.hora, COUNT(r.id) AS reclassificacoes
+FROM generate_series(0, 23) AS h(hora)
+LEFT JOIN ps_reclassificacao r ON EXTRACT(HOUR FROM r.momento) = h.hora
+GROUP BY h.hora
+ORDER BY h.hora;</pre></div><p>Para conferir: <strong>24</strong> linhas; a hora 23 tem <strong>13</strong> e a hora 6 tem <strong>0</strong>.</p></div></details></li>
+      <li class="extra"><p>Para cada horário cheio das 13:00 às 18:00 de 12/09, conte os pacientes que chegaram naquela hora (do horário cheio até antes do próximo). Mostre <strong>hora</strong> (como <code>2026-09-12 13:00:00</code>) e <strong>chegadas</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT h.hora, COUNT(a.id) AS chegadas
+FROM generate_series('2026-09-12 13:00'::timestamp,
+                     '2026-09-12 18:00'::timestamp,
+                     INTERVAL '1 hour') AS h(hora)
+LEFT JOIN ps_atendimento a
+       ON a.chegada &gt;= h.hora
+      AND a.chegada &lt; h.hora + INTERVAL '1 hour'
+GROUP BY h.hora
+ORDER BY h.hora;</pre></div><p>Para conferir: <strong>6</strong> linhas; o pico é às 15:00, com <strong>13</strong> chegadas.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c11-ok4"><label for="c11-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c11-f5" data-fase="5" data-nome="Quem mudou a cor">
@@ -354,11 +445,11 @@ FROM ps_reclassificacao r
 JOIN ps_profissional p ON p.id = r.alterado_por
 JOIN ps_atendimento a ON a.id = r.atendimento_id
 ORDER BY r.momento;</pre></div>
-  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Para cada profissional que <strong>subiu</strong> a cor de algum paciente, mostre: o nome, quantas subidas fez, quantas têm <strong>justificativa</strong> preenchida, quantos desses pacientes tiveram <strong>alta</strong> e quantos <strong>furaram a fila</strong>. Ordene de quem mais furou para quem menos.</li><li>Confirme com o caso da denúncia: quem chegou <strong>depois</strong> da Dona Ivone e foi atendido <strong>antes</strong> dela? Mostre paciente, queixa, cor, chegada, início do atendimento e, quando houver, quem reclassificou, a cor antiga e a justificativa (use <code>LEFT JOIN</code> no log).</li><li>Quem furou a fila? Confira com <code>SELECT verificar_caso11('Nome Completo');</code>.</li></ul></div>
+  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Para cada profissional que <strong>subiu</strong> a cor de algum paciente, mostre: o nome, quantas subidas fez, quantas têm <strong>justificativa</strong> preenchida, quantos desses pacientes tiveram <strong>alta</strong> e quantos <strong>furaram a fila</strong>. Ordene de quem mais furou para quem menos.</li><li>Confirme com o caso da denúncia: quem chegou <strong>depois</strong> da Dona Ivone e foi atendido <strong>antes</strong> dela? Mostre paciente, queixa, cor, chegada, início do atendimento e, quando houver, quem reclassificou, a cor antiga e a justificativa. Quem nunca foi reclassificado também aparece, com essas três colunas vazias.</li><li>Quem furou a fila? Confira com <code>SELECT verificar_caso11('Nome Completo');</code>.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> para cada profissional que subiu a cor de alguém: subidas, quantas com justificativa, quantas altas e quantos furaram a fila. Na segunda, quem chegou depois da Dona Ivone e foi atendido antes dela.</p>
     <p><strong>Como pensar:</strong></p>
-    <ul class="list"><li>A urgência está em <code>ps_cor.ordem</code>. Junte <code>ps_cor</code> duas vezes, com apelidos diferentes, para a cor antiga e a nova: subiu quando a ordem nova é menor.</li><li>Guarde as subidas num <code>WITH</code>. <code>COUNT(justificativa)</code> conta só as preenchidas; um <code>FILTER</code> conta as altas.</li><li>Furou a fila se <em>existe</em> outro paciente que chegou antes, foi atendido depois e era pelo menos tão urgente quanto a cor nova: um <code>EXISTS</code> dentro do <code>FILTER</code>.</li><li><strong>Na segunda:</strong> junte <code>ps_atendimento</code> com ela mesma para comparar cada um com a Ivone.</li></ul>
+    <ul class="list"><li><strong>Ferramenta:</strong> na segunda, <code>LEFT JOIN</code> no log (<code>ps_reclassificacao</code>) e no profissional, para não perder quem nunca foi reclassificado.</li><li>A urgência está em <code>ps_cor.ordem</code>. Junte <code>ps_cor</code> duas vezes, com apelidos diferentes, para a cor antiga e a nova: subiu quando a ordem nova é menor.</li><li>Guarde as subidas num <code>WITH</code>. <code>COUNT(justificativa)</code> conta só as preenchidas; um <code>FILTER</code> conta as altas.</li><li>Furou a fila se <em>existe</em> outro paciente que chegou antes, foi atendido depois e era pelo menos tão urgente quanto a cor nova: um <code>EXISTS</code> dentro do <code>FILTER</code>.</li><li><strong>Na segunda:</strong> junte <code>ps_atendimento</code> com ela mesma para comparar cada um com a Ivone.</li></ul>
     <p><strong>Se travar:</strong></p>
     <ul class="list"><li>Justificativas iguais às subidas? Conte a coluna, não <code>*</code>.</li><li>Entraram descidas? Falta o filtro: ordem nova menor que a antiga.</li><li>Sumiu alguém na segunda? Use <code>LEFT JOIN</code> no log e no profissional: nem todos foram reclassificados.</li></ul>
   </div></details>
@@ -401,8 +492,50 @@ WHERE a.chegada &gt; iv.chegada
 ORDER BY a.inicio_medico;</pre></div>
     <p>Para conferir: na primeira, <strong>Fabíola Silveira</strong> subiu a cor de <strong>20</strong> pacientes: só 4 têm alguma justificativa (e as quatro dizem apenas “reavaliação”, sem nenhum dado clínico), os 20 tiveram alta e <strong>18 furaram a fila</strong> de alguém laranja que já estava esperando. Eliseu Quintana, a pista falsa, subiu 11, todas com motivo clínico (saturação, pressão, glicemia…), nenhum foi para casa (todos internaram ou foram para a UTI) e nenhum passou na frente de ninguém. Na segunda, 3 pessoas chegaram depois da Dona Ivone e entraram antes dela: Bruno Saldanha, do <strong>tornozelo torcido</strong> (o rapaz da reclamação), e Marcelo Vilaça Filho, que só queria um <strong>atestado</strong>. Os dois chegaram verde e azul e, minutos depois, viraram laranja pelas mãos de Fabíola Silveira, sem justificativa. O terceiro, Adriano Couto, era vermelho (queda de moto) e passou na frente com toda a razão. Quem furou a fila foi a supervisora da noite: confira o nome com <code>verificar_caso11</code>.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Para cada profissional que <strong>desceu</strong> a cor de algum paciente (a cor nova é menos urgente que a antiga), mostre <strong>nome</strong>, <strong>descidas</strong> e quantas delas têm justificativa preenchida (<strong>com_justificativa</strong>).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.nome, COUNT(*) AS descidas, COUNT(r.justificativa) AS com_justificativa
+FROM ps_reclassificacao r
+JOIN ps_cor ca ON ca.cor = r.cor_antiga
+JOIN ps_cor cn ON cn.cor = r.cor_nova
+JOIN ps_profissional p ON p.id = r.alterado_por
+WHERE cn.ordem &gt; ca.ordem
+GROUP BY p.nome;</pre></div><p>Para conferir: <strong>5</strong> linhas; Eliseu Quintana desceu <strong>3</strong>, todas com justificativa.</p></div></details></li>
+      <li class="extra"><p>Mostre <strong>nome</strong> e <strong>funcao</strong> dos profissionais que mudaram a cor de pelo menos um paciente para <code>'vermelho'</code>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.nome, p.funcao
+FROM ps_profissional p
+WHERE EXISTS (
+  SELECT 1
+  FROM ps_reclassificacao r
+  WHERE r.alterado_por = p.id
+    AND r.cor_nova = 'vermelho'
+);</pre></div><p>Para conferir: <strong>2</strong> linhas: um enfermeiro de triagem e uma supervisora.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c11-ok5"><label for="c11-ok5">Etapa 5 concluída</label></div>
 </section>
+
+
+<!-- desafio:início -->
+<section class="fase desafio-final" id="caso11-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>Para cada profissional que mudou a cor de algum paciente para <code>'laranja'</code>, mostre <strong>nome</strong>, quantas mudanças para laranja fez (<strong>mudancas</strong>) e a mediana da espera em minutos desses pacientes (<strong>mediana</strong>), com 1 casa. Quem conseguiu atendimentos mais rápidos?</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>SELECT p.nome,
+       COUNT(*) AS mudancas,
+       ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM a.inicio_medico - a.chegada) / 60)::numeric, 1) AS mediana
+FROM ps_reclassificacao r
+JOIN ps_atendimento a ON a.id = r.atendimento_id
+JOIN ps_profissional p ON p.id = r.alterado_por
+WHERE r.cor_nova = 'laranja'
+GROUP BY p.nome;</pre></div><p>Para conferir: <strong>4</strong> linhas; Fabíola Silveira fez <strong>20</strong> mudanças, com mediana de <strong>7,0</strong> minutos.</p></div></details>
+</section>
+<!-- desafio:fim -->
+
 <section class="fase" id="c11-cola" style="gap:12px">
   <h2 style="font-size:32px">Cola rápida</h2>
   <div class="tw"><table>
@@ -1966,12 +2099,12 @@ SELECT '✅ Caso 11 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

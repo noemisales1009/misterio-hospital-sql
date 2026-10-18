@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -112,6 +112,22 @@ WHERE nome &lt;&gt; TRIM(nome);</pre></div>
 FROM cadastro;</pre></div>
     <p>Para conferir: <strong>36</strong> cadastros têm espaço sobrando. Os nomes diferentes caem de <strong>225</strong> para <strong>216</strong> depois da limpeza. Parece que 9 pessoas estão em dobro, mas cuidado: nome igual não quer dizer mesma pessoa, e a mesma pessoa pode ter o nome escrito igualzinho em dois cadastros. Quem identifica alguém é o CPF.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quantos cadastros têm o nome gravado <strong>todo em maiúsculas</strong> (o nome é igual a ele mesmo em maiúsculas)? Mostre uma coluna só, <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS total
+FROM cadastro
+WHERE nome = UPPER(nome);</pre></div><p>Para conferir: Uma linha só: <strong>23</strong>.</p></div></details></li>
+      <li class="extra"><p>Quais cadastros têm <strong>2 ou mais</strong> espaços sobrando nas pontas do nome? A sobra é o tamanho do nome menos o tamanho dele sem os espaços. Mostre <strong>id</strong> e <strong>sobra</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT id, LENGTH(nome) - LENGTH(TRIM(nome)) AS sobra
+FROM cadastro
+WHERE LENGTH(nome) - LENGTH(TRIM(nome)) &gt;= 2
+ORDER BY id;</pre></div><p>Para conferir: <strong>7</strong> linhas; quase todas têm sobra 3, e só uma tem 2.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c7-ok1"><label for="c7-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c7-f2" data-fase="2" data-nome="CPF">
@@ -153,6 +169,26 @@ HAVING COUNT(DISTINCT REPLACE(REPLACE(cpf, '.', ''), '-', '')) &gt; 1
 ORDER BY nome_limpo;</pre></div>
     <p>Para conferir: <strong>10 CPFs</strong> aparecem em 2 cadastros cada, ou seja, 10 pessoas cadastradas em dobro. E <strong>3 nomes</strong> são homônimos: Luciana Martins Andrade, Rafael Carvalho Santana e Vanessa Fernandes Souza. O nome sozinho errava para os dois lados: juntava pessoas diferentes e deixava passar cadastros repetidos com o nome escrito igual.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quantos cadastros com CPF gravado <strong>com pontuação</strong> (diferente do CPF sem ponto e sem traço) cada atendente fez? Mostre só quem fez algum: <strong>nome</strong> do atendente e <strong>cadastros</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT a.nome, COUNT(*) AS cadastros
+FROM cadastro cd
+JOIN atendente a ON a.id = cd.cadastrado_por
+WHERE cd.cpf &lt;&gt; REPLACE(REPLACE(cd.cpf, '.', ''), '-', '')
+GROUP BY a.nome
+ORDER BY cadastros DESC;</pre></div><p>Para conferir: <strong>6</strong> linhas; somando todas, dá 86.</p></div></details></li>
+      <li class="extra"><p>Quais nomes, arrumados com <code>UPPER(TRIM(nome))</code>, aparecem em <strong>mais de um cadastro</strong>? Mostre <strong>nome_limpo</strong> e <strong>cadastros</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT UPPER(TRIM(nome)) AS nome_limpo, COUNT(*) AS cadastros
+FROM cadastro
+GROUP BY nome_limpo
+HAVING COUNT(*) &gt; 1
+ORDER BY nome_limpo;</pre></div><p>Para conferir: <strong>13</strong> linhas, todas com 2 cadastros; a primeira em ordem alfabética é ALINE BATISTA SANTANA.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c7-ok2"><label for="c7-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c7-f3" data-fase="3" data-nome="Vazios">
@@ -193,6 +229,33 @@ GROUP BY a.nome
 ORDER BY cadastros DESC;</pre></div>
     <p>Para conferir: Saúde Vida com <strong>91</strong>, Particular com <strong>89</strong> e MedPlus com <strong>49</strong>. Sem o tratamento, o Particular apareceria espalhado em quatro linhas: <code>'Particular'</code>, vazio, só espaços e <code>NULL</code>. Na segunda: <strong>Cláudio Menezes</strong> lidera outubro com <strong>13</strong> cadastros, e <strong>Lívia Torres</strong> aparece com <strong>0</strong>. Com <code>COUNT(*)</code> ela apareceria com 1, o que está errado.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Conte por convênio só os cadastros feitos em <strong>2026</strong>, tratando nulo, vazio e só espaços como <strong>Particular</strong>. Mostre <strong>convenio_tratado</strong> e <strong>cadastros</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COALESCE(NULLIF(TRIM(convenio), ''), 'Particular') AS convenio_tratado,
+       COUNT(*) AS cadastros
+FROM cadastro
+WHERE cadastrado_em BETWEEN '2026-01-01' AND '2026-12-31'
+GROUP BY convenio_tratado
+ORDER BY cadastros DESC;</pre></div><p>Para conferir: <strong>3</strong> linhas; Saúde Vida e Particular quase empatam, com 32 e 31.</p></div></details></li>
+      <li class="extra"><p>Quantos cadastros cada atendente fez em <strong>2025</strong>? Inclua quem não fez nenhum, com zero. Mostre <strong>nome</strong> e <strong>cadastros</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT a.nome, COUNT(cd.id) AS cadastros
+FROM atendente a
+LEFT JOIN cadastro cd
+  ON cd.cadastrado_por = a.id
+ AND cd.cadastrado_em BETWEEN '2025-01-01' AND '2025-12-31'
+GROUP BY a.nome
+ORDER BY cadastros DESC;</pre></div><p>Para conferir: <strong>7</strong> linhas; Rosângela Freitas lidera, com 15, e Lívia Torres tem 0.</p></div></details></li>
+      <li class="extra"><p>Numa linha só, mostre <strong>total</strong> (todos os cadastros), <strong>nao_nulos</strong> (convênio diferente de <code>NULL</code>) e <strong>preenchidos</strong> (convênio que não é nulo, nem vazio, nem só espaços).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS total,
+       COUNT(convenio) AS nao_nulos,
+       COUNT(NULLIF(TRIM(convenio), '')) AS preenchidos
+FROM cadastro;</pre></div><p>Para conferir: Uma linha: <strong>229</strong>, depois 201 e depois 168.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c7-ok3"><label for="c7-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c7-f4" data-fase="4" data-nome="Valores">
@@ -234,6 +297,25 @@ GROUP BY c.especialidade
 ORDER BY total DESC;</pre></div>
     <p>Para conferir: Saúde Vida com <strong>73630.00</strong>, Particular com 61450.00 e MedPlus com 27610.00 (o SQL mostra o número com ponto e sem separador de milhar). Por especialidade, a <strong>Ressonância</strong> rende mais: 33 consultas e 41250.00, mesmo tendo bem menos consultas que a Clínica Geral, com 134.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quanto cada especialidade rendeu na <strong>primeira semana</strong> de outubro (de <code>2026-10-01</code> a <code>2026-10-07</code>)? Converta o <code>valor</code> em número antes de somar. Mostre <strong>especialidade</strong> e <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT especialidade,
+       SUM(REPLACE(REPLACE(REPLACE(valor, 'R$ ', ''), '.', ''), ',', '.')::numeric) AS total
+FROM consulta
+WHERE data BETWEEN '2026-10-01' AND '2026-10-07'
+GROUP BY especialidade
+ORDER BY total DESC;</pre></div><p>Para conferir: <strong>8</strong> linhas; a Pediatria lidera, com 3960.00.</p></div></details></li>
+      <li class="extra"><p>Quantas consultas custaram <strong>mais de 500 reais</strong>, e quanto elas somam? Faça a conversão também no filtro. Mostre <strong>consultas</strong> e <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS consultas,
+       SUM(REPLACE(REPLACE(REPLACE(valor, 'R$ ', ''), '.', ''), ',', '.')::numeric) AS total
+FROM consulta
+WHERE REPLACE(REPLACE(REPLACE(valor, 'R$ ', ''), '.', ''), ',', '.')::numeric &gt; 500;</pre></div><p>Para conferir: Uma linha: <strong>64</strong> consultas, somando 71630.00.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c7-ok4"><label for="c7-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c7-f5" data-fase="5" data-nome="O dobro">
@@ -306,8 +388,71 @@ GROUP BY a.nome
 ORDER BY valor DESC;</pre></div>
     <p>Para conferir: <strong>Rosângela Freitas</strong> (2) e <strong>Hugo Amaral</strong> (1) recadastraram pacientes antigos por engano, em 2025, e nenhuma consulta foi lançada nessas cópias. <strong>Cláudio Menezes</strong> criou <strong>7 cópias</strong> em outubro, todas de pacientes do Saúde Vida, e cada uma recebeu uma consulta no mesmo dia e na mesma especialidade de uma consulta verdadeira: <strong>5370.00</strong> cobrados em dobro.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Para cada CPF (sem pontuação) que aparece em mais de um cadastro, mostre <strong>cpf_limpo</strong>, <strong>original</strong> (o menor <code>id</code>) e <strong>copia</strong> (o maior <code>id</code>).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH limpo AS (
+  SELECT id, REPLACE(REPLACE(cpf, '.', ''), '-', '') AS cpf_limpo
+  FROM cadastro
+)
+SELECT cpf_limpo, MIN(id) AS original, MAX(id) AS copia
+FROM limpo
+GROUP BY cpf_limpo
+HAVING COUNT(*) &gt; 1
+ORDER BY cpf_limpo;</pre></div><p>Para conferir: <strong>10</strong> linhas; a cópia mais recente é a de id 229.</p></div></details></li>
+      <li class="extra"><p>Agora os cadastros <strong>originais</strong> (o menor <code>id</code> de cada CPF repetido): quantas consultas foram lançadas neles, e quanto somam? Mostre <strong>consultas</strong> e <strong>valor</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH limpo AS (
+  SELECT id, REPLACE(REPLACE(cpf, '.', ''), '-', '') AS cpf_limpo
+  FROM cadastro
+),
+original AS (
+  SELECT cpf_limpo, MIN(id) AS id_original
+  FROM limpo
+  GROUP BY cpf_limpo
+  HAVING COUNT(*) &gt; 1
+)
+SELECT COUNT(*) AS consultas,
+       SUM(REPLACE(REPLACE(REPLACE(con.valor, 'R$ ', ''), '.', ''), ',', '.')::numeric) AS valor
+FROM original o
+JOIN consulta con ON con.cadastro_id = o.id_original;</pre></div><p>Para conferir: Uma linha: <strong>23</strong> consultas, somando 10780.00.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c7-ok5"><label for="c7-ok5">Etapa 5 concluída</label></div>
 </section>
+<!-- desafio:início -->
+<section class="fase desafio-final" id="caso7-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>Refaça a conta da etapa 4 <strong>sem as cópias</strong>: some o valor das consultas por convênio tratado, deixando de fora as consultas lançadas em cadastros-cópia. Mostre <strong>convenio_tratado</strong> e <strong>total</strong>.</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>WITH limpo AS (
+  SELECT id, REPLACE(REPLACE(cpf, '.', ''), '-', '') AS cpf_limpo
+  FROM cadastro
+),
+original AS (
+  SELECT cpf_limpo, MIN(id) AS id_original
+  FROM limpo
+  GROUP BY cpf_limpo
+  HAVING COUNT(*) &gt; 1
+),
+copia AS (
+  SELECT l.id
+  FROM limpo l
+  JOIN original o ON o.cpf_limpo = l.cpf_limpo
+  WHERE l.id &lt;&gt; o.id_original
+)
+SELECT COALESCE(NULLIF(TRIM(cd.convenio), ''), 'Particular') AS convenio_tratado,
+       SUM(REPLACE(REPLACE(REPLACE(c.valor, 'R$ ', ''), '.', ''), ',', '.')::numeric) AS total
+FROM consulta c
+JOIN cadastro cd ON cd.id = c.cadastro_id
+WHERE c.cadastro_id NOT IN (SELECT id FROM copia)
+GROUP BY convenio_tratado
+ORDER BY total DESC;</pre></div><p>Para conferir: <strong>3</strong> linhas; só o Saúde Vida muda em relação à etapa 4, e cai 5370.00.</p></div></details>
+</section>
+<!-- desafio:fim -->
+
 <section class="fase" id="c7-cola" style="gap:12px">
   <h2 style="font-size:32px">Cola rápida</h2>
   <div class="tw"><table>
@@ -1140,12 +1285,12 @@ SELECT '✅ Caso 7 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

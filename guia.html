@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -136,6 +136,17 @@ erDiagram
   </div></details>
   <details><summary>Dica</summary><div><p>Use o mesmo <code>COUNT(*)</code> do exemplo, só trocando o nome da tabela.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div><div class="code"><pre data-sql>SELECT COUNT(*) FROM pessoa;</pre></div><p>Deve dar 655. Viu? Ninguém consegue ler 655 fichas no olho. Por isso precisamos dos filtros da próxima fase.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quantos depoimentos existem na tabela <code>depoimento</code>? Mostre só o <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS total FROM depoimento;</pre></div><p>Para conferir: <strong>1</strong> linha, com um número entre 70 e 80.</p></div></details></li>
+      <li class="extra"><p>Mostre <strong>nome</strong> e <strong>plano</strong> das 3 primeiras linhas da tabela <code>academia_membro</code>, sem ordenar.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT nome, plano FROM academia_membro LIMIT 3;</pre></div><p>Para conferir: <strong>3</strong> linhas; a primeira é a de Felipe Gonçalves.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="ok1"><label for="ok1">Fase 1 concluída</label></div>
 </section>
 
@@ -180,6 +191,17 @@ WHERE tipo = 'furto' AND setor = 'Farmácia';</pre></div>
 WHERE data = 20260310
   AND tipo = 'sabotagem'
   AND setor = 'Sala de Vacinas';</pre></div><p>Anote as duas pistas: a primeira testemunha mora na <strong>última casa da Rua das Acácias</strong>; a segunda se chama <strong>Lorena</strong> e mora na <strong>Avenida dos Ipês</strong>.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Em 10/03/2026, na Sala de Vacinas, quais relatórios <em>não</em> são de sabotagem? Mostre <strong>tipo</strong> e <strong>descricao</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT tipo, descricao FROM relatorio_ocorrencia WHERE data = 20260310 AND setor = 'Sala de Vacinas' AND tipo &lt;&gt; 'sabotagem';</pre></div><p>Para conferir: <strong>2</strong> linhas; uma delas fala de uma caneta.</p></div></details></li>
+      <li class="extra"><p>Liste os relatórios de março de 2026 (de 20260301 a 20260331) da Farmácia ou do Almoxarifado. Mostre <strong>data</strong>, <strong>tipo</strong> e <strong>setor</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT data, tipo, setor FROM relatorio_ocorrencia WHERE (setor = 'Farmácia' OR setor = 'Almoxarifado') AND data &gt;= 20260301 AND data &lt;= 20260331;</pre></div><p>Para conferir: <strong>8</strong> linhas. Veio muito mais? Ponha o <code>OR</code> entre parênteses.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="ok2"><label for="ok2">Fase 2 concluída</label></div>
 </section>
 
@@ -234,6 +256,17 @@ LIMIT 1;</pre></div>
     <div class="code"><pre data-sql>SELECT * FROM pessoa
 WHERE nome LIKE 'Lorena%'
   AND rua_endereco = 'Avenida dos Ipês';</pre></div></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quem mora na primeira casa (menor número) da Travessa das Orquídeas? Mostre <strong>nome</strong> e <strong>numero_endereco</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT nome, numero_endereco FROM pessoa WHERE rua_endereco = 'Travessa das Orquídeas' ORDER BY numero_endereco LIMIT 1;</pre></div><p>Para conferir: <strong>1</strong> linha, com um número de casa menor que 10.</p></div></details></li>
+      <li class="extra"><p>Liste as pessoas de sobrenome Machado (o nome termina com Machado), em ordem alfabética. Mostre <strong>nome</strong> e <strong>rua_endereco</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT nome, rua_endereco FROM pessoa WHERE nome LIKE '%Machado' ORDER BY nome;</pre></div><p>Para conferir: <strong>9</strong> linhas; a primeira é a Ana Machado.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="ok3"><label for="ok3">Fase 3 concluída</label></div>
 </section>
 
@@ -280,7 +313,18 @@ WHERE p.id IN (11111, 22222);  -- troque pelos ids das testemunhas</pre></div>
 FROM pessoa p
 JOIN depoimento d ON d.pessoa_id = p.id
 WHERE (p.rua_endereco = 'Rua das Acácias' AND p.numero_endereco = (SELECT MAX(numero_endereco) FROM pessoa WHERE rua_endereco = 'Rua das Acácias'))
-   OR (p.nome LIKE 'Lorena%' AND p.rua_endereco = 'Avenida dos Ipês');</pre></div><p>Esse <code>(SELECT MAX(...))</code> dentro de outra consulta se chama <strong>subconsulta</strong>. Você vai usar mais no bônus.</p></div></details>
+   OR (p.nome LIKE 'Lorena%' AND p.rua_endereco = 'Avenida dos Ipês');</pre></div><p>Esse <code>(SELECT MAX(...))</code> dentro de outra consulta se chama <strong>subconsulta</strong>. Você vai usar mais na Parte 2.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Leia os depoimentos de quem mora na Rua da Paz ou na Rua Grande, com <code>IN</code> para as duas ruas. Mostre <strong>nome</strong> e <strong>transcricao</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.nome, d.transcricao FROM pessoa p JOIN depoimento d ON d.pessoa_id = p.id WHERE p.rua_endereco IN ('Rua da Paz', 'Rua Grande');</pre></div><p>Para conferir: <strong>7</strong> linhas, e nenhuma fala do crime.</p></div></details></li>
+      <li class="extra"><p>Quem disse que passou a noite na UTI? Ache os depoimentos que começam com 'Passei a noite' e mostre <strong>nome</strong> e <strong>rua_endereco</strong> de cada pessoa.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.nome, p.rua_endereco FROM pessoa p JOIN depoimento d ON d.pessoa_id = p.id WHERE d.transcricao LIKE 'Passei a noite%';</pre></div><p>Para conferir: <strong>8</strong> linhas.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="ok4"><label for="ok4">Fase 4 concluída</label></div>
 </section>
 
@@ -322,6 +366,17 @@ JOIN academia_checkin c ON c.membro_id = m.id
 WHERE m.id LIKE '48Z%'
   AND m.plano = 'ouro'
   AND c.data = 20260309;</pre></div><p>Sobram 3 nomes. Um deles você já conhece bem. Ainda falta uma pista para separar o culpado: a placa do carro.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Liste os sócios do plano ouro com id começando por 6 que entraram na academia em 03/03/2026. Mostre <strong>id</strong>, <strong>nome</strong> e <strong>hora_entrada</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT m.id, m.nome, c.hora_entrada FROM academia_membro m JOIN academia_checkin c ON c.membro_id = m.id WHERE m.id LIKE '6%' AND m.plano = 'ouro' AND c.data = 20260303;</pre></div><p>Para conferir: <strong>4</strong> linhas, cada uma com um sócio diferente.</p></div></details></li>
+      <li class="extra"><p>Quem foi o primeiro sócio a entrar na academia em 10/03/2026 (a menor <strong>hora_entrada</strong>)? Mostre <strong>nome</strong> e <strong>hora_entrada</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT m.nome, c.hora_entrada FROM academia_membro m JOIN academia_checkin c ON c.membro_id = m.id WHERE c.data = 20260310 ORDER BY c.hora_entrada LIMIT 1;</pre></div><p>Para conferir: <strong>1</strong> linha, de uma sócia do plano ouro.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="ok5"><label for="ok5">Fase 5 concluída</label></div>
 </section>
 
@@ -363,12 +418,24 @@ WHERE m.id LIKE '48Z%'
   AND m.plano = 'ouro'
   AND c.data = 20260309
   AND h.placa LIKE '%H42W%';</pre></div><p>Depois rode <code>verificar_solucao</code> com o nome que apareceu. E leia o depoimento dessa pessoa (Fase 4 de novo, com o id dela). Ela tem algo a contar.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quais sócios do plano ouro entraram na academia em 11/03/2026 e dirigem um carro da marca Tesla? Mostre o <strong>nome</strong> da pessoa, o <strong>id</strong> de sócio e o <strong>modelo_carro</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.nome, m.id, h.modelo_carro FROM academia_checkin c JOIN academia_membro m ON m.id = c.membro_id JOIN pessoa p ON p.id = m.pessoa_id JOIN habilitacao h ON h.id = p.habilitacao_id WHERE m.plano = 'ouro' AND c.data = 20260311 AND h.marca_carro = 'Tesla';</pre></div><p>Para conferir: <strong>4</strong> linhas.</p></div></details></li>
+      <li class="extra"><p>Conte as entradas na academia (linhas de <code>academia_checkin</code>) feitas por sócios do plano bronze com cabelo loiro. Mostre só o <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS total FROM academia_checkin c JOIN academia_membro m ON m.id = c.membro_id JOIN pessoa p ON p.id = m.pessoa_id JOIN habilitacao h ON h.id = p.habilitacao_id WHERE m.plano = 'bronze' AND h.cor_cabelo = 'loiro';</pre></div><p>Para conferir: <strong>1</strong> linha, com um número entre 10 e 15.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="ok6"><label for="ok6">Achei quem desligou a geladeira</label></div>
 </section>
 
 <!-- BÔNUS -->
-<section class="fase bonus" id="fase7" data-fase="7" data-nome="Bônus">
-  <div class="fase-head"><div class="num">★</div><div class="t"><h2>Bônus: quem mandou?</h2><div class="sub">BETWEEN · GROUP BY · HAVING · COUNT</div></div></div>
+<section class="fase" id="fase7" data-fase="7" data-nome="Mandante">
+  <div class="fase-head"><div class="num">7</div><div class="t"><h2>Parte 2: quem mandou?</h2><div class="sub">BETWEEN · GROUP BY · HAVING · COUNT</div></div></div>
+  <div class="box parte2"><b class="l">Parte 2 do caso</b><p>O executor já foi pego. Falta descobrir quem mandou. Daqui até o fim do caso você aprende o resto do básico: <code>GROUP BY</code>, <code>HAVING</code>, a ordem do banco, subconsulta, <code>CASE</code> e <code>LEFT JOIN</code>. Os próximos casos usam tudo isso, então vale fazer agora.</p></div>
   <div class="box"><b class="l">Para que serve</b><p><code>GROUP BY</code> junta linhas iguais num monte só, e <code>COUNT</code> conta quantas tem em cada monte. É o que você faria para saber “quantas notificações cada setor abriu no mês”. <code>HAVING</code> é o <code>WHERE</code> dos montes: filtra depois de contar. <code>BETWEEN</code> pega uma faixa, tipo “altura entre 165 e 170”.</p></div>
   <div class="tw tw-cmd"><table>
     <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
@@ -429,12 +496,92 @@ WHERE h.genero = 'feminino'
   AND e.data BETWEEN 20251201 AND 20251231
 GROUP BY p.nome, r.renda_anual
 HAVING COUNT(*) = 3;</pre></div><p>Repare no <code>JOIN renda ON r.cpf = p.cpf</code>: aqui a ligação não é pelo id, é pelo CPF. Confirme com <code>verificar_solucao</code>.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quantas presenças cada evento teve em janeiro de 2026? Use <code>BETWEEN</code> nas datas e mostre <strong>nome_evento</strong> e <strong>presencas</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT nome_evento, COUNT(*) AS presencas FROM evento_checkin WHERE data BETWEEN 20260101 AND 20260131 GROUP BY nome_evento;</pre></div><p>Para conferir: <strong>6</strong> linhas; a Semana da Enfermagem tem o maior número.</p></div></details></li>
+      <li class="extra"><p>Quem foi a eventos 4 vezes ou mais, somando todos os eventos? Mostre <strong>nome</strong> e <strong>vezes</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.nome, COUNT(*) AS vezes FROM pessoa p JOIN evento_checkin e ON e.pessoa_id = p.id GROUP BY p.nome HAVING COUNT(*) &gt;= 4;</pre></div><p>Para conferir: <strong>5</strong> linhas; ninguém passa de 5 vezes.</p></div></details></li>
+      <li class="extra"><p>Entre as pessoas com altura de 180 a 185 cm, quantas há de cada cor de cabelo? Mostre <strong>cor_cabelo</strong> e <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT cor_cabelo, COUNT(*) AS total FROM habilitacao WHERE altura_cm BETWEEN 180 AND 185 GROUP BY cor_cabelo;</pre></div><p>Para conferir: <strong>6</strong> linhas; a menor contagem é a do cabelo loiro.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="ok7"><label for="ok7">Caso encerrado</label></div>
 </section>
 
+<!-- FASE 8: A ORDEM DO BANCO -->
+<section class="fase" id="fase-ordem" data-fase="8" data-nome="Ordem">
+  <div class="fase-head"><div class="num">8</div><div class="t"><h2>A ordem do banco</h2><div class="sub">ordem de execução · AS · WHERE × HAVING</div></div></div>
+  <div class="box"><b class="l">Para que serve</b><p>Você escreve o <code>SELECT</code> primeiro, mas o banco não lê nessa ordem. Saber a ordem de verdade explica dois erros muito comuns: usar no <code>WHERE</code> um apelido criado no <code>SELECT</code>, e colocar <code>COUNT</code> no <code>WHERE</code>.</p></div>
+  <div class="box passo"><b class="l">A ordem em que o banco lê a consulta</b><ol class="steps"><li><code>FROM</code> e <code>JOIN</code>: pega e junta as tabelas.</li><li><code>WHERE</code>: filtra as linhas, uma por uma.</li><li><code>GROUP BY</code>: forma os montes.</li><li><code>HAVING</code>: filtra os montes, depois de contar.</li><li><code>SELECT</code>: escolhe as colunas. <strong>Só aqui nascem os apelidos</strong> criados com <code>AS</code>.</li><li><code>ORDER BY</code>: ordena. Já conhece os apelidos.</li><li><code>LIMIT</code>: corta o resultado.</li></ol><p>Regra de bolso: o apelido só vale do <code>SELECT</code> para baixo, ou seja, no <code>ORDER BY</code>.</p></div>
+  <div class="tw tw-cmd"><table>
+    <tr><th>Errado</th><th>Por que dá erro</th><th>Certo</th></tr>
+    <tr><td><code>WHERE total &gt; 20</code></td><td><code>total</code> é apelido do <code>SELECT</code>. O <code>WHERE</code> roda antes e ainda não conhece esse nome.</td><td><code>HAVING COUNT(*) &gt; 20</code></td></tr>
+    <tr><td><code>WHERE COUNT(*) &gt; 20</code></td><td>O <code>WHERE</code> olha uma linha por vez. A contagem só existe depois do <code>GROUP BY</code>.</td><td><code>HAVING COUNT(*) &gt; 20</code></td></tr>
+    <tr><td><code>ORDER BY total DESC</code></td><td>Não dá erro: o <code>ORDER BY</code> roda depois do <code>SELECT</code>.</td><td>pode usar o apelido</td></tr>
+  </table></div>
+  <div class="lbl">Exemplo: eventos de dezembro de 2025 com mais de 30 presenças</div>
+  <div class="code"><pre data-sql>SELECT nome_evento, COUNT(*) AS presencas
+FROM evento_checkin
+WHERE data BETWEEN 20251201 AND 20251231
+GROUP BY nome_evento
+HAVING COUNT(*) &gt; 30
+ORDER BY presencas DESC;</pre></div>
+  <div class="lbl">A consulta com erro (missão 2)</div>
+  <div class="code"><pre data-sql>SELECT tipo, COUNT(*) AS total
+FROM relatorio_ocorrencia
+WHERE setor = 'Farmácia' AND total &gt;= 15
+GROUP BY tipo;</pre></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Em <strong>2026</strong>, quais setores tiveram <strong>mais de 40</strong> relatórios de ocorrência? Mostre o <strong>setor</strong> e o <strong>total</strong>, do maior para o menor.</li><li>A consulta com erro, logo acima, quer os tipos de ocorrência com <strong>pelo menos 15</strong> relatórios na <strong>Farmácia</strong>. Leve para o computador, rode, leia o erro e conserte. Mostre o <strong>tipo</strong> e o <strong>total</strong>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, contar os relatórios de 2026 de cada setor e ficar só com os setores acima de 40. Na segunda, consertar uma consulta que usa um apelido no lugar errado.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>2026 é uma faixa de datas: o filtro de linhas vai no <code>WHERE</code>, com <code>BETWEEN</code>. A data aqui é número AAAAMMDD.</li><li>“De cada setor” é um monte por setor: <code>GROUP BY setor</code> e <code>COUNT(*)</code>.</li><li>“Mais de 40” é sobre o monte, não sobre a linha: vai no <code>HAVING</code>.</li><li><strong>Na segunda:</strong> o <code>total</code> só existe depois do <code>SELECT</code>. Tire ele do <code>WHERE</code> e filtre a contagem no lugar certo.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Erro dizendo que a coluna <code>total</code> não existe? É o apelido sendo usado antes da hora.</li><li>Erro de função de agregação no <code>WHERE</code>? Contagem se filtra no <code>HAVING</code>.</li><li>Veio setor com 40 ou menos? Confira se usou “maior que”, e não “maior ou igual”.</li></ul>
+  </div></details>
+  <details><summary>Dica</summary><div><p>Na primeira: <code>WHERE data BETWEEN 20260101 AND 20261231</code>, depois <code>GROUP BY setor</code> e <code>HAVING COUNT(*) &gt; 40</code>. Na segunda, o <code>WHERE</code> fica só com o setor, e o <code>total &gt;= 15</code> vira <code>HAVING COUNT(*) &gt;= 15</code>, depois do <code>GROUP BY</code>.</p></div></details>
+  <details class="sol"><summary>Ver solução</summary><div><div class="code"><pre data-sql>SELECT setor, COUNT(*) AS total
+FROM relatorio_ocorrencia
+WHERE data BETWEEN 20260101 AND 20261231
+GROUP BY setor
+HAVING COUNT(*) &gt; 40
+ORDER BY total DESC;</pre></div>
+    <div class="code"><pre data-sql>SELECT tipo, COUNT(*) AS total
+FROM relatorio_ocorrencia
+WHERE setor = 'Farmácia'
+GROUP BY tipo
+HAVING COUNT(*) &gt;= 15;</pre></div>
+    <p>Para conferir: na primeira, <strong>5</strong> setores, com a <strong>Farmácia</strong> na frente. Na segunda, <strong>2</strong> tipos. Repare: o <code>ORDER BY total</code> funciona, porque roda depois do <code>SELECT</code>.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Em 2026, quais tipos de ocorrência tiveram <strong>mais de 60</strong> relatórios? Mostre o <strong>tipo</strong> e o <strong>total</strong>, do maior para o menor.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT tipo, COUNT(*) AS total
+FROM relatorio_ocorrencia
+WHERE data BETWEEN 20260101 AND 20261231
+GROUP BY tipo
+HAVING COUNT(*) &gt; 60
+ORDER BY total DESC;</pre></div><p>Para conferir: <strong>3</strong> tipos; o primeiro é <strong>furto</strong>.</p></div></details></li>
+      <li class="extra"><p>Entre as mulheres da tabela <code>habilitacao</code>, quais cores de cabelo aparecem em <strong>mais de 60</strong> pessoas? Mostre <strong>cor_cabelo</strong> e <strong>pessoas</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT cor_cabelo, COUNT(*) AS pessoas
+FROM habilitacao
+WHERE genero = 'feminino'
+GROUP BY cor_cabelo
+HAVING COUNT(*) &gt; 60;</pre></div><p>Para conferir: <strong>2</strong> cores de cabelo.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
+  <div class="done-row"><input type="checkbox" id="ok-ordem"><label for="ok-ordem">Fase 8 concluída</label></div>
+</section>
+
 <!-- EXTRA: CADERNO -->
-<section class="fase bonus" id="fase8" data-fase="8" data-nome="Caderno">
-  <div class="fase-head"><div class="num">✎</div><div class="t"><h2>Extra: seu caderno de detetive</h2><div class="sub">CREATE TABLE · INSERT · UPDATE · DELETE</div></div></div>
+<section class="fase" id="fase8" data-fase="9" data-nome="Caderno">
+  <div class="fase-head"><div class="num">9</div><div class="t"><h2>Extra: seu caderno de detetive</h2><div class="sub">CREATE TABLE · INSERT · UPDATE · DELETE</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p>Até agora você só <strong>leu</strong> dados. Nesta fase você <strong>cria</strong> e <strong>guarda</strong> dados seus. É a parte que todo app usa: quando alguém abre uma notificação de evento adverso, o sistema faz um <code>INSERT</code>; quando o leito muda de status, faz um <code>UPDATE</code>. Pode fazer esta fase quando quiser, até no meio do jogo, para ir anotando as pistas.</p></div>
   <div class="tw"><table>
     <tr><th>Comando</th><th>O que faz</th><th>No hospital</th></tr>
@@ -524,12 +671,25 @@ WHERE p.rua_endereco = 'Rua das Acácias'
                            FROM pessoa
                            WHERE rua_endereco = 'Rua das Acácias');</pre></div></div></details>
   <div class="box"><b class="l">Bom saber</b><p>No computador do jogo, seu <code>caderno</code> fica guardado neste navegador: continua lá se você fechar a página ou apertar <strong>Reiniciar banco</strong>, que só devolve as tabelas do mistério ao começo. (No Supabase também: rodar o banco do jogo de novo não apaga o caderno.) Para apagar o caderno de propósito: <code>DROP TABLE caderno;</code></p></div>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Teste a busca de um <code>INSERT … SELECT</code> sem salvar nada. Do depoimento de quem mora na Rua da Paz, mostre <strong>fase</strong> (o número 4), <strong>pista</strong> (a transcrição) e <strong>suspeito</strong> (o nome).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT 4 AS fase, d.transcricao AS pista, p.nome AS suspeito FROM pessoa p JOIN depoimento d ON d.pessoa_id = p.id WHERE p.rua_endereco = 'Rua da Paz';</pre></div><p>Para conferir: <strong>1</strong> linha, com o 4 na primeira coluna.</p></div></details></li>
+      <li class="extra"><p>Toda coluna tem um tipo. Veja os da tabela <code>pessoa</code>: em <code>information_schema.columns</code>, filtre <code>table_name = 'pessoa'</code> e mostre <strong>column_name</strong> e <strong>data_type</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'pessoa';</pre></div><p>Para conferir: <strong>6</strong> linhas: 4 colunas <code>integer</code> e 2 <code>text</code>.</p></div></details></li>
+      <li class="extra"><p>Antes de um <code>DELETE</code>, confira com <code>SELECT</code> o que o <code>WHERE</code> pega. Sem apagar nada, conte os relatórios do tipo extravio no setor Lavanderia. Mostre o <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS total FROM relatorio_ocorrencia WHERE tipo = 'extravio' AND setor = 'Lavanderia';</pre></div><p>Para conferir: <strong>1</strong> linha, com um número entre 10 e 15.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="ok8"><label for="ok8">Meu caderno está funcionando</label></div>
 </section>
 
 <!-- EXTRAS: TREINOS A–D -->
-<section class="fase bonus" id="fase9" data-fase="9" data-nome="Números">
-  <div class="fase-head"><div class="num">A</div><div class="t"><h2>Contando e somando</h2><div class="sub">DISTINCT · MIN · MAX · AVG · SUM · ROUND</div></div></div>
+<section class="fase" id="fase9" data-fase="10" data-nome="Números">
+  <div class="fase-head"><div class="num">10</div><div class="t"><h2>Contando e somando</h2><div class="sub">DISTINCT · MIN · MAX · AVG · SUM · ROUND</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p>Até aqui você listou linhas. Agora você vai <em>resumir</em>: quantos tipos existem, qual o maior valor, qual a média. É o que você faz numa planilha com a linha de totais no rodapé. <code>DISTINCT</code> tira os repetidos, e <code>MIN</code>, <code>MAX</code>, <code>AVG</code> e <code>SUM</code> calculam sobre a coluna inteira.</p></div>
   <div class="tw tw-cmd"><table>
     <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
@@ -563,11 +723,24 @@ FROM habilitacao;</pre></div>
     <div class="code"><pre data-sql>SELECT MIN(renda_anual), MAX(renda_anual) FROM renda;</pre></div>
     <div class="code"><pre data-sql>SELECT ROUND(AVG(renda_anual)) FROM renda;</pre></div>
     <p>Para conferir: <strong>11</strong> setores; renda de <strong>18317</strong> a <strong>980000</strong>; média de <strong>134334</strong>.</p></div></details>
-  <div class="done-row"><input type="checkbox" id="ok9"><label for="ok9">Fase A concluída</label></div>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quantas ruas diferentes aparecem na tabela <code>pessoa</code>? Mostre o <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(DISTINCT rua_endereco) AS total FROM pessoa;</pre></div><p>Para conferir: <strong>1</strong> linha, com um número entre 10 e 15.</p></div></details></li>
+      <li class="extra"><p>Na tabela <code>habilitacao</code>, mostre a menor idade (<strong>menor</strong>), a maior (<strong>maior</strong>) e a idade média arredondada com 1 casa (<strong>media</strong>).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT MIN(idade) AS menor, MAX(idade) AS maior, ROUND(AVG(idade), 1) AS media FROM habilitacao;</pre></div><p>Para conferir: <strong>1</strong> linha; a média fica perto de 49.</p></div></details></li>
+      <li class="extra"><p>Quanto somam as rendas anuais de quem mora na Rua das Acácias? Ligue <code>pessoa</code> a <code>renda</code> pelo <code>cpf</code> e mostre o <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT SUM(r.renda_anual) AS total FROM pessoa p JOIN renda r ON r.cpf = p.cpf WHERE p.rua_endereco = 'Rua das Acácias';</pre></div><p>Para conferir: <strong>1</strong> linha, com um número na casa dos 6 milhões.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
+  <div class="done-row"><input type="checkbox" id="ok9"><label for="ok9">Fase 10 concluída</label></div>
 </section>
 
-<section class="fase bonus" id="fase10" data-fase="10" data-nome="Subconsulta">
-  <div class="fase-head"><div class="num">B</div><div class="t"><h2>Consulta dentro de consulta</h2><div class="sub">SUBCONSULTA · IN · = (SELECT …)</div></div></div>
+<section class="fase" id="fase10" data-fase="11" data-nome="Subconsulta">
+  <div class="fase-head"><div class="num">11</div><div class="t"><h2>Consulta dentro de consulta</h2><div class="sub">SUBCONSULTA · IN · = (SELECT …)</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p>Às vezes a resposta de uma pergunta depende da resposta de outra. “Quem ganha acima da média?” primeiro pede a média, depois compara. Em SQL você escreve a primeira pergunta <em>entre parênteses</em>, dentro da segunda. É como abrir um prontuário para achar o número do leito e usar esse número para abrir outro.</p></div>
   <div class="tw tw-cmd"><table>
     <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
@@ -609,11 +782,24 @@ WHERE r.renda_anual = (SELECT MAX(renda_anual) FROM renda);</pre></div>
 WHERE habilitacao_id IN (SELECT id FROM habilitacao WHERE marca_carro = 'Tesla')
   AND id IN (SELECT pessoa_id FROM evento_checkin WHERE nome_evento = 'Show no Parque');</pre></div>
     <p>Para conferir: <strong>328</strong> pessoas; <strong>Vitória Albuquerque</strong>; <strong>11</strong> pessoas.</p></div></details>
-  <div class="done-row"><input type="checkbox" id="ok10"><label for="ok10">Fase B concluída</label></div>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quantas pessoas são mais altas que a média? Use a tabela <code>habilitacao</code> e mostre o <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS total FROM habilitacao WHERE altura_cm &gt; (SELECT AVG(altura_cm) FROM habilitacao);</pre></div><p>Para conferir: <strong>1</strong> linha, com um número entre 300 e 350.</p></div></details></li>
+      <li class="extra"><p>Quem tem a menor altura da cidade? Mostre <strong>nome</strong> e <strong>altura_cm</strong> de todas as pessoas com essa altura.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.nome, h.altura_cm FROM pessoa p JOIN habilitacao h ON h.id = p.habilitacao_id WHERE h.altura_cm = (SELECT MIN(altura_cm) FROM habilitacao);</pre></div><p>Para conferir: <strong>10</strong> linhas, todas com a mesma altura.</p></div></details></li>
+      <li class="extra"><p>Quantos sócios da academia nunca foram a nenhum evento? Em <code>academia_membro</code>, use <code>NOT IN</code> com os <code>pessoa_id</code> de <code>evento_checkin</code>. Mostre o <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS total FROM academia_membro WHERE pessoa_id NOT IN (SELECT pessoa_id FROM evento_checkin);</pre></div><p>Para conferir: <strong>1</strong> linha, com um número entre 100 e 120.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
+  <div class="done-row"><input type="checkbox" id="ok10"><label for="ok10">Fase 11 concluída</label></div>
 </section>
 
-<section class="fase bonus" id="fase11" data-fase="11" data-nome="CASE">
-  <div class="fase-head"><div class="num">C</div><div class="t"><h2>Classificando com CASE</h2><div class="sub">CASE · WHEN · THEN · ELSE · END</div></div></div>
+<section class="fase" id="fase11" data-fase="12" data-nome="CASE">
+  <div class="fase-head"><div class="num">12</div><div class="t"><h2>Classificando com CASE</h2><div class="sub">CASE · WHEN · THEN · ELSE · END</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p><code>CASE</code> é o “se isso, então aquilo” do SQL. Serve para criar uma coluna nova com uma etiqueta, como a classificação de risco do paciente: verde, amarelo ou vermelho, conforme os sinais. Depois você pode contar quantos caem em cada etiqueta com <code>GROUP BY</code>.</p></div>
   <div class="tw tw-cmd"><table>
     <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
@@ -663,11 +849,22 @@ FROM relatorio_ocorrencia
 GROUP BY gravidade
 ORDER BY total DESC;</pre></div>
     <p>Para conferir: média <strong>445</strong>, alta <strong>128</strong>, baixa <strong>82</strong>; grave <strong>536</strong> e leve <strong>369</strong>.</p></div></details>
-  <div class="done-row"><input type="checkbox" id="ok11"><label for="ok11">Fase C concluída</label></div>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Separe as pessoas de <code>habilitacao</code> por idade: <code>'jovem'</code> (menos de 30), <code>'adulto'</code> (30 a 59) e <code>'idoso'</code> (60 ou mais). Mostre <strong>faixa</strong> e <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT CASE WHEN idade &lt; 30 THEN 'jovem' WHEN idade &lt; 60 THEN 'adulto' ELSE 'idoso' END AS faixa, COUNT(*) AS total FROM habilitacao GROUP BY faixa;</pre></div><p>Para conferir: <strong>3</strong> linhas; a faixa adulto é a maior.</p></div></details></li>
+      <li class="extra"><p>Para quem mora na Avenida Litorânea com número acima de 3300, mostre <strong>nome</strong>, <strong>altura_cm</strong> e <strong>porte</strong>: <code>'alto'</code> para 175 cm ou mais, senão <code>'baixo'</code>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.nome, h.altura_cm, CASE WHEN h.altura_cm &gt;= 175 THEN 'alto' ELSE 'baixo' END AS porte FROM pessoa p JOIN habilitacao h ON h.id = p.habilitacao_id WHERE p.rua_endereco = 'Avenida Litorânea' AND p.numero_endereco &gt; 3300;</pre></div><p>Para conferir: <strong>6</strong> linhas: 4 altos e 2 baixos.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
+  <div class="done-row"><input type="checkbox" id="ok11"><label for="ok11">Fase 12 concluída</label></div>
 </section>
 
-<section class="fase bonus" id="fase12" data-fase="12" data-nome="LEFT JOIN">
-  <div class="fase-head"><div class="num">D</div><div class="t"><h2>Quem ficou de fora</h2><div class="sub">LEFT JOIN · IS NULL</div></div></div>
+<section class="fase" id="fase12" data-fase="13" data-nome="LEFT JOIN">
+  <div class="fase-head"><div class="num">13</div><div class="t"><h2>Quem ficou de fora</h2><div class="sub">LEFT JOIN · IS NULL</div></div></div>
   <div class="box"><b class="l">Para que serve</b><p>O <code>JOIN</code> que você já conhece só mostra quem tem par nas duas tabelas. Mas a pergunta, às vezes, é a contrária: <em>quem não tem</em>. Quais pacientes não têm retorno marcado? Quais sócios nunca foram? O <code>LEFT JOIN</code> mantém todo mundo da tabela da esquerda. Quem não achou par fica com <code>NULL</code>, e é só filtrar por <code>IS NULL</code>.</p></div>
   <div class="tw tw-cmd"><table>
     <tr><th>Comando</th><th>O que faz</th><th>No dia a dia</th></tr>
@@ -717,8 +914,28 @@ WHERE c.membro_id IS NULL
   AND m.plano = 'ouro'
 ORDER BY m.nome;</pre></div>
     <p>Para conferir: <strong>28</strong> sócios; bronze <strong>8</strong>, ouro <strong>11</strong>, prata <strong>9</strong>; a lista do ouro tem <strong>11</strong> nomes.</p></div></details>
-  <div class="done-row"><input type="checkbox" id="ok12"><label for="ok12">Fase D concluída</label></div>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quantas pessoas da cidade nunca foram a nenhum evento? Parta de <code>pessoa</code>, ligue <code>evento_checkin</code> com <code>LEFT JOIN</code> e mostre o <strong>total</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS total FROM pessoa p LEFT JOIN evento_checkin e ON e.pessoa_id = p.id WHERE e.pessoa_id IS NULL;</pre></div><p>Para conferir: <strong>1</strong> linha, com um número entre 350 e 400.</p></div></details></li>
+      <li class="extra"><p>Liste quem mora na Rua da Paz com número acima de 3300, sócio da academia ou não. Mostre <strong>nome</strong>, <strong>numero_endereco</strong> e <strong>plano</strong> (vazio para quem não é sócio).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.nome, p.numero_endereco, m.plano FROM pessoa p LEFT JOIN academia_membro m ON m.pessoa_id = p.id WHERE p.rua_endereco = 'Rua da Paz' AND p.numero_endereco &gt; 3300;</pre></div><p>Para conferir: <strong>8</strong> linhas; só uma tem o plano preenchido.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
+  <div class="done-row"><input type="checkbox" id="ok12"><label for="ok12">Fase 13 concluída</label></div>
 </section>
+
+<!-- desafio:início -->
+<section class="fase desafio-final" id="guia-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>A mandante é ruiva, dirige um Tesla Model S e foi ao Congresso de Gestão Hospitalar em dezembro de 2025. Sem o filtro de altura, quem mais bate? Para cada mulher assim que foi ao congresso nesse mês, mostre <strong>nome</strong>, <strong>altura_cm</strong> e <strong>vezes</strong> (idas ao congresso em dezembro).</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>SELECT p.nome, h.altura_cm, COUNT(*) AS vezes FROM pessoa p JOIN habilitacao h ON h.id = p.habilitacao_id JOIN evento_checkin e ON e.pessoa_id = p.id WHERE h.genero = 'feminino' AND h.cor_cabelo = 'ruivo' AND h.marca_carro = 'Tesla' AND h.modelo_carro = 'Model S' AND e.nome_evento = 'Congresso de Gestão Hospitalar' AND e.data BETWEEN 20251201 AND 20251231 GROUP BY p.nome, h.altura_cm;</pre></div><p>Para conferir: <strong>4</strong> linhas; duas mulheres foram 3 vezes, e só uma delas tem de 165 a 170 cm.</p></div></details>
+</section>
+<!-- desafio:fim -->
 
 <section class="fase" id="cola" style="gap:12px">
   <h2 style="font-size:32px">Cola do detetive</h2>
@@ -5241,12 +5458,12 @@ SELECT '✅ Jogo instalado! Volte para o guia e comece a Fase 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

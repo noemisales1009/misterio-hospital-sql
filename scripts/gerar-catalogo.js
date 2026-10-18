@@ -10,9 +10,10 @@ const casos = [
   { arq: 'caso2.html', n: 2, titulo: 'O prontuário adulterado', nivel: 'Intermediário', resumo: 'Uma dose alterada com a senha de quem estava de folga.' },
   { arq: 'caso3.html', n: 3, titulo: 'O sumiço da morfina', nivel: 'Intermediário', resumo: 'O cofre de controlados não fechou.' },
   { arq: 'caso4.html', n: 4, titulo: 'O surto na UTI', nivel: 'Intermediário', resumo: 'Sete pacientes, a mesma bactéria.' },
+  // o Caso 7 (limpeza de dados, intermediário) vem logo depois do Caso 4, antes dos avançados
+  { arq: 'caso7.html', n: 7, titulo: 'O paciente em dobro', nivel: 'Intermediário', resumo: 'Cadastros duplicados cobrando consultas em dobro.' },
   { arq: 'caso5.html', n: 5, titulo: 'A conta que não fecha', nivel: 'Avançado', resumo: 'O faturamento passou do esperado.' },
   { arq: 'caso6.html', n: 6, titulo: 'A cadeia de frio', nivel: 'Avançado', resumo: 'Hemoderivados fora da faixa de temperatura.' },
-  { arq: 'caso7.html', n: 7, titulo: 'O paciente em dobro', nivel: 'Intermediário', resumo: 'Cadastros duplicados cobrando consultas em dobro.' },
   { arq: 'caso8.html', n: 8, titulo: 'As horas extras', nivel: 'Avançado', resumo: 'A folha de hora extra explodiu em setembro.' },
   { arq: 'caso9.html', n: 9, titulo: 'O prontuário espiado', nivel: 'Segurança', resumo: 'O prontuário de uma paciente vazou nas redes.' },
   { arq: 'caso10.html', n: 10, titulo: 'A invasão', nivel: 'Segurança', resumo: 'Um ataque pela busca de exames do portal do paciente.' },
@@ -32,6 +33,14 @@ function limpa(s) {
     .trim();
 }
 
+// mesma regra do js/computador.js: só consultas de leitura são comparadas pelo corretor
+function somenteLeitura(sql) {
+  const limpo = sql.replace(/--[^\n]*/g, '').replace(/'(?:[^']|'')*'/g, "''").trim();
+  if (/\b(insert|update|delete|drop|alter|create|truncate|grant|revoke)\b/i.test(limpo)) return false;
+  const partes = limpo.split(';').map((p) => p.trim()).filter(Boolean);
+  return partes.length > 0 && partes.every((p) => /^(select|with)\b/i.test(p));
+}
+
 const saida = casos.map((c) => {
   const arquivo = path.join(raiz, c.arq);
   const html = fs.existsSync(arquivo) ? fs.readFileSync(arquivo, 'utf8') : '';
@@ -44,7 +53,12 @@ const saida = casos.map((c) => {
     const titulo = (corpo.match(/<div class="fase-head">[\s\S]*?<h2>([\s\S]*?)<\/h2>/) || [])[1];
     const sub = (corpo.match(/<div class="sub">([\s\S]*?)<\/div>/) || [])[1];
     const missao = (corpo.match(/<div class="missao">([\s\S]*?)<\/div>/) || [])[1];
+    // entra na revisão quem tem solução só de leitura (o computador consegue corrigir) e não é a fase 0
+    const sols = [...corpo.matchAll(/<details class="sol">([\s\S]*?)<\/details>/g)].map((x) => x[1]).join('');
+    const pres = [...sols.matchAll(/<pre data-sql>([\s\S]*?)<\/pre>/g)].map((x) => x[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'));
+    const revisa = m[2] !== '0' && pres.some(somenteLeitura);
     fases.push({
+      revisa: revisa || undefined,
       id: m[1],
       num: limpa(num),
       nome: m[3],

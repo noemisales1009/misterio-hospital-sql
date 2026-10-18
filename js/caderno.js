@@ -2045,6 +2045,7 @@
     window.addEventListener("load", function () { agendaMural(0); });
     atualizaMuralHome();
   }
+  function casosPorNumero() { return CASOS.slice().sort(function (a, b) { return a.n - b.n; }); }
   // tela pequena: uma fita de fotos com rolagem lateral, logo abaixo do cartão amarelo
   function galeriaCompacta() {
     var ant = document.getElementById("galeriaCulpados");
@@ -2058,7 +2059,8 @@
     sec.appendChild(el("h3", null, "Galeria dos culpados"));
     var fita = el("div", "galeria-fita");
     var giros = [-3.6, 2.8, -2.4, 3.8, -3, 2.4, -3.8, 3.2, -2.6, 3.6];
-    CASOS.forEach(function (cs, i) {
+    // a galeria segue o número do caso (1 a 16), mesmo que a ordem de jogo seja outra
+    casosPorNumero().forEach(function (cs, i) {
       var cul = CULPADOS[cs.arq];
       var feito = casoCompleto(cs, r.st);
       var fig = el("figure", "galeria-foto");
@@ -2107,25 +2109,22 @@
     var m2 = medidas(2), m3 = medidas(3);
     var med = CASOS.length > 10 && m3.w > m2.w ? m3 : m2;
     var linhas = med.linhas, vao = med.vao, w = med.w;
-    var dxMax = Math.max(0, Math.min(med.folga + 6, (((AW - 16 * (med.ncol - 1)) / med.ncol) - w) / 2 - 4));
-    var giros = [-4.6, 3.4, -2.8, 4.2, -3.6, 2.8, -4.2, 3.6, -3, 4.4];
-    var desloc = [-1, 0.7, -0.4, 1, -0.75];
+    // arrumado: fotos alinhadas no centro da coluna, só um leve tortinho alternado, em ordem de 1 a 16
+    var giros = [-1.6, 1.3, -1.1, 1.5, -1.3, 1.1];
     muralEsq.style.setProperty("--foto-w", w + "px");
     var cols = [];
     for (var ci = 0; ci < med.ncol; ci++) {
       var col = el("div", "mural-col fotos");
-      // a folga do "tortinho" fica dentro de cada coluna: as fotos não invadem a vizinha
-      col.style.padding = "0 " + Math.round(dxMax) + "px";
+      col.style.padding = "0 6px";
       col.style.gap = vao + "px";
       cols.push(col);
     }
-    CASOS.forEach(function (cs, i) {
+    casosPorNumero().forEach(function (cs, i) {
       var cul = CULPADOS[cs.arq];
       var feito = casoCompleto(cs, r.st);
       var fig = el("figure", "mural-item mural-foto mini");
       fig.style.setProperty("--giro", giros[i % giros.length] + "deg");
-      // o "tortinho" se repete a cada 5 fotos; cada coluna começa 2 passos adiante da vizinha
-      fig.style.setProperty("--dx", Math.round(desloc[(i % linhas + 2 * Math.floor(i / linhas)) % desloc.length] * dxMax) + "px");
+      fig.style.setProperty("--dx", "0px");
       fig.appendChild(el("span", "pino pino-" + pinos[i % 4]));
       fig.appendChild(el("span", "mural-num", String(cs.n)));
       var ret = el("div", "ficha-retrato");
@@ -2288,10 +2287,13 @@
       var p = item.querySelector(".pino").getBoundingClientRect();
       return [p.left + p.width / 2 - box.left, p.top + p.height / 2 - box.top];
     };
+    // na tela inicial o fio desce quase reto de um alfinete ao outro (só uma leve barriga para baixo),
+    // sem atravessar as fotos vizinhas; nos casos ele balança para os lados, como um barbante solto
+    var reto = lado.classList.contains("home");
     grupos.forEach(function (itens) {
       for (var i = 0; i < itens.length - 1; i++) {
         var a = ponto(itens[i]), b = ponto(itens[i + 1]);
-        var cx = (a[0] + b[0]) / 2 + (i % 2 ? 34 : -34), cy = (a[1] + b[1]) / 2 + 26;
+        var cx = (a[0] + b[0]) / 2 + (reto ? 0 : (i % 2 ? 34 : -34)), cy = (a[1] + b[1]) / 2 + (reto ? 8 : 26);
         var d = "M" + a[0].toFixed(1) + " " + a[1].toFixed(1) + " Q" + cx.toFixed(1) + " " + cy.toFixed(1) + " " + b[0].toFixed(1) + " " + b[1].toFixed(1);
         var sombra = document.createElementNS(NS, "path");
         sombra.setAttribute("d", d); sombra.setAttribute("fill", "none"); sombra.setAttribute("stroke", "rgba(0,0,0,.35)"); sombra.setAttribute("stroke-width", "3.4");
@@ -2326,6 +2328,29 @@
     wrap.appendChild(nav);
   }
 
+  // ------------------------------------------------------------------ revisão: refazer de memória fases já concluídas
+  // Sorteia entre as fases menos revisadas (nunca revisadas primeiro). A página da fase abre com
+  // ?revisao=<id>, e o computador esconde a explicação e grava a data quando a pessoa acerta.
+  var K_REV = "misterio-sql-revisao";
+  function candidatosRevisao(st) {
+    var lista = [];
+    CAT.forEach(function (c) {
+      if (c.treino) return;
+      c.fases.forEach(function (fa) { if (fa.revisa && st[fa.id]) lista.push({ caso: c, fase: fa }); });
+    });
+    return lista;
+  }
+  function proximaRevisao(evita) {
+    var rev = ler(K_REV, {});
+    var lista = candidatosRevisao(estado()).filter(function (x) { return x.fase.id !== evita; });
+    if (!lista.length) return null;
+    lista.sort(function (a, b) { return (rev[a.fase.id] || 0) - (rev[b.fase.id] || 0); });
+    var topo = lista.slice(0, Math.min(5, lista.length));
+    var x = topo[Math.floor(Math.random() * topo.length)];
+    return x.caso.arq + "?revisao=" + encodeURIComponent(x.fase.id) + "#" + x.fase.id;
+  }
+  window.MisterioRevisao = { proxima: proximaRevisao };
+
   // ------------------------------------------------------------------ home
   function homeExtras() {
     var casos = document.querySelector(".casos");
@@ -2340,6 +2365,11 @@
       var linha = el("div", "caso-prog");
       linha.appendChild(barra(cs.fases.length ? Math.round(f / cs.fases.length * 100) : 0));
       linha.appendChild(el("span", "cad-nota", f === cs.fases.length && f > 0 ? "✓ Caso encerrado" : f + " de " + cs.fases.length + " fases"));
+      if (r.st["d:" + cs.arq.replace(/\.html$/, "")]) {
+        var trofeu = el("span", "cad-trofeu", "🏆 Desafio vencido");
+        trofeu.title = "Você venceu o desafio final deste caso sem ajuda";
+        linha.appendChild(trofeu);
+      }
       card.insertBefore(linha, card.querySelector(".caso-go"));
     });
     var box = el("section", "boas-vindas"); box.id = "cadBoasVindas";
@@ -2371,6 +2401,22 @@
     } else {
       acoes.appendChild(el("p", "cad-nota", "🏅 Você encerrou todos os casos. Parabéns!"));
     }
+    // revisão rápida: uma fase já feita, de memória
+    var urlRev = proximaRevisao(null);
+    var rev = el(urlRev ? "a" : "button", "bt-secundario bt-revisao");
+    var icR = el("span", "ic"); icR.setAttribute("aria-hidden", "true");
+    icR.innerHTML = "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M3 12a9 9 0 0 1 15.5-6.3L21 8'/><path d='M21 3v5h-5'/><path d='M21 12a9 9 0 0 1-15.5 6.3L3 16'/><path d='M3 21v-5h5'/></svg>";
+    rev.appendChild(icR);
+    if (urlRev) {
+      rev.href = urlRev;
+      rev.appendChild(document.createTextNode("Revisão rápida"));
+      rev.title = "Refaça de memória uma fase que você já concluiu";
+    } else {
+      rev.type = "button"; rev.disabled = true;
+      rev.appendChild(document.createTextNode("Revisão: conclua uma fase"));
+      rev.title = "A revisão sorteia fases que você já concluiu";
+    }
+    acoes.appendChild(rev);
     var cad = el("button", "bt-secundario"); cad.type = "button";
     var ic2 = el("span", "ic"); ic2.setAttribute("aria-hidden", "true"); ic2.innerHTML = ICONES.caderno;
     cad.appendChild(ic2); cad.appendChild(document.createTextNode("Meu caderno"));

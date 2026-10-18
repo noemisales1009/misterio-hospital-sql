@@ -1313,3 +1313,44 @@ dialog.duvida-janela.saindo .dj-caixa{animation:djSai .19s ease-in forwards}
 @media (prefers-reduced-motion:reduce){
   dialog.duvida-janela .dj-caixa,.dj-passo,.dj-item,details.duvida.em-janela.chamou{animation:none!important}
 }
+/* ---------- aprender mais: treinos extras, solução depois de tentar, revisão e desafio final ---------- */
+/* treinos extras: prática curta da fase, corrigida pelo mesmo computador */
+details.extras{border-style:dashed;border-color:var(--scrub)}
+details.extras>summary{color:var(--scrub)}
+.extras-conta{display:inline-block;margin-left:8px;font:600 12px var(--f-mono);color:var(--muted);background:var(--scrub-soft);border-radius:999px;padding:2px 10px;vertical-align:middle}
+details.extras.completo .extras-conta{background:var(--scrub);color:var(--paper)}
+.extras-intro{margin:0;color:var(--muted);font-size:15px}
+.extras-lista{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px;counter-reset:extra}
+li.extra{counter-increment:extra;position:relative;display:flex;flex-direction:column;gap:8px;padding:12px 12px 12px 52px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+li.extra::before{content:counter(extra);position:absolute;left:12px;top:12px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--scrub-soft);color:var(--scrub);font:700 14px var(--f-mono)}
+li.extra.feito{border-color:var(--scrub)}
+li.extra.feito::before{content:"✓";background:var(--scrub);color:var(--paper)}
+li.extra>p{margin:0}
+.extra-ir{align-self:flex-start}
+details.sol-extra{background:var(--paper)}
+details.sol-extra>summary{color:var(--stamp);padding:8px 0}
+/* solução trancada até a primeira tentativa */
+details.trancada>summary{color:var(--muted)}
+.trava-aviso{display:none;margin-left:8px;padding:2px 8px;border:1px dashed var(--line);border-radius:999px;font:600 11px var(--f-mono);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);vertical-align:middle}
+details.trancada .trava-aviso{display:inline-block}
+details.balanca{animation:balanca .35s}
+@keyframes balanca{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+/* revisão: fase refeita de memória */
+.rev-oculto{display:none!important}
+.rev-faixa{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:12px 14px;border:2px solid var(--clue);border-radius:10px;background:rgba(243,214,78,.14)}
+.pc-rev-acoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pc-rev-acoes a{display:inline-flex;align-items:center;text-decoration:none}
+a.bt-secundario{text-decoration:none}
+.bt-secundario:disabled{opacity:.55;cursor:default}
+.bt-secundario:disabled:hover{border-color:var(--line);color:var(--ink)}
+/* desafio final do caso */
+.fase.desafio-final{border:2px solid var(--clue)}
+.fase.desafio-final .num{background:var(--clue);color:#16211e;font-size:30px}
+.fase.desafio-final.vencido .num{background:var(--scrub)}
+.desafio-trava{margin:0;padding:12px 14px;border-radius:8px;background:var(--scrub-soft);font-weight:700}
+.fase.desafio-trancado .fase-corpo>*:not(.desafio-trava){display:none}
+details.sol-desafio>summary{color:var(--stamp)}
+.cad-trofeu{align-self:flex-start;margin-top:4px;padding:2px 10px;border-radius:999px;background:var(--clue);color:#16211e;font:700 12px var(--f-mono);white-space:nowrap}
+/* Caso 1: começo da Parte 2 */
+.box.parte2{border-left-color:var(--clue)}
+@media (prefers-reduced-motion:reduce){details.balanca{animation:none}}

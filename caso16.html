@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -125,7 +125,7 @@ JOIN opme_material m ON m.codigo = c.material
 JOIN opme_setor s ON s.cc = c.cc
 ORDER BY c.lancado_em
 LIMIT 10;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quanto cada setor (o centro de custo que <strong>pagou</strong>) consumiu no trimestre, com uma linha de <strong>TOTAL</strong> no fim? Use <code>ROLLUP (setor)</code> e <code>COALESCE</code> para escrever <code>TOTAL</code>.</li><li>Agora o relatório completo da diretoria: setor e mês, com subtotal de cada setor e total geral. Use <code>GROUPING()</code> para rotular: na coluna do setor, <code>TOTAL GERAL</code>; na coluna do mês, <code>subtotal</code>.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quanto cada setor (o centro de custo que <strong>pagou</strong>) consumiu no trimestre, com uma linha de <strong>TOTAL</strong> no fim? Mostre o nome do setor (escrito <code>TOTAL</code> na linha do total) e o valor.</li><li>Agora o relatório completo da diretoria: setor, mês (ano-mês, como <code>2026-07</code>) e valor, com subtotal de cada setor e total geral. Nas linhas de soma, escreva <code>TOTAL GERAL</code> na coluna do setor e <code>subtotal</code> na coluna do mês.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, quanto cada setor que pagou consumiu no trimestre, com uma linha TOTAL. Na segunda, por setor e mês, com subtotal de cada setor e total geral, rotulados.</p>
     <p><strong>Como pensar:</strong></p>
@@ -161,6 +161,17 @@ GROUP BY ROLLUP (setor, mes)
 ORDER BY GROUPING(setor), setor, GROUPING(mes), mes;</pre></div>
     <p>Para conferir: a primeira traz <strong>6 linhas</strong> — Hemodinâmica R$ 1.604.110,00, Ortopedia R$ 1.463.940,00, Cirurgia Vascular R$ 887.300,00, Neurocirurgia R$ 218.600,00, Cirurgia Geral R$ 153.900,00 e o <strong>TOTAL de R$ 4.327.850,00</strong>, exatamente o número do relatório. A segunda traz <strong>21 linhas</strong>: 15 de setor + mês, 5 subtotais e 1 total geral. Dois setores pulam aos olhos: a <strong>Ortopedia</strong> vai de R$ 298.300,00 em julho para <strong>R$ 890.180,00 em agosto</strong>, e a <strong>Cirurgia Vascular</strong> mais que dobra, de R$ 171.600,00 em julho para R$ 376.900,00 em agosto e R$ 338.800,00 em setembro. Guarde os dois.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quanto cada <code>categoria</code> de material custou no trimestre (soma de <code>qtd</code> vezes <code>valor_unit</code>), com uma última linha <strong>TOTAL</strong>? Mostre <strong>categoria</strong> e <strong>valor</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COALESCE(m.categoria, 'TOTAL') AS categoria, SUM(c.qtd * m.valor_unit) AS valor FROM opme_consumo c JOIN opme_material m ON m.codigo = c.material GROUP BY ROLLUP (m.categoria) ORDER BY GROUPING(m.categoria), valor DESC;</pre></div><p>Para conferir: <strong>11</strong> linhas; stent coronário é a categoria mais cara.</p></div></details></li>
+      <li class="extra"><p>Só a categoria <code>prótese articular</code>: unidades (soma de <code>qtd</code>) por <code>descricao</code> e por mês (como <code>2026-07</code>), com subtotal por material e total geral. Nas somas, escreva <strong>TOTAL GERAL</strong> na descrição e <strong>subtotal</strong> no mês. Mostre <strong>descricao</strong>, <strong>mes</strong> e <strong>unidades</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH base AS (SELECT m.descricao, to_char(c.lancado_em, 'YYYY-MM') AS mes, c.qtd FROM opme_consumo c JOIN opme_material m ON m.codigo = c.material WHERE m.categoria = 'prótese articular') SELECT CASE WHEN GROUPING(descricao) = 1 THEN 'TOTAL GERAL' ELSE descricao END AS descricao, CASE WHEN GROUPING(mes) = 1 THEN 'subtotal' ELSE mes END AS mes, SUM(qtd) AS unidades FROM base GROUP BY ROLLUP (descricao, mes) ORDER BY GROUPING(descricao), descricao, GROUPING(mes), mes;</pre></div><p>Para conferir: <strong>9</strong> linhas; o joelho dá um salto em agosto.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c16-ok1"><label for="c16-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c16-f2" data-fase="2" data-nome="Mês nas colunas">
@@ -175,7 +186,7 @@ ORDER BY GROUPING(setor), setor, GROUPING(mes), mes;</pre></div>
   <div class="box novo"><b class="l">Ferramenta nova · tabela cruzada com FILTER</b><p>O segredo é: <strong>agrupe pelo que vai nas linhas</strong> (o setor) e <strong>crie uma coluna para cada valor que vai no topo</strong> (cada mês). Cada coluna é a mesma soma, só que com um filtro diferente: <code>SUM(valor) FILTER (WHERE mes = '2026-07') AS julho</code>, <code>… = '2026-08') AS agosto</code>, <code>… = '2026-09') AS setembro</code>. O <code>FILTER</code> funciona como um <code>WHERE</code> particular daquela coluna: as outras colunas não são afetadas.</p></div>
   <div class="tw"><table><tr><th>formato longo (fase 1)</th><th></th><th>formato cruzado (agora)</th></tr><tr><td><code>Ortopedia | 2026-07 | 298300</code><br><code>Ortopedia | 2026-08 | 890180</code><br><code>Ortopedia | 2026-09 | 275460</code></td><td>→</td><td><code>setor | julho | agosto | setembro</code><br><code>Ortopedia | 298300 | 890180 | 275460</code></td></tr></table></div>
   <div class="box"><b class="l">FILTER ou CASE?</b><p>Os dois dão o mesmo resultado, com uma diferença: se um setor não tiver nenhum lançamento num mês, <code>SUM(…) FILTER</code> devolve <strong>nulo</strong>, e <code>SUM(CASE … ELSE 0 END)</code> devolve <strong>0</strong>. O <code>FILTER</code> é do Postgres (mais curto e legível); o <code>CASE</code> funciona em praticamente qualquer banco. A limitação dos dois: você precisa <strong>saber de antemão</strong> quais colunas quer — o SQL não cria colunas sozinho a partir dos dados.</p></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Monte a tabela cruzada do consumo: uma linha por setor (que pagou), com as colunas <code>julho</code>, <code>agosto</code>, <code>setembro</code> e <code>trimestre</code> (o total do setor), em reais.</li><li>Agora a agenda: na <code>opme_cirurgia</code>, conte as cirurgias de cada setor (o setor que operou) em <code>julho</code>, <code>agosto</code> e <code>setembro</code>, e numa última coluna quantas foram do tipo <code>mutirão</code>. O salto da Ortopedia tem explicação? E o da Vascular?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Monte a tabela cruzada do consumo: uma linha por setor (que pagou), com as colunas <code>julho</code>, <code>agosto</code>, <code>setembro</code> e <code>trimestre</code> (o total do setor), em reais.</li><li>Agora a agenda: na <code>opme_cirurgia</code>, conte as cirurgias de cada setor (o setor que operou, pelo nome) em <code>julho</code>, <code>agosto</code> e <code>setembro</code>, e numa última coluna quantas foram do tipo <code>mutirão</code>. O salto da Ortopedia tem explicação? E o da Vascular?</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, uma linha por setor que pagou, com colunas de julho, agosto, setembro e trimestre. Na segunda, as cirurgias de cada setor que operou, por mês, e quantas foram de mutirão.</p>
     <p><strong>Como pensar:</strong></p>
@@ -212,6 +223,17 @@ GROUP BY s.nome
 ORDER BY s.nome;</pre></div>
     <p>Para conferir: a primeira traz <strong>5 linhas</strong>, os mesmos números da fase 1, agora lado a lado (Ortopedia: 298.300 · <strong>890.180</strong> · 275.460; Vascular: 171.600 · <strong>376.900</strong> · <strong>338.800</strong>). A segunda também traz 5 linhas e resolve a primeira suspeita: a Ortopedia fez <strong>77 cirurgias em agosto</strong> contra 34 em julho e setembro, e <strong>40 delas são do mutirão</strong> de joelho — o salto está na agenda, com cirurgia de verdade para cada prótese. Pode descartar. Já a Vascular é o contrário: fez <strong>13 cirurgias em agosto</strong> e 15 em setembro, até <strong>menos</strong> que as 16 de julho… e o consumo em reais mais que dobrou. Gastar o dobro operando menos? É aí que vamos cavar.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Monte uma tabela cruzada de unidades: uma linha por <code>categoria</code> de material e uma coluna por mês, com a soma de <code>qtd</code> lançada naquele mês. Mostre <strong>categoria</strong>, <strong>julho</strong>, <strong>agosto</strong> e <strong>setembro</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT m.categoria, SUM(c.qtd) FILTER (WHERE EXTRACT(MONTH FROM c.lancado_em) = 7) AS julho, SUM(c.qtd) FILTER (WHERE EXTRACT(MONTH FROM c.lancado_em) = 8) AS agosto, SUM(c.qtd) FILTER (WHERE EXTRACT(MONTH FROM c.lancado_em) = 9) AS setembro FROM opme_consumo c JOIN opme_material m ON m.codigo = c.material GROUP BY m.categoria ORDER BY m.categoria;</pre></div><p>Para conferir: <strong>10</strong> linhas; parafuso tem os maiores números.</p></div></details></li>
+      <li class="extra"><p>Conte os lançamentos de cada <code>login</code> em duas colunas: <strong>dia</strong> (lançados antes das 19h) e <strong>noite</strong> (às 19h ou depois). Mostre <strong>login</strong>, <strong>dia</strong> e <strong>noite</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT login, COUNT(*) FILTER (WHERE EXTRACT(HOUR FROM lancado_em) &lt; 19) AS dia, COUNT(*) FILTER (WHERE EXTRACT(HOUR FROM lancado_em) &gt;= 19) AS noite FROM opme_consumo GROUP BY login ORDER BY login;</pre></div><p>Para conferir: <strong>6</strong> linhas; só um login lança à noite.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c16-ok2"><label for="c16-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c16-f3" data-fase="3" data-nome="Cruzando tudo">
@@ -230,7 +252,7 @@ ORDER BY s.nome;</pre></div>
 SELECT categoria, codigo, descricao, valor_unit
 FROM opme_material
 ORDER BY categoria, valor_unit DESC;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Só para os <strong>stents</strong> (categoria começando com <code>stent</code>), cruze o setor que pagou com a categoria usando <code>CUBE</code>: mostre o setor, a categoria, as unidades (<code>SUM(qtd)</code>) e o valor. Escreva <code>(todos)</code> e <code>(todas)</code> nas linhas de subtotal. Que combinação não devia existir?</li><li>Agora ligue cada lançamento à sua cirurgia e pegue só os que foram pagos por um centro de custo <strong>diferente</strong> do setor que operou (<code>ci.setor &lt;&gt; c.cc</code>). Use <code>GROUPING SETS</code> para mostrar cada par (setor que operou, centro de custo que pagou) com o número de lançamentos e o valor, e uma linha de <code>TOTAL</code>.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Só para os <strong>stents</strong> (categoria começando com <code>stent</code>), cruze o setor que pagou com a categoria, com subtotais em <strong>todas as direções</strong>: cada par, o subtotal de cada setor, o de cada categoria e o total. Mostre o nome do setor, a categoria, as unidades (soma de <code>qtd</code>) e o valor. Nas linhas de subtotal, escreva <code>(todos)</code> no setor e <code>(todas)</code> na categoria. Que combinação não devia existir?</li><li>Agora ligue cada lançamento à sua cirurgia e pegue só os que foram pagos por um centro de custo (<code>c.cc</code>) <strong>diferente</strong> do setor que operou (<code>ci.setor</code>). Mostre cada par, com os códigos do setor que operou e do centro de custo que pagou, o número de lançamentos e o valor. No fim, só mais uma linha: o total geral, com <code>TOTAL</code> na primeira coluna e a do centro de custo vazia.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, com os stents, cruzar setor que pagou e categoria com <code>CUBE</code>, com unidades e valor, rotulando <code>(todos)</code> e <code>(todas)</code>. Na segunda, os lançamentos pagos por centro de custo diferente do que operou, por par, com <code>TOTAL</code>.</p>
     <p><strong>Como pensar:</strong></p>
@@ -262,6 +284,17 @@ GROUP BY GROUPING SETS ((ci.setor, c.cc), ())
 ORDER BY GROUPING(ci.setor), valor DESC;</pre></div>
     <p>Para conferir: a primeira traz <strong>9 linhas</strong>. A estranha é <strong>Cirurgia Vascular · stent coronário: 20 unidades, R$ 178.000,00</strong>. Stent coronário é para as artérias do coração: é material da Hemodinâmica, a Vascular não usa (ela usa o stent periférico). Tem também uma combinação menor, ao contrário: Hemodinâmica · stent periférico, 3 unidades, R$ 18.900,00. A segunda traz <strong>3 linhas</strong> e mostra que as duas coisas vêm de lançamentos em centro de custo trocado: cirurgias da <code>CC-HEMO</code> pagas pela <code>CC-VASC</code> (<strong>14 lançamentos, R$ 178.000,00</strong>) e cirurgias da <code>CC-VASC</code> pagas pela <code>CC-HEMO</code> (5 lançamentos, R$ 70.700,00), num total de 19 lançamentos e R$ 248.700,00. Foi assim que o subtotal da Hemodinâmica ficou "normal": parte dos stents dela foi cobrada de outro setor. Mas quando isso aconteceu?</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Só a categoria <code>prótese articular</code>: cruze o <code>tipo</code> da cirurgia com a <code>descricao</code> do material, com subtotais em todas as direções. Mostre <strong>tipo</strong>, <strong>material</strong> (a descrição) e <strong>unidades</strong> (soma de <code>qtd</code>). Nos subtotais, escreva <code>(todos)</code> no tipo e <code>(todas)</code> no material.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COALESCE(ci.tipo, '(todos)') AS tipo, COALESCE(m.descricao, '(todas)') AS material, SUM(c.qtd) AS unidades FROM opme_consumo c JOIN opme_cirurgia ci ON ci.id = c.cirurgia_id JOIN opme_material m ON m.codigo = c.material WHERE m.categoria = 'prótese articular' GROUP BY CUBE (ci.tipo, m.descricao) ORDER BY GROUPING(ci.tipo), ci.tipo, GROUPING(m.descricao), m.descricao;</pre></div><p>Para conferir: <strong>8</strong> linhas; o mutirão só usou um tipo de prótese.</p></div></details></li>
+      <li class="extra"><p>Numa consulta só, conte as cirurgias de <code>opme_cirurgia</code> por <code>setor</code> (o código) e, separado, por <code>tipo</code>, sem os pares e sem total. Mostre <strong>setor</strong>, <strong>tipo</strong> e <strong>cirurgias</strong> (nas linhas de setor o tipo fica vazio, e vice-versa).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT setor, tipo, COUNT(*) AS cirurgias FROM opme_cirurgia GROUP BY GROUPING SETS ((setor), (tipo)) ORDER BY setor, tipo;</pre></div><p>Para conferir: <strong>8</strong> linhas: 5 de setor e 3 de tipo.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c16-ok3"><label for="c16-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c16-f4" data-fase="4" data-nome="Ilhas e lacunas">
@@ -281,7 +314,7 @@ FROM generate_series('2026-07-01'::date, '2026-07-07'::date, interval '1 day') A
   <div class="box novo"><b class="l">Ferramenta nova · ilhas com o truque do ROW_NUMBER()</b><p>Como saber que 24, 25 e 26 são dias seguidos, mas 29 não continua a sequência? O truque: numere os dias em ordem com <code>ROW_NUMBER() OVER (ORDER BY dia)</code> (1, 2, 3, 4…) e <strong>subtraia esse número da data</strong>. Enquanto os dias andam de um em um, o número também anda de um em um, e a diferença fica <strong>parada</strong>. Quando aparece um buraco, a data pula mais que o número, e a diferença muda. Essa diferença vira a <strong>etiqueta da ilha</strong>: basta agrupar por ela.</p></div>
   <div class="tw"><table><tr><th>dia</th><th>ROW_NUMBER()</th><th>dia - número</th><th>ilha</th></tr><tr><td>24/08</td><td>1</td><td>23/08</td><td>A</td></tr><tr><td>25/08</td><td>2</td><td>23/08</td><td>A</td></tr><tr><td>26/08</td><td>3</td><td>23/08</td><td>A</td></tr><tr><td>29/08</td><td>4</td><td><strong>25/08</strong></td><td>B (pulou 27 e 28)</td></tr><tr><td>30/08</td><td>5</td><td>25/08</td><td>B</td></tr></table></div>
   <p>Em Postgres, <code>data - número inteiro</code> dá outra data (por isso o <code>::int</code> depois do <code>ROW_NUMBER()</code>, que devolve um <code>bigint</code>). Também funciona <code>dia - ROW_NUMBER() OVER (ORDER BY dia) * INTERVAL '1 day'</code>, que dá um <code>timestamp</code> como etiqueta. A etiqueta em si não significa nada — só importa que ela é <strong>igual dentro da ilha</strong>. Atenção: os dias precisam ser <strong>distintos</strong> (<code>SELECT DISTINCT</code>), senão dois lançamentos no mesmo dia ganham números diferentes e a conta quebra.</p>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Que dias do trimestre (1º de julho a 30 de setembro) <strong>não têm nenhum lançamento</strong> de consumo? Use <code>generate_series</code> e <code>LEFT JOIN</code>.</li><li>Pegue os dias (distintos) em que houve lançamento com centro de custo trocado (<code>ci.setor &lt;&gt; c.cc</code>, como na fase 3) e agrupe em <strong>ilhas</strong> de dias seguidos: mostre o início, o fim e quantos dias cada ilha tem.</li><li>Confira o caderno de ocorrências: liste <code>inicio</code>, <code>fim</code>, <code>setor</code>, <code>registrado_por</code> e <code>descricao</code> de <code>opme_ocorrencia</code>, em ordem de início. O que explica a lacuna? E as ilhas?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Que dias do trimestre (1º de julho a 30 de setembro) <strong>não têm nenhum lançamento</strong> de consumo? Mostre só o dia (a data, sem hora).</li><li>Pegue os dias (distintos) em que houve lançamento com centro de custo trocado (pago por um <code>cc</code> diferente do setor que operou, como na fase 3) e junte esses dias em <strong>ilhas</strong> de dias seguidos: mostre o início, o fim e quantos dias cada ilha tem.</li><li>Confira o caderno de ocorrências: liste <code>inicio</code>, <code>fim</code>, <code>setor</code>, <code>registrado_por</code> e <code>descricao</code> de <code>opme_ocorrencia</code>, em ordem de início. O que explica a lacuna? E as ilhas?</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, os dias de 1º/07 a 30/09 sem lançamento. Na segunda, os dias com centro de custo trocado, agrupados em sequências de dias seguidos. Na terceira, o caderno de ocorrências.</p>
     <p><strong>Como pensar:</strong></p>
@@ -315,6 +348,17 @@ FROM opme_ocorrencia
 ORDER BY inicio;</pre></div>
     <p>Para conferir: a primeira traz <strong>4 dias</strong>, de <strong>11 a 14 de agosto</strong>. A segunda traz <strong>2 ilhas</strong>: uma curta, de <strong>15 a 17 de julho</strong> (3 dias), e uma longa, de <strong>24 de agosto a 6 de setembro</strong> (<strong>14 dias seguidos</strong>). A terceira traz 4 ocorrências e explica quase tudo: os dias vazios de agosto foram a <strong>queda do sistema de estoque</strong> registrada pelo TI (Jonas Pimentel) — o material foi anotado em papel e digitado em 15/08, por isso aquele dia tem um monte de lançamentos de uma vez. Não é fraude, é lacuna de sistema. A ilha curta de julho também tem explicação: a <strong>sala da Vascular estava em reforma</strong> e as cirurgias foram feitas na sala da Hemodinâmica, lançadas no centro de custo dela (é o stent periférico "fora do lugar" da fase 3). O mutirão da Ortopedia aparece de novo, confirmado. Agora repare: para os <strong>14 dias seguidos</strong> de agosto e setembro, <strong>não há ocorrência nenhuma</strong>.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Em que dias do trimestre (1º de julho a 30 de setembro) a Ortopedia (<code>CC-ORTO</code>) não fez nenhuma cirurgia em <code>opme_cirurgia</code>? Mostre o <strong>dia</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT d::date AS dia FROM generate_series('2026-07-01'::date, '2026-09-30'::date, interval '1 day') AS d LEFT JOIN opme_cirurgia ci ON ci.data = d::date AND ci.setor = 'CC-ORTO' WHERE ci.id IS NULL ORDER BY dia;</pre></div><p>Para conferir: <strong>7</strong> linhas; a primeira é 2026-07-12.</p></div></details></li>
+      <li class="extra"><p>Agrupe os dias (distintos) com cirurgia do tipo <code>mutirão</code> em ilhas de dias seguidos. Mostre <strong>inicio</strong>, <strong>fim</strong> e <strong>dias</strong> de cada ilha.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH dias AS (SELECT DISTINCT data AS dia FROM opme_cirurgia WHERE tipo = 'mutirão'), grupos AS (SELECT dia, dia - ROW_NUMBER() OVER (ORDER BY dia)::int AS grupo FROM dias) SELECT MIN(dia) AS inicio, MAX(dia) AS fim, COUNT(*) AS dias FROM grupos GROUP BY grupo ORDER BY inicio;</pre></div><p>Para conferir: <strong>3</strong> linhas, todas com 5 dias.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c16-ok4"><label for="c16-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c16-f5" data-fase="5" data-nome="O plantão">
@@ -330,7 +374,7 @@ ORDER BY inicio;</pre></div>
   <div class="box novo"><b class="l">Juntando tudo · ilhas por pessoa com PARTITION BY</b><p>Na fase 4, havia uma única fila de dias. Agora cada coordenador tem a <strong>sua</strong> fila de plantões. O <code>PARTITION BY login, turno</code> faz o <code>ROW_NUMBER()</code> recomeçar do 1 para cada pessoa (e cada turno), e o truque <code>data - número</code> funciona dentro de cada fila. Na hora de agrupar, agrupe pela pessoa, pelo turno <strong>e</strong> pela etiqueta: duas pessoas podem, por coincidência, ter a mesma etiqueta.</p></div>
   <div class="box"><b class="l">Ligando o lançamento ao plantão</b><p>Para saber quem coordenava na hora de um lançamento, junte <code>opme_consumo</code> com <code>opme_escala</code> por <strong>dia</strong> e por <strong>turno</strong>: <code>e.data = c.lancado_em::date</code> e <code>e.turno = CASE WHEN EXTRACT(HOUR FROM c.lancado_em) &gt;= 19 THEN 'noite' ELSE 'dia' END</code>. Funciona porque, neste hospital, a coordenação da noite lança tudo antes da meia-noite.</p></div>
   <div class="box"><b class="l">Mais uma pista · cateterismo diagnóstico</b><p>O <strong>cateterismo diagnóstico</strong> é um exame: o médico passa um cateter até o coração só para <strong>olhar</strong> as artérias. Ele não coloca stent — quando é preciso colocar, o procedimento vira uma <strong>angioplastia</strong>, que é outra linha na agenda. Então stent lançado em cateterismo diagnóstico é stent que não entrou em paciente nenhum.</p></div>
-  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Encontre as ilhas de plantões seguidos de cada pessoa na <code>opme_escala</code> (por <code>login</code> e <code>turno</code>). Mostre o nome, o turno, o início, o fim, quantos plantões e quantos deles foram troca (<code>COUNT(obs)</code>). Fique só com as ilhas de <strong>3 plantões ou mais</strong>.</li><li>Agora a prova: pegue os lançamentos de <strong>stent coronário</strong> feitos para cirurgias do tipo <code>Cateterismo diagnóstico</code>, descubra quem coordenava o plantão em cada um (escala) e mostre, por pessoa: quantos lançamentos, quantos stents (<code>SUM(qtd)</code>), o valor, o primeiro e o último dia.</li><li>Junte as pistas de todas as fases e confira com <code>SELECT verificar_caso16('Nome Completo');</code>.</li></ul></div>
+  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Encontre as ilhas de plantões seguidos de cada pessoa na <code>opme_escala</code> (por <code>login</code> e <code>turno</code>). Mostre o nome, o turno, o início, o fim, quantos plantões e quantos deles foram troca (os que têm <code>obs</code> preenchida). Fique só com as ilhas de <strong>3 plantões ou mais</strong>.</li><li>Agora a prova: pegue os lançamentos de <strong>stent coronário</strong> feitos para cirurgias de <code>Cateterismo diagnóstico</code> (coluna <code>procedimento</code>) e descubra quem coordenava o plantão em cada um, pela escala do mesmo dia e turno. Por pessoa, mostre o nome, quantos lançamentos, quantos stents (soma de <code>qtd</code>), o valor, o primeiro e o último dia (só a data).</li><li>Junte as pistas de todas as fases e confira com <code>SELECT verificar_caso16('Nome Completo');</code>.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> na primeira, as sequências de plantões seguidos de cada pessoa (3 ou mais), com nome, turno, início, fim, plantões e trocas. Na segunda, os stents coronários lançados em cateterismos diagnósticos, resumidos por quem coordenava o plantão.</p>
     <p><strong>Como pensar:</strong></p>
@@ -372,8 +416,28 @@ WHERE m.categoria = 'stent coronário'
 GROUP BY q.nome;</pre></div>
     <p>Para conferir: a primeira traz <strong>2 ilhas</strong>. Uma é de Humberto Campelo, coordenador do dia: 3 plantões de 15 a 17 de julho (2 trocas) — exatamente a ilha curta da fase 4, e a ocorrência da reforma, registrada por ele mesmo, explica tudo. (Denise Arruda também emendou 2 noites em setembro, numa troca comum, e fica de fora pelo <code>HAVING</code>.) A outra é de uma coordenadora da noite: <strong>14 noites seguidas, de 24 de agosto a 6 de setembro, 9 delas por troca</strong> — o mesmo calendário da ilha longa, sem ocorrência nenhuma. A segunda consulta fecha o caso: <strong>1 linha</strong>, com <strong>23 lançamentos</strong> e <strong>29 stents coronários</strong> lançados em cateterismos diagnósticos, <strong>R$ 258.100,00</strong>, entre 24/08 e 06/09, todos no plantão dela. Parte foi cobrada da própria Hemodinâmica, parte da Vascular, para nenhum subtotal chamar atenção. E o estoque "batia" porque os stents saíram mesmo da prateleira.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Qual a maior sequência de plantões seguidos de cada pessoa da <code>opme_escala</code> (contando por login e turno)? Mostre <strong>nome</strong>, <strong>turno</strong> e <strong>maior_sequencia</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH t AS (SELECT login, turno, data - ROW_NUMBER() OVER (PARTITION BY login, turno ORDER BY data)::int AS grupo FROM opme_escala), ilhas AS (SELECT login, turno, grupo, COUNT(*) AS plantoes FROM t GROUP BY login, turno, grupo) SELECT q.nome, i.turno, MAX(i.plantoes) AS maior_sequencia FROM ilhas i JOIN opme_equipe q ON q.login = i.login GROUP BY q.nome, i.turno ORDER BY maior_sequencia DESC, q.nome;</pre></div><p>Para conferir: <strong>6</strong> linhas; três pessoas nunca emendaram dois plantões.</p></div></details></li>
+      <li class="extra"><p>Quem coordenava o plantão em cada lançamento do login <code>cc.coordenacao</code>? Use a escala do mesmo dia e turno (19h ou mais é noite). Por pessoa, mostre <strong>nome</strong>, <strong>lancamentos</strong> e <strong>valor</strong> (soma de <code>qtd</code> vezes <code>valor_unit</code>).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT q.nome, COUNT(*) AS lancamentos, SUM(c.qtd * m.valor_unit) AS valor FROM opme_consumo c JOIN opme_material m ON m.codigo = c.material JOIN opme_escala e ON e.data = c.lancado_em::date AND e.turno = CASE WHEN EXTRACT(HOUR FROM c.lancado_em) &gt;= 19 THEN 'noite' ELSE 'dia' END JOIN opme_equipe q ON q.login = e.login WHERE c.login = 'cc.coordenacao' GROUP BY q.nome ORDER BY lancamentos DESC;</pre></div><p>Para conferir: <strong>4</strong> linhas; uma das pessoas é do turno do dia.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c16-ok5"><label for="c16-ok5">Etapa 5 concluída</label></div>
 </section>
+<!-- desafio:início -->
+<section class="fase desafio-final" id="caso16-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>Os stents coronários lançados em cateterismos diagnósticos foram cobrados de mais de um centro de custo. Mostre <strong>setor</strong> (o nome do setor que pagou), <strong>agosto</strong> e <strong>setembro</strong> (valor lançado em cada mês) e <strong>total</strong>, com uma última linha em que o setor é <strong>TOTAL</strong>.</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>SELECT COALESCE(s.nome, 'TOTAL') AS setor, SUM(c.qtd * m.valor_unit) FILTER (WHERE EXTRACT(MONTH FROM c.lancado_em) = 8) AS agosto, SUM(c.qtd * m.valor_unit) FILTER (WHERE EXTRACT(MONTH FROM c.lancado_em) = 9) AS setembro, SUM(c.qtd * m.valor_unit) AS total FROM opme_consumo c JOIN opme_cirurgia ci ON ci.id = c.cirurgia_id JOIN opme_material m ON m.codigo = c.material JOIN opme_setor s ON s.cc = c.cc WHERE m.categoria = 'stent coronário' AND ci.procedimento = 'Cateterismo diagnóstico' GROUP BY ROLLUP (s.nome) ORDER BY GROUPING(s.nome), total DESC;</pre></div><p>Para conferir: <strong>3</strong> linhas; a Vascular pagou mais que a Hemodinâmica.</p></div></details>
+</section>
+<!-- desafio:fim -->
+
 <section class="fase" id="c16-cola" style="gap:12px">
   <h2 style="font-size:32px">Cola rápida</h2>
   <div class="tw"><table>
@@ -2176,12 +2240,12 @@ SELECT '✅ Caso 16 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

@@ -66,7 +66,7 @@
   }
   var chips=fases.map(function(sec){
     var a=document.createElement("a");a.className="chip";a.href="#"+sec.id;
-    var n={"7":"★","8":"✎","9":"A","10":"B","11":"C","12":"D","13":"1","14":"2","15":"3"}[sec.dataset.fase]||sec.dataset.fase;
+    var numEl=sec.querySelector(".num"),n=(numEl&&numEl.textContent.trim())||sec.dataset.fase;
     a.innerHTML='<span>'+n+'</span><span>'+sec.dataset.nome+'</span>';
     chipsBox.appendChild(a);return a;
   });
@@ -466,6 +466,9 @@
     uid:function(){return sessao&&sessao.uid||""},
     email:function(){return sessao&&sessao.email||""},
     toast:toast,
+    // treinos extras e desafio final ficam junto do progresso das fases: vão para a nuvem do mesmo jeito
+    marcar:function(id){if(state[id]) return;state[id]=true;salvaLocal();empurra([id]).catch(function(){})},
+    feito:function(id){return !!state[id]},
     sair:function(){var b=document.getElementById("sbLogout");if(b) b.click()},
     abrirLogin:function(){if(configurado()&&!logado()) mostraLogin(); else syncBtn.click()}
   };

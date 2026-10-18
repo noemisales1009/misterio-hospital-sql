@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -93,7 +93,7 @@ erDiagram
 FROM hora_extra
 LIMIT 10;</pre></div>
   <div class="box"><b class="l">Atenção · BETWEEN com data e hora</b><p><code>inicio</code> é <code>timestamp</code>: tem data <strong>e hora</strong>. Quando você escreve <code>'2026-09-30'</code>, o SQL entende 30/09 <strong>à meia-noite</strong>. Então <code>inicio BETWEEN '2026-09-01' AND '2026-09-30'</code> deixa de fora tudo o que começou no dia 30 depois de 00:00. O jeito seguro é o <strong>intervalo meio aberto</strong>: <code>inicio &gt;= '2026-09-01' AND inicio &lt; '2026-10-01'</code>. Pega do primeiro ao último instante de setembro, sem precisar saber quantos dias o mês tem.</p></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Conte os plantões extras <strong>por mês</strong>. Mostre o mês como texto, com <code>TO_CHAR(inicio, 'YYYY-MM')</code>, e a quantidade, em ordem de mês.</li><li>Quantas pessoas <strong>diferentes</strong> fizeram hora extra em <strong>setembro de 2026</strong>? Filtre com o intervalo meio aberto e mostre só esse número.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Conte os plantões extras <strong>por mês</strong>. Mostre o mês como texto no formato ano-mês, como <code>2026-09</code>, e a quantidade, em ordem de mês.</li><li>Quantas pessoas <strong>diferentes</strong> fizeram hora extra em <strong>setembro de 2026</strong>? Conte o mês inteiro, até o último minuto do dia 30, e mostre só esse número.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> contar os plantões extras por mês, com o mês como texto 'YYYY-MM', em ordem de mês. Na segunda, quantas pessoas diferentes fizeram hora extra em setembro de 2026.</p>
     <p><strong>Como pensar:</strong></p>
@@ -113,6 +113,25 @@ WHERE inicio &gt;= '2026-09-01'
   AND inicio &lt;  '2026-10-01';</pre></div>
     <p>Para conferir: de janeiro a agosto, entre <strong>55</strong> e <strong>65</strong> plantões por mês; setembro teve <strong>92</strong>. Na segunda: <strong>21</strong> pessoas. Com <code>BETWEEN '2026-09-01' AND '2026-09-30'</code> daria 20 pessoas e só 89 plantões: os 3 plantões que começaram na noite do dia 30 ficam de fora, e com eles some a Quitéria Bastos, que só fez hora extra nesse dia.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Conte os plantões do setor <strong>Manutenção</strong> mês a mês. Mostre <strong>mes</strong> (texto no formato <code>YYYY-MM</code>) e <strong>plantoes</strong>, em ordem de mês.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT TO_CHAR(h.inicio, 'YYYY-MM') AS mes, COUNT(*) AS plantoes
+FROM hora_extra h
+JOIN profissional p ON p.id = h.profissional_id
+WHERE p.setor = 'Manutenção'
+GROUP BY mes
+ORDER BY mes;</pre></div><p>Para conferir: <strong>9</strong> linhas. Setembro tem <strong>19</strong>; nenhum outro mês passa de 7.</p></div></details></li>
+      <li class="extra"><p>Quantas pessoas diferentes fizeram hora extra em cada mês? Mostre <strong>mes</strong> com <code>DATE_TRUNC('month', inicio)</code> (sai como <code>2026-01-01 00:00:00</code>) e <strong>pessoas</strong>, em ordem de mês.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT DATE_TRUNC('month', inicio) AS mes, COUNT(DISTINCT profissional_id) AS pessoas
+FROM hora_extra
+GROUP BY mes
+ORDER BY mes;</pre></div><p>Para conferir: <strong>9</strong> linhas, todas entre <strong>20</strong> e <strong>23</strong> pessoas.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c8-ok1"><label for="c8-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c8-f2" data-fase="2" data-nome="Dia e hora">
@@ -138,7 +157,7 @@ WHERE inicio &gt;= '2026-09-01'
        EXTRACT(HOUR FROM inicio) AS hora
 FROM hora_extra
 LIMIT 10;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Em <strong>setembro de 2026</strong>, conte os plantões por dia da semana. Mostre o número do dia (<code>dow</code>), o nome em português (<code>domingo</code>, <code>segunda</code>, <code>terça</code>, <code>quarta</code>, <code>quinta</code>, <code>sexta</code>, <code>sábado</code>, assim, sem “-feira”) e a quantidade, em ordem de <code>dow</code>.</li><li>Ainda em setembro, conte os plantões pela <strong>hora de início</strong>, com <code>EXTRACT(HOUR FROM inicio)</code>. Mostre a hora e a quantidade, em ordem de hora. Que horário destoa?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Em <strong>setembro de 2026</strong>, conte os plantões por dia da semana. Mostre o número do dia (0 é domingo, 1 é segunda, até 6, sábado), o nome em português (<code>domingo</code>, <code>segunda</code>, <code>terça</code>, <code>quarta</code>, <code>quinta</code>, <code>sexta</code>, <code>sábado</code>, assim, sem “-feira”) e a quantidade, em ordem do número do dia.</li><li>Ainda em setembro, conte os plantões pela <strong>hora de início</strong> (só a hora, de 0 a 23, sem os minutos). Mostre a hora e a quantidade, em ordem de hora. Que horário destoa?</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> em setembro de 2026, contar os plantões por dia da semana, com o número do dia, o nome em português e a quantidade. Na segunda, contar pela hora de início.</p>
     <p><strong>Como pensar:</strong></p>
@@ -172,6 +191,27 @@ GROUP BY hora
 ORDER BY hora;</pre></div>
     <p>Para conferir: domingo lidera com <strong>18</strong> plantões; depois vêm quarta (16), terça e sábado (14 cada), sexta (13), quinta (9) e segunda (8). Por hora de início: 7h com 20, 13h com 3, 19h com 49, 20h com 6 e <strong>22h com 14</strong>. O normal é começar às 19h ou 20h, logo depois do expediente, ou de manhã no fim de semana. Os 14 plantões das 22h destoam. Guarde essa pista.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Em <strong>agosto de 2026</strong>, conte os plantões pela hora de início. Mostre <strong>hora</strong> e <strong>plantoes</strong>, em ordem de hora.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT EXTRACT(HOUR FROM inicio) AS hora, COUNT(*) AS plantoes
+FROM hora_extra
+WHERE inicio &gt;= '2026-08-01' AND inicio &lt; '2026-09-01'
+GROUP BY hora
+ORDER BY hora;</pre></div><p>Para conferir: <strong>4</strong> linhas. A hora com mais plantões é 19h, com <strong>36</strong>.</p></div></details></li>
+      <li class="extra"><p>Em <strong>setembro de 2026</strong>, conte os plantões por tipo de dia. Mostre <strong>tipo</strong> (<code>'fim de semana'</code> para sábado ou domingo, <code>'dia útil'</code> para os outros) e <strong>plantoes</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT CASE WHEN EXTRACT(DOW FROM inicio) IN (0, 6) THEN 'fim de semana'
+            ELSE 'dia útil'
+       END AS tipo,
+       COUNT(*) AS plantoes
+FROM hora_extra
+WHERE inicio &gt;= '2026-09-01' AND inicio &lt; '2026-10-01'
+GROUP BY tipo;</pre></div><p>Para conferir: <strong>2</strong> linhas. O fim de semana tem <strong>32</strong> plantões.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c8-ok2"><label for="c8-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c8-f3" data-fase="3" data-nome="Horas">
@@ -213,6 +253,31 @@ ORDER BY horas DESC
 LIMIT 5;</pre></div>
     <p>Para conferir: <strong>Leonel Guedes</strong> lidera com <strong>120</strong> horas (6156.00), seguido de perto por <strong>Irene Castilho</strong>, com 114 (8310.60). Depois vêm Marta Guimarães (44.5), Aurélio Fontes (34) e Helena Vasconcelos (32.5). O SQL mostra os números com ponto, como <code>120.0</code>. Em dinheiro, Irene recebe mais, porque a hora dela vale mais. E 120 horas extras em um mês são três semanas de 40 horas além do expediente normal. Se a Marta e a Helena saíram com meia hora a menos, você usou <code>EXTRACT(HOUR …)</code> em vez de <code>EPOCH</code>.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Em <strong>agosto de 2026</strong>, só o setor <strong>UTI</strong>: mostre <strong>nome</strong>, <strong>horas</strong> (soma das horas extras) e <strong>valor</strong> (horas × <code>valor_hora</code> × 1,5, arredondado com 2 casas), de quem tem mais horas para quem tem menos.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.nome,
+       ROUND(SUM(EXTRACT(EPOCH FROM h.fim - h.inicio)) / 3600, 1) AS horas,
+       ROUND(SUM(EXTRACT(EPOCH FROM h.fim - h.inicio)) / 3600 * p.valor_hora * 1.5, 2) AS valor
+FROM hora_extra h
+JOIN profissional p ON p.id = h.profissional_id
+WHERE p.setor = 'UTI'
+  AND h.inicio &gt;= '2026-08-01' AND h.inicio &lt; '2026-09-01'
+GROUP BY p.nome, p.valor_hora
+ORDER BY horas DESC;</pre></div><p>Para conferir: <strong>4</strong> pessoas. A primeira é Marta Guimarães, com <strong>42</strong> horas.</p></div></details></li>
+      <li class="extra"><p>Em <strong>setembro de 2026</strong>, quem fez plantões de <strong>12 horas ou mais</strong>? Mostre <strong>nome</strong> e <strong>plantoes</strong> (quantos plantões assim a pessoa fez), do maior número para o menor.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.nome, COUNT(*) AS plantoes
+FROM hora_extra h
+JOIN profissional p ON p.id = h.profissional_id
+WHERE h.inicio &gt;= '2026-09-01' AND h.inicio &lt; '2026-10-01'
+  AND EXTRACT(EPOCH FROM h.fim - h.inicio) / 3600 &gt;= 12
+GROUP BY p.nome
+ORDER BY plantoes DESC;</pre></div><p>Para conferir: <strong>6</strong> pessoas. Irene Castilho lidera com <strong>7</strong> plantões.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c8-ok3"><label for="c8-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c8-f4" data-fase="4" data-nome="Ranking">
@@ -241,7 +306,7 @@ SELECT setor, plantoes,
        SUM(plantoes) OVER () AS total
 FROM por_setor
 ORDER BY posicao;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Monte o ranking de <strong>setembro de 2026</strong> com <strong>todas</strong> as pessoas que fizeram hora extra. Mostre <code>nome</code>, <code>horas</code>, <code>posicao</code> (com <code>RANK</code>, quem tem mais horas é 1) e <code>pct</code>, a porcentagem das horas do mês, com 1 casa decimal. Nessa ordem.</li><li>Agora lado a lado: <code>nome</code>, <code>horas</code>, a posição com <code>RANK</code> e a posição com <code>DENSE_RANK</code>, todas as pessoas de setembro. Em que linha as duas começam a discordar?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Monte o ranking de <strong>setembro de 2026</strong> com <strong>todas</strong> as pessoas que fizeram hora extra. Mostre <code>nome</code>, <code>horas</code>, <code>posicao</code> (quem tem mais horas é 1; num empate, as duas pessoas ficam com a mesma posição e a seguinte é pulada, como no pódio) e <code>pct</code>, a porcentagem das horas do mês, com 1 casa decimal. Nessa ordem.</li><li>Agora lado a lado: <code>nome</code>, <code>horas</code>, a posição que <strong>pula</strong> número depois de um empate (a da primeira missão) e a posição que <strong>não pula</strong>, todas as pessoas de setembro. Em que linha as duas começam a discordar?</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> montar o ranking de setembro de 2026 com todas as pessoas: nome, horas, posição com <code>RANK</code> e porcentagem das horas do mês. Na segunda, <code>RANK</code> e <code>DENSE_RANK</code> lado a lado.</p>
     <p><strong>Como pensar:</strong></p>
@@ -281,6 +346,46 @@ FROM setembro
 ORDER BY pos_rank;</pre></div>
     <p>Para conferir: <strong>21</strong> pessoas. Leonel é o 1º, com <strong>20.1%</strong> das horas de setembro, e Irene a 2ª, com <strong>19.1%</strong>: os dois juntos fazem quase 40% do mês. Débora Quintela e Cássio Brandt <strong>empatam</strong> com 24 horas em <strong>8º</strong>. Com <code>RANK</code>, a pessoa seguinte, Moacir Teles, é a <strong>10ª</strong>; com <code>DENSE_RANK</code>, a 9ª. É aí que as duas começam a discordar, e a diferença vai até o fim da lista. Leonel e Irene estão muito acima dos outros, mas o ranking só mostra quem <em>lançou</em> mais horas, não quem trabalhou.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Ranking dos setores em <strong>setembro de 2026</strong>: mostre <strong>setor</strong>, <strong>horas</strong> (soma, com 1 casa), <strong>posicao</strong> (com <code>RANK</code>, mais horas é 1) e <strong>pct</strong> (porcentagem das horas do mês, com 1 casa).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH por_setor AS (
+  SELECT p.setor, SUM(EXTRACT(EPOCH FROM h.fim - h.inicio)) / 3600 AS horas
+  FROM hora_extra h
+  JOIN profissional p ON p.id = h.profissional_id
+  WHERE h.inicio &gt;= '2026-09-01' AND h.inicio &lt; '2026-10-01'
+  GROUP BY p.setor
+)
+SELECT setor,
+       ROUND(horas, 1) AS horas,
+       RANK() OVER (ORDER BY horas DESC) AS posicao,
+       ROUND(100 * horas / SUM(horas) OVER (), 1) AS pct
+FROM por_setor
+ORDER BY posicao;</pre></div><p>Para conferir: <strong>7</strong> linhas. A UTI é a 1ª, com <strong>33.5</strong>%, e dois setores empatam em 5º.</p></div></details></li>
+      <li class="extra"><p>Em <strong>setembro de 2026</strong>, conte os plantões de cada setor e dê a posição com <code>DENSE_RANK</code> (mais plantões é 1). Mostre <strong>setor</strong>, <strong>plantoes</strong> e <strong>posicao</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH por_setor AS (
+  SELECT p.setor, COUNT(*) AS plantoes
+  FROM hora_extra h
+  JOIN profissional p ON p.id = h.profissional_id
+  WHERE h.inicio &gt;= '2026-09-01' AND h.inicio &lt; '2026-10-01'
+  GROUP BY p.setor
+)
+SELECT setor, plantoes,
+       DENSE_RANK() OVER (ORDER BY plantoes DESC) AS posicao
+FROM por_setor
+ORDER BY posicao;</pre></div><p>Para conferir: <strong>7</strong> linhas. Três setores empatam em 4º, e a Farmácia fica em <strong>5º</strong>.</p></div></details></li>
+      <li class="extra"><p>Numere os plantões de <strong>Irene Castilho</strong> em <strong>setembro de 2026</strong> com <code>ROW_NUMBER</code>, em ordem de início. Mostre <strong>numero</strong> e <strong>inicio</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT ROW_NUMBER() OVER (ORDER BY h.inicio) AS numero, h.inicio
+FROM hora_extra h
+JOIN profissional p ON p.id = h.profissional_id
+WHERE p.nome = 'Irene Castilho'
+  AND h.inicio &gt;= '2026-09-01' AND h.inicio &lt; '2026-10-01'
+ORDER BY numero;</pre></div><p>Para conferir: <strong>12</strong> linhas. O número 1 é o plantão de 02/09 às 19:30.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c8-ok4"><label for="c8-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c8-f5" data-fase="5" data-nome="Catraca">
@@ -306,7 +411,7 @@ WHERE NOT EXISTS (
     AND h.inicio &lt;  '2026-10-01'
 );</pre></div>
   <div class="box"><b class="l">Outro jeito · LEFT JOIN … IS NULL</b><p>Dá para chegar ao mesmo resultado com o <code>LEFT JOIN</code> do Caso 2: junte a catraca com as condições no <code>ON</code> e fique com <code>WHERE c.id IS NULL</code>. Funciona igual, mas o <code>NOT EXISTS</code> se lê quase como a frase em português: “não existe entrada”. Aqui o <code>BETWEEN</code> é seguro, porque as duas pontas são instantes exatos, com hora.</p></div>
-  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Liste os plantões de <strong>setembro de 2026</strong> em que <strong>não existe</strong> nenhuma passagem de <code>sentido = 'entrada'</code> da mesma pessoa na catraca entre <code>inicio - INTERVAL '1 hour'</code> e <code>inicio + INTERVAL '30 minutes'</code>. Mostre <code>nome</code>, <code>inicio</code> e <code>fim</code>, em ordem de início.</li><li>Por pessoa: <code>nome</code>, quantos plantões sem entrada (<code>plantoes</code>) e quantas horas eles somam (<code>horas</code>), da maior para a menor. Quem é o culpado? Confira com <code>SELECT verificar_caso8('Nome Completo');</code>.</li></ul></div>
+  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Liste os plantões de <strong>setembro de 2026</strong> em que a mesma pessoa <strong>não tem nenhuma entrada</strong> na catraca (<code>sentido = 'entrada'</code>) entre <strong>1 hora antes</strong> e <strong>30 minutos depois</strong> do início do plantão. Mostre <code>nome</code>, <code>inicio</code> e <code>fim</code>, em ordem de início.</li><li>Por pessoa: <code>nome</code>, quantos plantões sem entrada (<code>plantoes</code>) e quantas horas eles somam (<code>horas</code>), da maior para a menor. Quem é o culpado? Confira com <code>SELECT verificar_caso8('Nome Completo');</code>.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> listar os plantões de setembro de 2026 sem entrada da mesma pessoa na catraca entre 1 hora antes e 30 minutos depois do início. Na segunda, por pessoa: quantos plantões assim e quantas horas somam.</p>
     <p><strong>Como pensar:</strong></p>
@@ -347,8 +452,58 @@ GROUP BY p.nome
 ORDER BY horas DESC;</pre></div>
     <p>Para conferir: <strong>15</strong> plantões sem entrada. <strong>14</strong> são de <strong>Leonel Guedes</strong>, todos às 22:00 e de 8 horas: toda sexta, sábado e domingo de setembro, mais o feriado de 7/09 e a terça 22/09. Ele passa na catraca de manhã nos dias úteis e também nas duas noites de hora extra de verdade (10/09 e 15/09, às 19:00), mas nunca perto das 22h. São <strong>112 horas</strong>, ou 5745.60 reais, por plantões que não aconteceram. O 15º é de <strong>Moacir Teles</strong>, domingo 20/09 às 07:00: a saída dele às 13:05 está lá, e no mesmo dia ele entrou às 18:42 para outro plantão. A catraca travou naquela manhã. Dado real tem ruído: um plantão solto pede conferência, 14 no mesmo padrão não são acaso. E a Irene? Não aparece: todas as 114 horas dela têm entrada na catraca.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quem <strong>não fez nenhuma</strong> hora extra em <strong>agosto de 2026</strong>? Mostre <strong>nome</strong> e <strong>setor</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.nome, p.setor
+FROM profissional p
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM hora_extra h
+  WHERE h.profissional_id = p.id
+    AND h.inicio &gt;= '2026-08-01'
+    AND h.inicio &lt; '2026-09-01'
+);</pre></div><p>Para conferir: <strong>2</strong> pessoas: uma da Manutenção e uma da Farmácia.</p></div></details></li>
+      <li class="extra"><p>Quem <strong>nunca</strong> passou pela catraca (nem entrada, nem saída) num <strong>sábado ou domingo</strong>? Mostre só o <strong>nome</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT p.nome
+FROM profissional p
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM catraca c
+  WHERE c.profissional_id = p.id
+    AND EXTRACT(DOW FROM c.momento) IN (0, 6)
+)
+ORDER BY p.nome;</pre></div><p>Para conferir: <strong>7</strong> pessoas. A última em ordem alfabética é Yara Monteiro.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c8-ok5"><label for="c8-ok5">Etapa 5 concluída</label></div>
 </section>
+<!-- desafio:início -->
+<section class="fase desafio-final" id="caso8-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>Pegue os plantões de <strong>setembro de 2026</strong> sem entrada da mesma pessoa na catraca entre 1 hora antes e 30 minutos depois do início. Por dia da semana, mostre <strong>dow</strong> (0 é domingo), <strong>plantoes</strong> e <strong>horas</strong> (soma, com 1 casa), em ordem de dow.</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>SELECT EXTRACT(DOW FROM h.inicio) AS dow,
+       COUNT(*) AS plantoes,
+       ROUND(SUM(EXTRACT(EPOCH FROM h.fim - h.inicio)) / 3600, 1) AS horas
+FROM hora_extra h
+WHERE h.inicio &gt;= '2026-09-01' AND h.inicio &lt; '2026-10-01'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM catraca c
+    WHERE c.profissional_id = h.profissional_id
+      AND c.sentido = 'entrada'
+      AND c.momento BETWEEN h.inicio - INTERVAL '1 hour'
+                        AND h.inicio + INTERVAL '30 minutes'
+  )
+GROUP BY dow
+ORDER BY dow;</pre></div><p>Para conferir: <strong>5</strong> linhas. O domingo (0) tem <strong>5</strong> plantões e <strong>38</strong> horas.</p></div></details>
+</section>
+<!-- desafio:fim -->
+
 <section class="fase" id="c8-cola" style="gap:12px">
   <h2 style="font-size:32px">Cola rápida</h2>
   <div class="tw"><table>
@@ -2197,12 +2352,12 @@ SELECT '✅ Caso 8 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

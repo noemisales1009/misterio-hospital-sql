@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -88,7 +88,7 @@ erDiagram
     <tr><td><code>GROUP BY g.codigo, g.setor</code></td><td>uma linha por geladeira</td><td>“placar de cada geladeira”</td></tr>
     <tr><td><code>ORDER BY … DESC</code></td><td>maior primeiro</td><td>“a pior geladeira no topo”</td></tr>
   </table></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Conte, por geladeira, as leituras com temperatura acima de 8 ou abaixo de 2. Mostre o código e o setor, da que mais teve para a que menos teve.</li><li>Quais geladeiras ficaram sempre dentro da faixa?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Conte, por geladeira, as leituras com temperatura acima de 8 ou abaixo de 2. Mostre o código, o setor e quantas leituras, nessa ordem, da que mais teve para a que menos teve.</li><li>Quais geladeiras ficaram sempre dentro da faixa?</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> contar, por geladeira, as leituras fora da faixa (acima de 8 ou abaixo de 2), com código e setor, da que mais teve para a que menos teve.</p>
     <p><strong>Como pensar:</strong></p>
@@ -105,6 +105,27 @@ WHERE l.temperatura &gt; 8 OR l.temperatura &lt; 2
 GROUP BY g.codigo, g.setor
 ORDER BY leituras_fora DESC;</pre></div>
     <p>Para conferir: <strong>G-03</strong> com 10, <strong>G-06</strong> com 5, <strong>G-01</strong> com 4 e <strong>G-05</strong> com 1. As geladeiras <strong>G-02</strong> e <strong>G-04</strong> não aparecem. Mas “10 leituras” é só contagem. Falta saber quantas <em>vezes</em> e por quanto tempo seguido.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Conte, por geladeira, as leituras extremas: com <strong>10 graus ou mais</strong>, ou com <strong>3,0 graus ou menos</strong>. Mostre <strong>codigo</strong>, <strong>setor</strong> e <strong>leituras</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT g.codigo, g.setor, COUNT(*) AS leituras
+FROM leitura l
+JOIN geladeira g ON g.id = l.geladeira_id
+WHERE l.temperatura &gt;= 10 OR l.temperatura &lt;= 3.0
+GROUP BY g.codigo, g.setor
+ORDER BY leituras DESC;</pre></div><p>Para conferir: <strong>4</strong> linhas; a G-03 lidera, com 8.</p></div></details></li>
+      <li class="extra"><p>Quantas vezes cada técnico <strong>abriu</strong> uma porta na semana (evento <code>'abriu'</code>)? Mostre <strong>nome</strong> e <strong>aberturas</strong>, de quem mais abriu para quem menos abriu.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT t.nome, COUNT(*) AS aberturas
+FROM evento_porta e
+JOIN tecnico t ON t.id = e.tecnico_id
+WHERE e.evento = 'abriu'
+GROUP BY t.nome
+ORDER BY aberturas DESC;</pre></div><p>Para conferir: <strong>8</strong> linhas; Caetano Ribeiro lidera, com 30.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c6-ok1"><label for="c6-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c6-f2" data-fase="2" data-nome="Início">
@@ -120,7 +141,7 @@ ORDER BY leituras_fora DESC;</pre></div>
   </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · Função de janela: LAG</b><p><code>LAG(temperatura) OVER (PARTITION BY geladeira_id ORDER BY momento)</code> devolve a temperatura da leitura anterior <em>da mesma geladeira</em>. O <code>PARTITION BY</code> separa os grupos e o <code>ORDER BY</code> define a ordem. A função não reduz linhas, ela só acrescenta uma coluna. E não dá para filtrar por ela no <code>WHERE</code> direto: embrulhe numa subconsulta.</p></div>
   <div class="tw"><table><tr><th>momento</th><th>temperatura</th><th>anterior (LAG)</th><th>início de excursão?</th></tr><tr><td>02:00</td><td>4,8</td><td>4,6</td><td>não</td></tr><tr><td>02:30</td><td>8,4</td><td>4,8</td><td><strong>sim</strong></td></tr><tr><td>03:00</td><td>10,1</td><td>8,4</td><td>não, já estava fora</td></tr></table></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para cada leitura, traga também a temperatura <strong>anterior</strong> da mesma geladeira.</li><li>Mostre só os <strong>inícios de excursão</strong>: leitura acima de 8 com a anterior em 8 ou menos. Quantos são e em quais geladeiras?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para cada leitura, traga também a temperatura <strong>anterior</strong> da mesma geladeira, em ordem de horário.</li><li>Fique só com os <strong>inícios de excursão</strong>: leitura acima de 8 com a anterior em 8 ou menos. Mostre o código da geladeira, o momento, a temperatura e a anterior, nessa ordem. Quantos são e em quais geladeiras?</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> trazer, em cada leitura, a temperatura anterior da mesma geladeira e mostrar só os inícios de excursão: acima de 8 com a anterior em 8 ou menos.</p>
     <p><strong>Como pensar:</strong></p>
@@ -143,6 +164,36 @@ WHERE temperatura &gt; 8
   AND (anterior IS NULL OR anterior &lt;= 8)
 ORDER BY momento;</pre></div>
     <p>Para conferir: <strong>4</strong> inícios, um em cada geladeira com problema: G-05 (11/09), G-01 (12/09), G-03 (14/09) e G-06 (15/09). Cada uma teve <strong>uma</strong> excursão. Qual foi a mais longa?</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Ache os <strong>fins de excursão</strong>: leitura em 8 ou menos com a anterior, da mesma geladeira, acima de 8. Mostre <strong>codigo</strong>, <strong>momento</strong>, <strong>temperatura</strong> e <strong>anterior</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT codigo, momento, temperatura, anterior
+FROM (
+  SELECT g.codigo, l.momento, l.temperatura,
+         LAG(l.temperatura) OVER (
+           PARTITION BY l.geladeira_id ORDER BY l.momento) AS anterior
+  FROM leitura l
+  JOIN geladeira g ON g.id = l.geladeira_id
+) t
+WHERE temperatura &lt;= 8
+  AND anterior &gt; 8
+ORDER BY momento;</pre></div><p>Para conferir: <strong>4</strong> linhas; a da G-03 é às 07:30 de 14/09.</p></div></details></li>
+      <li class="extra"><p>Quais leituras subiram <strong>2 graus ou mais</strong> em relação à anterior da mesma geladeira? Mostre <strong>codigo</strong>, <strong>momento</strong>, <strong>temperatura</strong> e <strong>anterior</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT codigo, momento, temperatura, anterior
+FROM (
+  SELECT g.codigo, l.momento, l.temperatura,
+         LAG(l.temperatura) OVER (
+           PARTITION BY l.geladeira_id ORDER BY l.momento) AS anterior
+  FROM leitura l
+  JOIN geladeira g ON g.id = l.geladeira_id
+) t
+WHERE temperatura - anterior &gt;= 2
+ORDER BY momento;</pre></div><p>Para conferir: <strong>13</strong> linhas; a primeira, em ordem de tempo, é da G-05, em 11/09 às 10:30.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c6-ok2"><label for="c6-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c6-f3" data-fase="3" data-nome="Duração">
@@ -190,6 +241,48 @@ JOIN geladeira g ON g.id = f.geladeira_id
 GROUP BY g.codigo, f.n_todas - f.n_fora
 ORDER BY duracao DESC;</pre></div>
     <p>Para conferir: <strong>G-03</strong>, de <strong>02:30 às 07:00</strong> do dia 14/09, com 10 leituras e <strong>4h30</strong> de duração. A seguinte, G-06, teve 2h.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Refaça as ilhas com outro limite: sequências seguidas de leituras com <strong>10 graus ou mais</strong>. Mostre <strong>codigo</strong>, <strong>inicio</strong>, <strong>fim</strong>, <strong>leituras</strong> e <strong>duracao</strong> (fim menos início).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>WITH numeradas AS (
+  SELECT geladeira_id, momento, temperatura,
+         ROW_NUMBER() OVER (
+           PARTITION BY geladeira_id ORDER BY momento) AS n_todas
+  FROM leitura
+),
+fora AS (
+  SELECT *,
+         ROW_NUMBER() OVER (
+           PARTITION BY geladeira_id ORDER BY momento) AS n_fora
+  FROM numeradas
+  WHERE temperatura &gt;= 10
+)
+SELECT g.codigo,
+       MIN(f.momento) AS inicio,
+       MAX(f.momento) AS fim,
+       COUNT(*) AS leituras,
+       MAX(f.momento) - MIN(f.momento) AS duracao
+FROM fora f
+JOIN geladeira g ON g.id = f.geladeira_id
+GROUP BY g.codigo, f.n_todas - f.n_fora
+ORDER BY duracao DESC;</pre></div><p>Para conferir: <strong>3</strong> linhas; a da G-06 tem uma leitura só, com duração zero.</p></div></details></li>
+      <li class="extra"><p>Nas geladeiras G-01, G-03, G-05 e G-06, numere as leituras da mais quente para a mais fria e fique com a número 1 de cada uma. Mostre <strong>codigo</strong>, <strong>momento</strong> e <strong>temperatura</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT codigo, momento, temperatura
+FROM (
+  SELECT g.codigo, l.momento, l.temperatura,
+         ROW_NUMBER() OVER (
+           PARTITION BY l.geladeira_id ORDER BY l.temperatura DESC) AS n
+  FROM leitura l
+  JOIN geladeira g ON g.id = l.geladeira_id
+  WHERE g.codigo IN ('G-01', 'G-03', 'G-05', 'G-06')
+) t
+WHERE n = 1
+ORDER BY codigo;</pre></div><p>Para conferir: <strong>4</strong> linhas; a mais quente de todas é a da G-03, com 13,4 graus.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c6-ok3"><label for="c6-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c6-f4" data-fase="4" data-nome="Quem abriu">
@@ -222,6 +315,31 @@ WHERE g.codigo = 'G-03'
                     AND TIMESTAMP '2026-09-14 02:30:00'
 ORDER BY e.momento;</pre></div>
     <p>Para conferir: <strong>2</strong> pessoas: <strong>Dulce Galdino</strong> às 02:10 e <strong>Valéria Montenegro</strong> às 02:21. Qual das duas deixou a porta aberta?</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>A excursão da G-06 começou às 09:00 de 15/09/2026. Quem <strong>abriu</strong> a porta da G-06 nos 30 minutos anteriores? Mostre <strong>momento</strong>, <strong>nome</strong> e <strong>evento</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT e.momento, t.nome, e.evento
+FROM evento_porta e
+JOIN tecnico t ON t.id = e.tecnico_id
+JOIN geladeira g ON g.id = e.geladeira_id
+WHERE g.codigo = 'G-06'
+  AND e.evento = 'abriu'
+  AND e.momento BETWEEN TIMESTAMP '2026-09-15 09:00:00' - INTERVAL '30 minutes'
+                    AND TIMESTAMP '2026-09-15 09:00:00'
+ORDER BY e.momento;</pre></div><p>Para conferir: <strong>1</strong> linha, às 08:55.</p></div></details></li>
+      <li class="extra"><p>Liste as leituras da G-03 nas <strong>2 horas</strong> a partir de 02:00 de 14/09/2026 (de 02:00 até 04:00, com as pontas). Mostre <strong>momento</strong> e <strong>temperatura</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT l.momento, l.temperatura
+FROM leitura l
+JOIN geladeira g ON g.id = l.geladeira_id
+WHERE g.codigo = 'G-03'
+  AND l.momento BETWEEN TIMESTAMP '2026-09-14 02:00:00'
+                    AND TIMESTAMP '2026-09-14 02:00:00' + INTERVAL '2 hours'
+ORDER BY l.momento;</pre></div><p>Para conferir: <strong>5</strong> linhas; a temperatura sobe de 4,8 para 12,6.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c6-ok4"><label for="c6-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c6-f5" data-fase="5" data-nome="Fechou?">
@@ -261,8 +379,60 @@ WHERE evento = 'abriu'
        OR prox_tecnico &lt;&gt; tecnico_id)
 ORDER BY momento;</pre></div>
     <p>Para conferir: só <strong>Valéria Montenegro</strong>, que abriu a G-03 às 02:21 e <strong>não fechou</strong>. Quem fechou a porta, às 06:48, foi outro técnico, <strong>Otávio Prado</strong>. Dulce abriu e fechou em 4 minutos.</p></div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Para cada abertura da G-06 no dia 15/09/2026, quanto tempo a porta ficou aberta até o próximo evento? Mostre <strong>momento</strong>, <strong>nome</strong> e <strong>tempo_aberta</strong> (momento do próximo evento menos o da abertura).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT momento, nome, prox_momento - momento AS tempo_aberta
+FROM (
+  SELECT e.momento, g.codigo, t.nome, e.evento,
+         LEAD(e.momento) OVER (
+           PARTITION BY e.geladeira_id ORDER BY e.momento) AS prox_momento
+  FROM evento_porta e
+  JOIN geladeira g ON g.id = e.geladeira_id
+  JOIN tecnico t ON t.id = e.tecnico_id
+) x
+WHERE evento = 'abriu'
+  AND codigo = 'G-06'
+  AND momento BETWEEN '2026-09-15 00:00:00' AND '2026-09-15 23:59:59'
+ORDER BY momento;</pre></div><p>Para conferir: <strong>5</strong> linhas; a mais longa durou 45 minutos.</p></div></details></li>
+      <li class="extra"><p>Ache a leitura logo <strong>antes</strong> de cada excursão: temperatura em 8 ou menos, com a <strong>próxima</strong> leitura da mesma geladeira acima de 8. Mostre <strong>codigo</strong>, <strong>momento</strong>, <strong>temperatura</strong> e <strong>proxima</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT codigo, momento, temperatura, proxima
+FROM (
+  SELECT g.codigo, l.momento, l.temperatura,
+         LEAD(l.temperatura) OVER (
+           PARTITION BY l.geladeira_id ORDER BY l.momento) AS proxima
+  FROM leitura l
+  JOIN geladeira g ON g.id = l.geladeira_id
+) t
+WHERE temperatura &lt;= 8
+  AND proxima &gt; 8
+ORDER BY momento;</pre></div><p>Para conferir: <strong>4</strong> linhas; a da G-03 é às 02:00 de 14/09.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c6-ok5"><label for="c6-ok5">Etapa 5 concluída</label></div>
 </section>
+<!-- desafio:início -->
+<section class="fase desafio-final" id="caso6-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>Por quanto tempo a porta de cada geladeira ficou aberta na semana? Some, por geladeira, o tempo de cada abertura até o próximo evento da mesma geladeira. Mostre <strong>codigo</strong> e <strong>tempo_aberta</strong>, do maior para o menor.</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>SELECT codigo, SUM(prox_momento - momento) AS tempo_aberta
+FROM (
+  SELECT g.codigo, e.momento, e.evento,
+         LEAD(e.momento) OVER (
+           PARTITION BY e.geladeira_id ORDER BY e.momento) AS prox_momento
+  FROM evento_porta e
+  JOIN geladeira g ON g.id = e.geladeira_id
+) x
+WHERE evento = 'abriu'
+GROUP BY codigo
+ORDER BY tempo_aberta DESC;</pre></div><p>Para conferir: <strong>6</strong> linhas; a G-03 passa de 7 horas, e todas as outras ficam abaixo de 3.</p></div></details>
+</section>
+<!-- desafio:fim -->
+
 <section class="fase" id="c6-cola" style="gap:12px">
   <h2 style="font-size:32px">Cola rápida</h2>
   <div class="tw"><table>
@@ -2779,12 +2949,12 @@ SELECT '✅ Caso 6 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

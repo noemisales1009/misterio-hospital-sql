@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=b6bd128a">
+<link rel="stylesheet" href="css/estilo.css?v=9c509d36">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -133,6 +133,27 @@ WHERE i.nome = 'Lia Moraes'
 ORDER BY a.momento;</pre></div>
     <p>Para conferir: <strong>78</strong> acessos, feitos por <strong>13</strong> pessoas diferentes. A equipe de cuidado da Lia tem 7 pessoas. Quem são as outras 6? Na segunda, <strong>4</strong> linhas: três impressões feitas nos computadores da Clínica Médica (<code>CLM</code>), em horário de trabalho, e uma <strong>exportação às 23:47 do dia 23/10</strong>, com a conta da <strong>Jaqueline Prado</strong>, enfermeira da equipe. Só que de um computador do Faturamento, o <strong>FAT-PC07</strong>. Anote dia, hora e estação.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quantos acessos o prontuário de <strong>Pedro Carvalho Ramos</strong> teve na semana, e quantas pessoas diferentes o abriram? Uma linha só, com <strong>acessos</strong> e <strong>pessoas</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS acessos,
+       COUNT(DISTINCT a.usuario_id) AS pessoas
+FROM log_acesso a
+JOIN internado i ON i.id = a.internado_id
+WHERE i.nome = 'Pedro Carvalho Ramos';</pre></div><p>Para conferir: <strong>1</strong> linha; foram <strong>8</strong> pessoas diferentes.</p></div></details></li>
+      <li class="extra"><p>Por setor de quem acessou: mostre <strong>setor</strong>, <strong>acessos</strong> e <strong>pacientes</strong> (quantos pacientes diferentes esse setor abriu), do setor com mais acessos para o com menos.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT u.setor,
+       COUNT(*) AS acessos,
+       COUNT(DISTINCT a.internado_id) AS pacientes
+FROM log_acesso a
+JOIN usuario u ON u.id = a.usuario_id
+GROUP BY u.setor
+ORDER BY acessos DESC;</pre></div><p>Para conferir: <strong>6</strong> setores. A Clínica Médica lidera com <strong>597</strong> acessos.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c9-ok1"><label for="c9-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c9-f2" data-fase="2" data-nome="Sem vínculo">
@@ -205,6 +226,32 @@ WHERE i.nome = 'Lia Moraes'
 ORDER BY u.nome;</pre></div>
     <p>Para conferir: <strong>6 pessoas</strong>. Daniela Couto (Recepção, 3 acessos), Caio Linhares (Clínica Médica, 2), Fábio Rezende (UTI Adulto, 2), Leandro Viana (Farmácia, 2), Henrique Tavares (Cirúrgica, 1) e Otávio Lins (Tecnologia, 1). Repare no Caio: é médico da Clínica Médica, o setor da Lia, mas não é da equipe dela. Estar no mesmo setor não dá direito de abrir. Os seis só <strong>visualizaram</strong>: já é infração à LGPD, mas o PDF não saiu daí. E a Jaqueline não aparece, porque ela é da equipe. Na segunda, a Daniela Couto, por exemplo, aparece como <code>***.687.690-**</code>.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Sem contar a Lia Moraes, quem abriu o prontuário de algum paciente sem estar na equipe de cuidado dele? Mostre <strong>paciente</strong> (nome do internado) e <strong>nome</strong> de quem abriu, sem repetir.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT DISTINCT i.nome AS paciente, u.nome
+FROM log_acesso a
+JOIN internado i ON i.id = a.internado_id
+JOIN usuario u ON u.id = a.usuario_id
+WHERE i.nome &lt;&gt; 'Lia Moraes'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM equipe_cuidado e
+    WHERE e.internado_id = a.internado_id
+      AND e.usuario_id = a.usuario_id
+  )
+ORDER BY paciente;</pre></div><p>Para conferir: <strong>3</strong> linhas. Uma delas é Joana Pimentel no prontuário de Fábio Rocha Cardoso.</p></div></details></li>
+      <li class="extra"><p>Mostre os usuários do setor <strong>Faturamento</strong> com <strong>nome</strong> e <strong>cpf_mascarado</strong>: os 3 primeiros dígitos e o resto escondido, como <code>704.***.***-**</code>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT nome,
+       LEFT(cpf, 3) || '.***.***-**' AS cpf_mascarado
+FROM usuario
+WHERE setor = 'Faturamento'
+ORDER BY nome;</pre></div><p>Para conferir: <strong>5</strong> pessoas. O do Sérgio Paixão sai <code>153.***.***-**</code>.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c9-ok2"><label for="c9-ok2">Etapa 2 concluída</label></div>
 </section>
 <section class="fase" id="c9-f3" data-fase="3" data-nome="Fora do turno">
@@ -263,6 +310,29 @@ WHERE NOT no_turno
 ORDER BY momento;</pre></div>
     <p>Para conferir: <strong>3</strong> acessos. Fora do turno, sozinho, não é prova. A médica <strong>Beatriz Falcão</strong>, da manhã, abriu o prontuário às 13:20, vinte minutos depois do fim do turno: plantão que atrasa é comum. O <strong>Leandro Viana</strong>, da tarde, abriu às 19:40, e ele já estava na lista dos curiosos. Mas a <strong>exportação das 23:47</strong> não fecha: a Jaqueline é da manhã, saiu às 13h e, se quisesse o prontuário, abriria na Clínica Médica, não no Faturamento. Alguém usou a senha dela?</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Separe os acessos ao prontuário da <strong>Lia Moraes</strong> pelo horário: <code>'manhã'</code> (7h a 12h59), <code>'tarde'</code> (13h a 18h59) ou <code>'noite'</code> (o resto). Mostre <strong>periodo</strong> e <strong>acessos</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT CASE
+         WHEN EXTRACT(HOUR FROM a.momento) BETWEEN 7 AND 12 THEN 'manhã'
+         WHEN EXTRACT(HOUR FROM a.momento) BETWEEN 13 AND 18 THEN 'tarde'
+         ELSE 'noite'
+       END AS periodo,
+       COUNT(*) AS acessos
+FROM log_acesso a
+JOIN internado i ON i.id = a.internado_id
+WHERE i.nome = 'Lia Moraes'
+GROUP BY periodo;</pre></div><p>Para conferir: <strong>3</strong> linhas. A manhã tem mais, com <strong>31</strong> acessos.</p></div></details></li>
+      <li class="extra"><p>Na semana toda, quantas impressões (<code>acao = 'imprimir'</code>) foram feitas no horário da noite, das 19h às 6h59? Mostre só <strong>impressoes</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT COUNT(*) AS impressoes
+FROM log_acesso
+WHERE acao = 'imprimir'
+  AND (EXTRACT(HOUR FROM momento) &gt;= 19 OR EXTRACT(HOUR FROM momento) &lt; 7);</pre></div><p>Para conferir: Um número entre <strong>20</strong> e <strong>25</strong>. Deu quase 300? Faltaram os parênteses em volta do <code>OR</code>.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c9-ok3"><label for="c9-ok3">Etapa 3 concluída</label></div>
 </section>
 <section class="fase" id="c9-f4" data-fase="4" data-nome="Força bruta">
@@ -284,7 +354,7 @@ ORDER BY momento;</pre></div>
 FROM log_login
 GROUP BY dia
 ORDER BY dia;</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Agrupe as tentativas da semana por <code>login</code> e <code>estacao</code> e mostre: <code>login</code>, <code>estacao</code>, <code>falhas</code> (tentativas erradas) e <code>sucessos</code> (tentativas certas). Fique só com os grupos que tiveram <strong>5 falhas ou mais</strong>.</li><li>Para esses mesmos grupos, mostre <code>login</code>, <code>estacao</code> e o horário da <strong>primeira</strong> e da <strong>última</strong> falha. Qual dos dois parece um ataque?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para cada par de <code>login</code> e <code>estacao</code> da semana, mostre: <code>login</code>, <code>estacao</code>, <code>falhas</code> (tentativas erradas) e <code>sucessos</code> (tentativas certas). Fique só com os pares que tiveram <strong>5 falhas ou mais</strong>.</li><li>Para esses mesmos pares, mostre <code>login</code>, <code>estacao</code> e o horário da <strong>primeira</strong> e da <strong>última</strong> falha. Qual dos dois parece um ataque?</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> agrupar as tentativas de login por login e estação, com falhas e sucessos, só para grupos com 5 falhas ou mais. Na segunda, o horário da primeira e da última falha desses grupos.</p>
     <p><strong>Como pensar:</strong></p>
@@ -310,6 +380,30 @@ HAVING COUNT(*) FILTER (WHERE NOT sucesso) &gt;= 5
 ORDER BY primeira_falha;</pre></div>
     <p>Para conferir: <strong>2</strong> grupos. <strong>tereza.botelho</strong> na <strong>REC-PC02</strong>: 6 falhas e 7 sucessos, com as falhas entre 07:03 e 07:11 do dia 21, no computador dela, no começo do turno dela. Ela tinha voltado de férias sem lembrar a senha, e a TI trocou a senha (ela entrou às 07:38). Inocente. <strong>jaqueline.prado</strong> na <strong>FAT-PC07</strong>: <strong>20 falhas</strong> entre <strong>23:31 e 23:44</strong> do dia 23, uma a cada 40 segundos mais ou menos, num computador que não é do setor dela, e 1 sucesso. Isso é alguém chutando senhas. O bloqueio depois de 5 erros estava desligado, e a exportação veio às 23:47.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Para cada estação, mostre <strong>estacao</strong>, <strong>falhas</strong> (tentativas erradas) e <strong>sucessos</strong> (certas). Fique só com as estações que tiveram <strong>4 falhas ou mais</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT estacao,
+       COUNT(*) FILTER (WHERE NOT sucesso) AS falhas,
+       COUNT(*) FILTER (WHERE sucesso) AS sucessos
+FROM log_login
+GROUP BY estacao
+HAVING COUNT(*) FILTER (WHERE NOT sucesso) &gt;= 4
+ORDER BY falhas DESC;</pre></div><p>Para conferir: <strong>5</strong> estações. A FAT-PC07 lidera com <strong>24</strong> falhas.</p></div></details></li>
+      <li class="extra"><p>Em <code>log_acesso</code>, por pessoa: mostre <strong>nome</strong>, <strong>visualizacoes</strong> e <strong>impressoes</strong>. Fique só com quem fez <strong>5 impressões ou mais</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT u.nome,
+       COUNT(*) FILTER (WHERE a.acao = 'visualizar') AS visualizacoes,
+       COUNT(*) FILTER (WHERE a.acao = 'imprimir') AS impressoes
+FROM log_acesso a
+JOIN usuario u ON u.id = a.usuario_id
+GROUP BY u.nome
+HAVING COUNT(*) FILTER (WHERE a.acao = 'imprimir') &gt;= 5
+ORDER BY impressoes DESC;</pre></div><p>Para conferir: <strong>3</strong> pessoas. Sueli Barros lidera com <strong>7</strong> impressões.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c9-ok4"><label for="c9-ok4">Etapa 4 concluída</label></div>
 </section>
 <section class="fase" id="c9-f5" data-fase="5" data-nome="Quem estava lá">
@@ -331,7 +425,7 @@ WHERE a.internado_id = (SELECT id FROM internado WHERE nome = 'Lia Moraes')
 ORDER BY a.momento
 LIMIT 1;</pre></div>
   <div class="box"><b class="l">Lembrete · juntar pelo login</b><p>Em <code>log_login</code> não existe <code>usuario_id</code>, só o <code>login</code> digitado. Para ter o nome, junte pelo texto: <code>JOIN usuario u ON u.login = l.login</code>.</p></div>
-  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Liste os logins <strong>com sucesso</strong> na estação <code>FAT-PC07</code> entre <strong>19:00 e 23:47</strong> do dia 23/10/2026: <code>login</code>, <code>nome</code> e <code>momento</code>.</li><li>Quem foi a última pessoa a entrar com sucesso no <code>FAT-PC07</code> <strong>antes do login da Jaqueline</strong> nessa estação? Busque o horário do login dela com uma subconsulta, em vez de digitar, e mostre <code>login</code>, <code>nome</code> e <code>momento</code> (uma linha só). Quem exportou o prontuário da Lia? Confira com <code>SELECT verificar_caso9('Nome Completo');</code>.</li></ul></div>
+  <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Liste os logins <strong>com sucesso</strong> na estação <code>FAT-PC07</code> entre <strong>19:00 e 23:47</strong> do dia 23/10/2026: <code>login</code>, <code>nome</code> e <code>momento</code>.</li><li>Quem foi a última pessoa a entrar com sucesso no <code>FAT-PC07</code> <strong>antes do login da Jaqueline</strong> nessa estação? Não digite o horário do login dela: faça a consulta descobrir esse horário sozinha. Mostre <code>login</code>, <code>nome</code> e <code>momento</code> (uma linha só). Quem exportou o prontuário da Lia? Confira com <code>SELECT verificar_caso9('Nome Completo');</code>.</li></ul></div>
   <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
     <p><strong>O que a missão pede:</strong> listar os logins com sucesso no <code>FAT-PC07</code> entre 19:00 e 23:47 de 23/10/2026. Na segunda, a última pessoa que entrou com sucesso ali antes do login da Jaqueline, buscando o horário dela com subconsulta.</p>
     <p><strong>Como pensar:</strong></p>
@@ -363,8 +457,56 @@ ORDER BY l.momento DESC
 LIMIT 1;</pre></div>
     <p>Para conferir: só <strong>2</strong> entradas, <strong>sergio.paixao</strong> (Sérgio Paixão) às <strong>19:05</strong> e <strong>jaqueline.prado</strong> às <strong>23:46</strong>. O Sérgio é faturista do turno da noite e o FAT-PC07 é o computador dele. Ninguém mais entrou ali entre as 19:05 e a rajada de senhas erradas. Na segunda, a resposta é <strong>Sérgio Paixão</strong>. Tire o limite das 23:47 da primeira consulta e aparece mais uma linha: às <strong>23:52</strong> ele entrou de novo na própria conta. Ele saiu da conta dele, chutou a senha da Jaqueline até acertar, exportou o PDF e voltou para a dele.</p>
   </div></details>
+  <!-- extras:início -->
+  <details class="extras"><summary>🏋️ Treinos extras</summary><div>
+    <p class="extras-intro">Mais prática com os comandos desta fase, no mesmo banco. Escreva no computador da fase e rode: o jogo reconhece qual treino você resolveu.</p>
+    <ol class="extras-lista">
+      <li class="extra"><p>Quem foi a <strong>primeira</strong> pessoa a abrir o prontuário da Lia Moraes <strong>depois da exportação</strong>? Busque o horário da exportação com uma subconsulta. Mostre <strong>nome</strong>, <strong>momento</strong> e <strong>acao</strong> (uma linha só).</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT u.nome, a.momento, a.acao
+FROM log_acesso a
+JOIN usuario u ON u.id = a.usuario_id
+JOIN internado i ON i.id = a.internado_id
+WHERE i.nome = 'Lia Moraes'
+  AND a.momento &gt; (SELECT a2.momento
+                   FROM log_acesso a2
+                   JOIN internado i2 ON i2.id = a2.internado_id
+                   WHERE i2.nome = 'Lia Moraes'
+                     AND a2.acao = 'exportar')
+ORDER BY a.momento
+LIMIT 1;</pre></div><p>Para conferir: <strong>1</strong> linha, na manhã de 24/10.</p></div></details></li>
+      <li class="extra"><p>Quais pacientes deram entrada no <strong>mesmo dia</strong> que a Lia Moraes, sem contar ela? Busque a data dela com uma subconsulta. Mostre <strong>nome</strong> e <strong>leito</strong>.</p>
+        <details class="sol-extra"><summary>Ver resposta</summary><div><div class="code"><pre data-sql data-sql-extra>SELECT nome, leito
+FROM internado
+WHERE entrada = (SELECT entrada FROM internado WHERE nome = 'Lia Moraes')
+  AND nome &lt;&gt; 'Lia Moraes'
+ORDER BY nome;</pre></div><p>Para conferir: <strong>3</strong> pacientes. Um deles está no leito UTI-01.</p></div></details></li>
+    </ol>
+  </div></details>
+  <!-- extras:fim -->
   <div class="done-row"><input type="checkbox" id="c9-ok5"><label for="c9-ok5">Etapa 5 concluída</label></div>
 </section>
+<!-- desafio:início -->
+<section class="fase desafio-final" id="caso9-desafio" data-desafio>
+  <div class="fase-head"><div class="num">🏆</div><div class="t"><h2>Desafio final</h2><div class="sub">sem ajuda · opcional</div></div></div>
+  <div class="box"><b class="l">Como funciona</b><p>Uma pergunta nova sobre o caso, sem dica e sem tira-dúvidas. Acertou? O troféu do caso é seu. A resposta só aparece depois que você acertar, ou se você desistir.</p></div>
+  <div class="missao"><b class="l">Desafio</b><p>Para cada paciente, mostre <strong>nome</strong>, <strong>acessos</strong> (todos os acessos ao prontuário) e <strong>sem_vinculo</strong> (os acessos de quem não é da equipe de cuidado dele). Fique só com os pacientes que têm pelo menos 1 acesso sem vínculo.</p></div>
+  <details class="sol sol-desafio"><summary>Ver resposta</summary><div><div class="code"><pre data-sql>SELECT i.nome,
+       COUNT(*) AS acessos,
+       COUNT(*) FILTER (WHERE NOT EXISTS (
+         SELECT 1 FROM equipe_cuidado e
+         WHERE e.internado_id = a.internado_id
+           AND e.usuario_id = a.usuario_id)) AS sem_vinculo
+FROM log_acesso a
+JOIN internado i ON i.id = a.internado_id
+GROUP BY i.nome
+HAVING COUNT(*) FILTER (WHERE NOT EXISTS (
+         SELECT 1 FROM equipe_cuidado e
+         WHERE e.internado_id = a.internado_id
+           AND e.usuario_id = a.usuario_id)) &gt;= 1
+ORDER BY sem_vinculo DESC;</pre></div><p>Para conferir: <strong>4</strong> pacientes. A Lia tem <strong>11</strong> acessos sem vínculo.</p></div></details>
+</section>
+<!-- desafio:fim -->
+
 <section class="fase" id="c9-cola" style="gap:12px">
   <h2 style="font-size:32px">Cola rápida</h2>
   <div class="tw"><table>
@@ -2531,12 +2673,12 @@ SELECT '✅ Caso 9 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 </dialog>
 
 <script src="js/config.js?v=58dc78bb"></script>
-<script src="js/app.js?v=81f8a57d"></script>
+<script src="js/app.js?v=941cfe85"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=a5b12102"></script>
-<script src="js/caderno.js?v=7b5c7c96"></script>
+<script src="js/catalogo.js?v=014bb7b9"></script>
+<script src="js/caderno.js?v=a1d2dd4f"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=b90f0fb0"></script>
+<script src="js/computador.js?v=26912d0b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 
