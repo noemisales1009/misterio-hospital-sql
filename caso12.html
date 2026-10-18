@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -132,6 +132,13 @@ WITH RECURSIVE contagem AS (
 SELECT n FROM contagem;</pre></div>
   <div class="box"><b class="l">Por que UNION ALL, e não UNION?</b><p><code>UNION ALL</code> empilha tudo, sem conferir repetição: é rápido e é o normal na recursão. <code>UNION</code> (sem ALL) jogaria fora linhas idênticas a cada rodada. Aqui cada guia tem um <code>id</code> diferente, então não há o que jogar fora: use <code>UNION ALL</code>. As colunas das duas partes precisam bater em <strong>número, ordem e tipo</strong>, como em qualquer <code>UNION</code>.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Monte a árvore do lote <code>IGH-2609-114</code>: comece pela guia de entrada e traga todas as guias que descendem dela. Mostre <code>id</code>, <code>guia_anterior</code>, <code>origem</code>, <code>destino</code> e <code>nivel</code> (1 para a guia de entrada).</li><li>Numa linha só: quantas guias tem a árvore (<code>guias</code>) e quantos níveis ela tem (<code>niveis</code>).</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> montar a árvore do lote <code>IGH-2609-114</code>, da entrada até a última guia, com o nível de cada uma. Na segunda, dizer numa linha quantas guias e níveis ela tem.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Só a entrada tem o <code>lote</code>; as outras apontam para a anterior em <code>guia_anterior</code>, e ninguém sabe quantos andares há. O <code>WITH RECURSIVE</code> resolve: ele usa o próprio resultado para dar o próximo passo.</li><li>Ele tem duas partes ligadas por <code>UNION ALL</code>. A âncora é o ponto de partida: a guia de entrada, com nível 1.</li><li>A parte recursiva busca as guias cuja <code>guia_anterior</code> é o <code>id</code> de alguma já achada e soma 1 ao nível.</li><li><strong>Na segunda:</strong> conte as linhas da árvore e pegue o maior nível.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Deu erro de coluna? A âncora e a parte recursiva precisam ter as mesmas colunas, na mesma ordem.</li><li>Veio só a entrada? O <code>JOIN</code> está invertido: a <code>guia_anterior</code> da guia nova aponta para o <code>id</code> já achado.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>A âncora é <code>SELECT id, guia_anterior, origem, destino, 1 AS nivel FROM lote_guia WHERE lote = 'IGH-2609-114'</code>. A parte recursiva pega as colunas de <code>g</code> (<code>lote_guia g</code>) e <code>a.nivel + 1</code>, com <code>JOIN arvore a ON g.guia_anterior = a.id</code>. Depois do <code>WITH</code>, um <code>SELECT … FROM arvore</code> comum. Na segunda missão, troque o <code>SELECT</code> final por <code>COUNT(*)</code> e <code>MAX(nivel)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH RECURSIVE arvore AS (
@@ -176,6 +183,13 @@ FROM arvore;</pre></div>
   <div class="box"><b class="l">Cuidado com o tipo</b><p>A coluna precisa ter o <strong>mesmo tipo</strong> nas duas partes. <code>origem || ' → ' || destino</code> já é texto, então tudo bem. Se a âncora começasse com um texto solto, como <code>'início' AS caminho</code>, escreva <code>'início'::text</code> para o banco não reclamar.</p></div>
   <div class="box"><b class="l">A recursão monta; o resto vem depois</b><p>Depois que o <code>WITH RECURSIVE</code> termina, o resultado é uma tabela como outra qualquer. Dá para filtrar, juntar com outras tabelas, agrupar e somar no <code>SELECT</code> final. Para começar de <strong>todos</strong> os lotes ao mesmo tempo, troque o filtro da âncora por <code>WHERE guia_anterior IS NULL</code>: são todas as guias de entrada.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para cada guia da árvore do lote <code>IGH-2609-114</code>, mostre <code>id</code>, <code>caminho</code> (no formato <code>ALM → FC → SAT-UTI</code>), <code>qtd_enviada</code> e <code>qtd_recebida</code>.</li><li>Agora todos os lotes: comece por todas as guias de entrada, leve o <code>lote</code> até o fim da árvore e some <code>qtd_enviada - qtd_recebida</code> de todas as guias de cada lote. Mostre <code>lote</code> e <code>perda</code>, só os lotes com perda maior que zero, da maior para a menor.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, mostrar o caminho de cada guia da árvore do lote, com enviado e recebido. Na segunda, a perda (enviado menos recebido) de cada lote, com todas as árvores.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O caminho cresce a cada rodada: a âncora gruda origem, seta e destino com <code>||</code>; a parte recursiva acrescenta ao caminho anterior a seta e o novo destino.</li><li><strong>Na segunda:</strong> a âncora pega todas as guias de entrada, as que não têm <code>guia_anterior</code>.</li><li>Só a entrada tem o <code>lote</code>; para toda guia sair com ele, a parte recursiva repete o lote que veio da árvore.</li><li>Depois, agrupe por lote, some a diferença e fique com perda maior que zero.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>A primeira não bate? O separador é espaço, <code>→</code> e espaço; um <code>-&gt;</code> digitado vira outro texto.</li><li>Lote vazio em quase tudo? A parte recursiva pegou o lote da guia nova.</li><li>Veio perda zero? Filtro depois da soma é <code>HAVING</code>, não <code>WHERE</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: a âncora tem <code>origem || ' → ' || destino AS caminho</code>, e a parte recursiva tem <code>a.caminho || ' → ' || g.destino</code>. Segunda: âncora com <code>lote</code> e <code>WHERE guia_anterior IS NULL</code>; na parte recursiva, <code>a.lote</code> no lugar de <code>g.lote</code>. Fora do <code>WITH</code>: <code>GROUP BY lote</code>, <code>HAVING SUM(qtd_enviada - qtd_recebida) &gt; 0</code> e <code>ORDER BY perda DESC</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH RECURSIVE arvore AS (
@@ -235,6 +249,13 @@ WITH RECURSIVE volta AS (
 SELECT caminho FROM volta WHERE nivel = 3 ORDER BY caminho;</pre></div>
   <div class="box"><b class="l">Dois WITH na mesma consulta</b><p>Um <code>WITH RECURSIVE</code> pode ter vários blocos separados por vírgula, recursivos ou não: <code>WITH RECURSIVE arvore AS (…), alcance AS (…) SELECT …</code>. O <code>RECURSIVE</code> só aparece uma vez, logo depois do <code>WITH</code>, e vale para todos. No <code>SELECT</code> final você usa os dois, como se fossem tabelas.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Partindo de <code>ALM</code> e seguindo <code>lote_rota</code> sem repetir lugar, liste cada local alcançável <strong>uma vez só</strong>, com o menor número de passos para chegar lá: <code>destino</code> e <code>passos</code>.</li><li>Quais guias da árvore do lote <code>IGH-2609-114</code> foram para um destino que <strong>não está</strong> nessa lista? Mostre <code>id</code>, <code>origem</code>, <code>destino</code>, <code>qtd_enviada</code> e <code>enviado_em</code>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, listar cada local alcançável a partir do <code>ALM</code> pelas rotas, sem repetir lugar, com o menor número de passos. Na segunda, achar as guias da árvore do lote com destino fora dessa lista.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>As rotas têm ida e volta: a recursão andaria em círculo. Leve junto os lugares visitados num <code>ARRAY</code>, uma coluna com vários valores.</li><li>Na âncora, a lista começa com <code>ALM</code> e o primeiro destino, e o contador de passos, em 1. A parte recursiva acrescenta o lugar novo e recusa os já visitados (<code>NOT</code> com <code>= ANY</code>).</li><li>Um local pode ter vários caminhos: agrupe por destino e pegue o menor.</li><li><strong>Na segunda:</strong> ponha a árvore e o alcance no mesmo <code>WITH RECURSIVE</code>, separados por vírgula, e filtre os destinos fora do alcance.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Não termina? Falta recusar lugar já visitado.</li><li>O <code>ALM</code> apareceu? A lista precisa começar com ele.</li><li>Erro de sintaxe? O <code>RECURSIVE</code> vem uma vez só, logo após o <code>WITH</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: âncora <code>SELECT destino, ARRAY['ALM', destino] AS caminho, 1 AS nivel FROM lote_rota WHERE origem = 'ALM'</code>; parte recursiva com <code>JOIN lote_rota r ON r.origem = a.destino</code>, <code>a.caminho || r.destino</code>, <code>a.nivel + 1</code> e <code>WHERE NOT (r.destino = ANY(a.caminho))</code>. Fora do <code>WITH</code>, <code>GROUP BY destino</code> com <code>MIN(nivel)</code>. Segunda: junte a árvore da fase 1 e o <code>alcance</code> no mesmo <code>WITH RECURSIVE</code>, e filtre <code>WHERE destino NOT IN (SELECT destino FROM alcance)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH RECURSIVE alcance AS (
@@ -291,6 +312,13 @@ ORDER BY enviado_em;</pre></div>
   <div class="box novo"><b class="l">Ferramenta nova · a árvore vira tabela para os JOINs de sempre</b><p>Até aqui a árvore só tinha colunas de <code>lote_guia</code>. Mas, depois que o <code>WITH RECURSIVE</code> termina, ela pode entrar em qualquer <code>JOIN</code>: com <code>lote_funcionario</code> para trocar o número de <code>recebido_por</code> pelo nome, e com <code>lote_baixa</code> para ver se existe um termo. Use <code>LEFT JOIN</code> no termo, porque a maioria das guias não tem nenhum, e você quer ver justamente as que ficaram sem. Para contar com e sem termo numa linha só, o <code>FILTER</code> que você viu com <code>COUNT</code> também funciona com <code>SUM</code>: <code>SUM(x) FILTER (WHERE b.id IS NULL)</code>.</p></div>
   <div class="tw"><table><tr><th>situação do elo</th><th>como aparece</th></tr><tr><td>tudo certo</td><td><code>qtd_enviada = qtd_recebida</code></td></tr><tr><td>perda justificada</td><td>recebida menor, e existe linha em <code>lote_baixa</code> com o mesmo <code>guia_id</code></td></tr><tr><td>perda sem explicação</td><td>recebida menor, e o <code>LEFT JOIN</code> com <code>lote_baixa</code> volta nulo</td></tr></table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Na árvore do lote <code>IGH-2609-114</code>, liste as guias em que <code>qtd_recebida</code> é menor que <code>qtd_enviada</code>. Mostre <code>id</code>, <code>origem</code>, <code>destino</code>, <code>qtd_enviada</code>, <code>qtd_recebida</code>, o nome de quem assinou o recebimento (<code>recebeu</code>) e o <code>motivo</code> do termo de baixa (vazio quando não houver termo).</li><li>Numa linha só: quantos frascos se perderam <strong>com</strong> termo de baixa (<code>com_baixa</code>) e quantos <strong>sem</strong> (<code>sem_baixa</code>), nessa árvore.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, listar as guias da árvore em que chegou menos do que saiu, com quem assinou o recebimento e o motivo do termo de baixa, se houver. Na segunda, somar numa linha os frascos perdidos com e sem termo.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Elo quebrado é quando <code>qtd_recebida</code> é menor que <code>qtd_enviada</code>. Monte a árvore da fase 1 com essas colunas e <code>recebido_por</code>; depois do <code>WITH</code>, ela entra em <code>JOIN</code> como qualquer tabela.</li><li>O nome de quem recebeu vem de <code>lote_funcionario</code>. O termo vem de <code>lote_baixa</code>, pelo <code>guia_id</code>, com <code>LEFT JOIN</code>: a guia sem termo precisa continuar no resultado.</li><li><strong>Na segunda:</strong> some a diferença duas vezes, cada uma com um <code>FILTER</code>: termo existe, termo não existe.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Sumiu a guia sem termo? Trocou o <code>LEFT JOIN</code> por <code>JOIN</code>.</li><li>Como saber se o termo existe? Olhe o <code>id</code> de <code>lote_baixa</code>: <code>IS NOT NULL</code> ou <code>IS NULL</code>.</li><li>Veio guia sem perda? Falta comparar as quantidades no <code>WHERE</code> da primeira.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Use a árvore da fase 1, agora com <code>qtd_enviada</code>, <code>qtd_recebida</code> e <code>recebido_por</code>. Fora do <code>WITH</code>: <code>JOIN lote_funcionario f ON f.id = a.recebido_por</code> e <code>LEFT JOIN lote_baixa b ON b.guia_id = a.id</code>, com <code>WHERE a.qtd_recebida &lt; a.qtd_enviada</code>. Na segunda, <code>SUM(a.qtd_enviada - a.qtd_recebida) FILTER (WHERE b.id IS NOT NULL)</code> e o mesmo com <code>IS NULL</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH RECURSIVE arvore AS (
@@ -349,6 +377,13 @@ WITH RECURSIVE cadeia AS (
 )
 SELECT nome, cargo, nivel FROM cadeia ORDER BY nivel;</pre></div>
   <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Quem forma a equipe da Farmácia Satélite da Oncologia? Comece pela pessoa responsável pelo local (<code>responsavel_id</code> de <code>SAT-ONC</code> em <code>lote_local</code>) e desça pela chefia. Mostre <code>nome</code>, <code>cargo</code>, <code>nivel</code> (1 para a responsável) e <code>cadeia</code>, a cadeia de chefia escrita com <code>→</code>, como <code>Fulana → Beltrano</code>.</li><li>Suba a cadeia de chefia de <strong>Hélio Loureiro</strong>, quem assinou o recebimento do elo quebrado: mostre <code>nome</code>, <code>cargo</code> e <code>nivel</code> (1 para o próprio Hélio). Ele responde a alguém da farmácia?</li><li>Junte tudo: as <strong>guias-problema</strong> da árvore do lote (destino fora das rotas autorizadas, <strong>ou</strong> recebida a menos sem termo de baixa) que foram <strong>enviadas por alguém da equipe da SAT-ONC</strong>. Mostre <code>nome</code> de quem enviou, quantas <code>guias</code> e quantos <code>frascos</code> sumiram (a guia inteira, quando o destino está fora do mapa; a diferença, quando o elo quebrou). Quem é o culpado? Confira com <code>SELECT verificar_caso12('Nome Completo');</code>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, descer a chefia da responsável pela <code>SAT-ONC</code>, com nível e cadeia. Na segunda, subir a de Hélio Loureiro. Na terceira, contar guias-problema e frascos por remetente da equipe.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>A chefia é outra árvore: cada pessoa aponta para o chefe em <code>chefe_id</code>. Descer ou subir muda só o lado do <code>JOIN</code>.</li><li><strong>Descer:</strong> a âncora é a responsável (<code>responsavel_id</code> em <code>lote_local</code>); a recursão busca quem tem chefe já achado, e a cadeia cresce como o caminho da fase 2. <strong>Subir:</strong> parte do Hélio e busca o chefe.</li><li><strong>Na terceira:</strong> árvore, alcance (fase 3) e equipe no mesmo <code>WITH RECURSIVE</code>. Problema é destino fora do alcance ou recebida a menos sem termo (fase 4), enviada pela equipe. Agrupe por remetente; um <code>CASE</code> conta a guia inteira ou a diferença.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Gente demais ou de menos? Descer liga o <code>chefe_id</code> novo ao <code>id</code> achado; subir, o contrário.</li><li>Guias demais na terceira? Ponha as duas condições do <code>OR</code> entre parênteses.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: âncora <code>SELECT id, nome, cargo, 1 AS nivel, nome AS cadeia FROM lote_funcionario WHERE id = (SELECT responsavel_id FROM lote_local WHERE codigo = 'SAT-ONC')</code>; parte recursiva com <code>JOIN equipe e ON f.chefe_id = e.id</code> e <code>e.cadeia || ' → ' || f.nome</code>. Segunda: é o exemplo acima, com <code>'Hélio Loureiro'</code>. Terceira: um <code>WITH RECURSIVE</code> com três blocos (<code>arvore</code>, <code>alcance</code> e <code>equipe</code>). No <code>SELECT</code> final, <code>LEFT JOIN lote_baixa</code>, a condição <code>destino NOT IN (SELECT destino FROM alcance) OR (qtd_recebida &lt; qtd_enviada AND b.id IS NULL)</code>, e <code>enviado_por IN (SELECT id FROM equipe)</code>. Para os frascos, um <code>CASE</code>: se o destino está fora do mapa, conte <code>qtd_enviada</code>; se não, a diferença.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH RECURSIVE equipe AS (
@@ -999,10 +1034,10 @@ SELECT '✅ Caso 12 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

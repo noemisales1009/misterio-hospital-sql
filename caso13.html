@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -117,6 +117,13 @@ FROM bomba_evento
 ORDER BY id
 LIMIT 10;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantos eventos de cada <strong>tipo</strong> existem? Mostre o tipo (a chave <code>tipo</code> do JSON) e a contagem, do mais comum para o menos comum.</li><li>Monte a <strong>linha do tempo</strong> da bomba do leito 14 (<code>BMB-14</code>) na madrugada do incidente, de <code>2026-10-12 00:00</code> até <code>2026-10-12 06:00</code>: mostre o <code>momento</code>, o tipo e o <code>usuario</code> (o crachá) de cada evento, em ordem de horário.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, contar os eventos de cada tipo, do mais comum ao menos comum. Na segunda, a linha do tempo da <code>BMB-14</code> entre 00:00 e 06:00 de 12/10/2026: horário, tipo e crachá.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>JSON é uma ficha guardada numa coluna, com pares “chave: valor”. Aqui ela está em <code>dados</code>: o tipo não é coluna, é uma chave lá dentro.</li><li>A seta dupla <code>-&gt;&gt;</code>, com a chave entre aspas simples, tira o valor como texto, pronto para mostrar e agrupar. A simples <code>-&gt;</code> devolve JSON, para entrar mais fundo.</li><li><strong>Na primeira:</strong> agrupe pelo tipo tirado do JSON e conte. <strong>Na segunda:</strong> filtre pelas colunas comuns <code>aparelho</code> e <code>momento</code> e tire do JSON o tipo e o <code>usuario</code>.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Erro dizendo que a coluna <code>tipo</code> não existe? Ela está dentro de <code>dados</code>; use a seta dupla.</li><li>Outra bomba ou outro horário? Falta um filtro.</li><li>Crachá vazio em algum evento? Pode ser normal: chave que não existe dá <code>NULL</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: <code>SELECT dados -&gt;&gt; 'tipo' AS tipo, COUNT(*) … GROUP BY tipo ORDER BY COUNT(*) DESC</code>. Segunda: <code>WHERE aparelho = 'BMB-14' AND momento BETWEEN '2026-10-12 00:00' AND '2026-10-12 06:00'</code>, mostrando <code>dados -&gt;&gt; 'tipo'</code> e <code>dados -&gt;&gt; 'usuario'</code>, com <code>ORDER BY momento</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT dados -&gt;&gt; 'tipo' AS tipo, COUNT(*) AS eventos
@@ -156,6 +163,13 @@ WHERE dados -&gt;&gt; 'tipo' = 'programacao'
 ORDER BY momento
 LIMIT 15;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Junte cada evento do tipo <code>programacao</code> com a prescrição do <strong>mesmo paciente</strong> e do <strong>mesmo fármaco</strong>, e mostre só as programações em que a dose programada ficou <strong>acima</strong> da dose prescrita. Mostre: <code>momento</code>, <code>aparelho</code>, o <code>usuario</code>, o fármaco, o <code>modo</code> da prescrição, a dose programada e a dose prescrita.</li><li>Repare no <code>modo</code> do resultado. Refaça ligando também pelo <strong>modo</strong> (o JSON tem a chave <code>modo</code>), e traga o <strong>nome</strong> do dono do crachá (de <code>bomba_equipe</code>). Mostre: <code>momento</code>, <code>aparelho</code>, <code>nome</code>, fármaco, dose programada e dose prescrita.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, ligar cada programação à prescrição do mesmo paciente e fármaco e mostrar só as acima da dose prescrita. Na segunda, ligar também pelo modo e mostrar o nome do dono do crachá.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Dá para fazer <code>JOIN</code> entre o JSON e uma tabela comum: no <code>ON</code>, compare a coluna de <code>bomba_prescricao</code> com a chave tirada de <code>dados</code>. O paciente sai como texto: converta com <code>::int</code>.</li><li>A dose está numa ficha dentro da ficha (<code>infusao</code>, depois <code>dose</code>); o <code>#&gt;&gt;</code> segue esse caminho. Vire número com <code>::numeric</code>, entre parênteses: como texto, '10' é menor que '9'.</li><li>Filtre o tipo <code>programacao</code> e a dose programada maior que a prescrita. <strong>Na segunda:</strong> o modo entra no <code>ON</code>, e <code>bomba_equipe</code> liga pelo crachá (<code>usuario</code>).</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Erro comparando <code>integer</code> com <code>text</code>? Faltou o <code>::int</code>.</li><li>Veio dose menor que a prescrita? Faltou o <code>::numeric</code>.</li><li>A segunda não bate? As colunas mudam: saem <code>usuario</code> e <code>modo</code>, entra <code>nome</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>A ligação: <code>JOIN bomba_prescricao p ON p.paciente_id = (e.dados -&gt;&gt; 'paciente')::int AND p.farmaco = e.dados -&gt;&gt; 'farmaco'</code>. O filtro: <code>WHERE e.dados -&gt;&gt; 'tipo' = 'programacao' AND (e.dados #&gt;&gt; '{infusao,dose}')::numeric &gt; p.dose</code>. Na segunda, acrescente <code>AND p.modo = e.dados -&gt;&gt; 'modo'</code> ao <code>ON</code> e um <code>JOIN bomba_equipe q ON q.cracha = e.dados -&gt;&gt; 'usuario'</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT e.momento, e.aparelho,
@@ -208,6 +222,13 @@ WHERE e.dados -&gt;&gt; 'tipo' = 'programacao'
 SELECT a -&gt;&gt; 'codigo' AS codigo, a -&gt;&gt; 'prioridade' AS prioridade
 FROM jsonb_array_elements('[{"codigo":"OCLUSAO_JUSANTE","prioridade":"alta"},{"codigo":"INFUSAO_PAUSADA","prioridade":"media"}]') AS a;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Abra a lista de alarmes de todos os eventos que têm a chave <code>alarmes</code> e conte quantas vezes cada <strong>código</strong> de alarme aparece, do mais comum para o menos comum.</li><li>Use <code>@&gt;</code> para achar os eventos cuja lista de alarmes tem um <code>LIMITE_RIGIDO</code> (a bomba recusou a dose). Mostre <code>momento</code>, <code>aparelho</code> e <code>usuario</code>.</li><li>Abra os alarmes da <code>BMB-14</code> na madrugada (<code>2026-10-12 00:00</code> a <code>06:00</code>) e mostre: <code>momento</code>, código, a causa (<code>detalhe</code> → <code>causa</code>), a dose tentada (<code>detalhe</code> → <code>dose_tentada</code>) e o limite (<code>detalhe</code> → <code>limite</code>).</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, contar cada código de alarme. Na segunda, achar com <code>@&gt;</code> os eventos com <code>LIMITE_RIGIDO</code>. Na terceira, abrir os alarmes da <code>BMB-14</code> na madrugada: código, causa, dose tentada e limite.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li><code>alarmes</code> é uma lista. <code>jsonb_array_elements</code> a abre, uma linha por item. Ela vai no <code>FROM</code>, após uma vírgula, com um apelido: o alarme da vez, de onde sai o código.</li><li>O <code>?</code> pergunta se a chave existe; separa os eventos com lista de alarmes.</li><li><strong>Na segunda:</strong> <code>@&gt;</code> é “contém”: escreva em JSON o pedaço procurado, uma lista de alarmes com um item daquele código.</li><li><strong>Na terceira:</strong> o <code>FROM</code> da primeira, filtrando aparelho e horário; causa, dose e limite ficam em <code>detalhe</code>: use <code>#&gt;&gt;</code>.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Erro em <code>jsonb_array_elements</code>? Passe a lista com uma seta só; com duas, chega texto.</li><li>Nada na segunda? No <code>@&gt;</code>: aspas duplas por dentro, simples por fora, colchetes na lista.</li><li>Detalhe vazio na terceira? Normal em alguns alarmes.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: <code>FROM bomba_evento e, jsonb_array_elements(e.dados -&gt; 'alarmes') AS a WHERE e.dados ? 'alarmes'</code>, agrupando por <code>a -&gt;&gt; 'codigo'</code>. Segunda: <code>WHERE dados @&gt; '{"alarmes":[{"codigo":"LIMITE_RIGIDO"}]}'</code>. Terceira: o mesmo <code>FROM</code> da primeira, filtrando <code>aparelho</code> e <code>momento</code>, e para cada item use caminhos: <code>a #&gt;&gt; '{detalhe,causa}'</code>, <code>a #&gt;&gt; '{detalhe,dose_tentada}'</code>, <code>a #&gt;&gt; '{detalhe,limite}'</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT a -&gt;&gt; 'codigo' AS codigo, COUNT(*) AS vezes
@@ -246,6 +267,13 @@ ORDER BY e.momento;</pre></div>
 SELECT jsonb_object_keys('{"farmaco":"insulina","limite":{"antes":15,"depois":20}}') AS chave;
 SELECT key, value FROM jsonb_each('{"campo":"dose_max_rigido","antes":15,"depois":20}');</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para os eventos do tipo <code>biblioteca</code>, liste cada <strong>chave</strong> que aparece e em <strong>quantos</strong> eventos ela aparece. Uma das chaves não está em todos.</li><li>Ache o evento de biblioteca que <strong>não tem</strong> a chave <code>usuario</code> e abra a ficha <code>limite</code> dele com <code>jsonb_each</code>. Mostre: <code>momento</code>, a <code>sessao</code>, o fármaco, e as colunas <code>key</code> e <code>value</code> do limite.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, ver que chaves aparecem nos eventos do tipo <code>biblioteca</code> e em quantos eventos cada uma está. Na segunda, achar o evento de biblioteca sem a chave <code>usuario</code> e abrir a ficha <code>limite</code> dele.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Em vez de adivinhar as chaves, pergunte ao banco: <code>jsonb_object_keys</code> devolve o nome de cada chave, uma por linha. Ela vai no <code>FROM</code>, como na fase 3; filtre a biblioteca, agrupe pela chave e conte.</li><li><strong>Na segunda:</strong> para achar quem não tem uma chave, negue o <code>?</code> com <code>NOT</code>.</li><li><code>jsonb_each</code> abre uma ficha em pares: <code>key</code> (o nome) e <code>value</code> (o valor), uma linha cada. Passe a ficha <code>limite</code> e mostre as duas colunas depois de momento, sessão e fármaco.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Chaves de outros eventos? Falta filtrar o tipo.</li><li>Vários eventos na segunda? Falta o <code>NOT</code>, junto com o filtro do tipo.</li><li>Erro em <code>jsonb_each</code>? Passe a ficha com uma seta só.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: <code>FROM bomba_evento, jsonb_object_keys(dados) AS chave WHERE dados @&gt; '{"tipo":"biblioteca"}' GROUP BY chave</code>. Segunda: <code>FROM bomba_evento e, jsonb_each(e.dados -&gt; 'limite') AS l WHERE e.dados -&gt;&gt; 'tipo' = 'biblioteca' AND NOT e.dados ? 'usuario'</code>, mostrando <code>l.key</code> e <code>l.value</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT chave, COUNT(*) AS eventos
@@ -275,6 +303,13 @@ WHERE e.dados -&gt;&gt; 'tipo' = 'biblioteca'
   </table></div>
   <div class="box novo"><b class="l">Juntando tudo · @&gt; com várias chaves</b><p>O pedaço que você passa para o <code>@&gt;</code> pode ter quantas chaves quiser: o JSON da linha precisa conter <strong>todas</strong>, com os mesmos valores. É um jeito curto de escrever <code>dados -&gt;&gt; 'tipo' = 'login' AND dados -&gt;&gt; 'sessao' = '…'</code>.</p></div>
   <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Pelo ponto (<code>bomba_escala</code>), quem estava de plantão no instante da programação, <code>2026-10-12 02:43</code>? Mostre o <code>nome</code>, o <code>cargo</code>, a <code>entrada</code> e a <code>saida</code>.</li><li>E a dona do crachá <code>C-2207</code>? Mostre a <code>entrada</code> e a <code>saida</code> dela no plantão que começou em <code>2026-10-11</code>.</li><li>Ache o <strong>login</strong> que abriu a sessão da mudança de biblioteca (a que você achou na fase 4) e mostre o <code>momento</code>, o <code>aparelho</code>, o <code>nome</code> e o <code>cargo</code> de quem fez login.</li><li>Junte as pistas e confira: <code>SELECT verificar_caso13('Nome Completo');</code></li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, ver pelo ponto quem estava de plantão às 02:43 de 12/10/2026. Na segunda, a entrada e a saída da dona do crachá <code>C-2207</code> no plantão de 11/10. Na terceira, quem fez o login que abriu a sessão da mudança de biblioteca.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Crachá não é pessoa; o ponto (<code>bomba_escala</code>) mostra quem estava lá.</li><li><strong>Na primeira:</strong> estava lá quem entrou antes e saiu depois do instante; o <code>BETWEEN</code> faz isso, com o instante na frente. Junte <code>bomba_equipe</code> pelo crachá para nome e cargo.</li><li><strong>Na segunda:</strong> consulta simples em <code>bomba_escala</code>, filtrando o crachá e a entrada a partir de 11/10.</li><li><strong>Na terceira:</strong> toda sessão começa com um <code>login</code>. Procure o da sessão que você anotou na fase 4; o <code>@&gt;</code> aceita as duas chaves juntas. O <code>usuario</code> leva a <code>bomba_equipe</code>.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Ninguém na primeira? A ordem é: instante, depois <code>BETWEEN entrada AND saida</code>.</li><li>Mais de um evento na terceira? Tipo e sessão precisam estar juntos no <code>@&gt;</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: <code>FROM bomba_escala s JOIN bomba_equipe q ON q.cracha = s.cracha WHERE '2026-10-12 02:43' BETWEEN s.entrada AND s.saida</code>. Repare se a dona do crachá <code>C-2207</code> está na lista. Segunda: <code>WHERE cracha = 'C-2207' AND entrada &gt;= '2026-10-11'</code>. Terceira: <code>WHERE e.dados @&gt; '{"tipo":"login","sessao":"S-5763"}'</code>, com <code>JOIN bomba_equipe q ON q.cracha = e.dados -&gt;&gt; 'usuario'</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT q.nome, q.cargo, s.entrada, s.saida
@@ -1385,10 +1420,10 @@ SELECT '✅ Caso 13 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

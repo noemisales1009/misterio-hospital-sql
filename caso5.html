@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -99,7 +99,14 @@ erDiagram
     <tr><td><code>SUM(a - b)</code></td><td>soma a diferença de todas as linhas</td><td>“excesso total”</td></tr>
     <tr><td><code>ROUND(x, 2)</code></td><td>arredonda em reais e centavos</td><td>“R$ 9.897,86”</td></tr>
   </table></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as linhas de <code>cobranca</code> em que <code>valor_cobrado</code> é maior que <code>valor_tabela * quantidade</code>, com o lote, o procedimento e os dois valores.</li><li>Quantas são, e qual o <strong>excesso total</strong> em reais, com 2 casas decimais?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as linhas de <code>cobranca</code> em que <code>valor_cobrado</code> é maior que <code>valor_tabela * quantidade</code>, mostrando o id da linha, o lote, a descrição do procedimento, a quantidade, o valor cobrado e o valor esperado (<code>valor_tabela * quantidade</code>), nessa ordem.</li><li>Quantas são, e qual o <strong>excesso total</strong> em reais, com 2 casas decimais?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, listar as cobranças acima do preço de tabela vezes a quantidade. Na segunda, contar essas linhas e somar o excesso, com 2 casas decimais.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O preço de uma unidade está em <code>procedimento</code>. Ligue <code>cobranca</code> a ela pelo id do procedimento.</li><li>O valor esperado de cada linha é a conta <code>valor_tabela * quantidade</code>. O filtro compara o cobrado com ela.</li><li><strong>Na primeira:</strong> colunas, nessa ordem: id da cobrança, lote, descrição do procedimento, quantidade, valor cobrado e valor esperado.</li><li><strong>Na segunda:</strong> mesmo filtro, duas colunas: o <code>COUNT(*)</code> e a soma de cobrado menos esperado, com <code>ROUND(…, 2)</code>.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Coluna ambígua? <code>id</code> existe nas duas tabelas: use <code>c.id</code>.</li><li>Excesso enorme? Você somou o valor cobrado inteiro, e não a diferença.</li><li>Linhas demais? Faltou multiplicar pela quantidade.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p><code>JOIN procedimento p ON p.id = c.procedimento_id</code> e <code>WHERE c.valor_cobrado &gt; p.valor_tabela * c.quantidade</code>. O excesso de cada linha é a diferença entre os dois. Some com <code>SUM(...)</code> e arredonde com <code>ROUND(..., 2)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT c.id, c.lote, p.descricao, c.quantidade,
@@ -129,6 +136,13 @@ WHERE c.valor_cobrado &gt; p.valor_tabela * c.quantidade;</pre></div>
   </table></div>
   <div class="box alerta"><b class="l">Cuidado</b><p>Se você apontar as duas linhas do par como erro, vai contar o dobro. A original é legítima. Erro é só a cópia: a linha cujo <code>id</code> não é o menor do grupo.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Ache os pares (atendimento e procedimento) que aparecem mais de uma vez em <code>cobranca</code>.</li><li>Liste só as <strong>linhas repetidas</strong> (as cópias), com o lote. Quantas são?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, achar os pares (atendimento e procedimento) que aparecem mais de uma vez em <code>cobranca</code>. Na segunda, listar só as cópias, sem a linha original.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li><strong>Na primeira:</strong> agrupe pelas duas colunas juntas; cada grupo é um par. Filtre no <code>HAVING</code> os grupos com mais de uma linha. Colunas, nessa ordem: <code>atendimento_id</code>, <code>procedimento_id</code> e a contagem.</li><li><strong>Na segunda:</strong> a original é a linha de menor <code>id</code> do par. Uma subconsulta com <code>MIN(id)</code> e o mesmo agrupamento lista as originais.</li><li>As cópias são as linhas cujo id <em>não está</em> nessa lista (<code>NOT IN</code>). Colunas: id, lote, atendimento_id, procedimento_id e valor_cobrado.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Veio o dobro na segunda? Você marcou o par inteiro; só a cópia é erro.</li><li>Pares demais na primeira? Agrupe pelas <em>duas</em> colunas.</li><li>Erro de sintaxe? O <code>HAVING</code> vem depois do <code>GROUP BY</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Pares: <code>GROUP BY atendimento_id, procedimento_id HAVING COUNT(*) &gt; 1</code>. Cópias: <code>WHERE id NOT IN (SELECT MIN(id) FROM cobranca GROUP BY atendimento_id, procedimento_id)</code>. A subconsulta devolve o id da primeira linha de cada grupo.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT atendimento_id, procedimento_id, COUNT(*) AS vezes
@@ -157,6 +171,13 @@ ORDER BY id;</pre></div>
     <tr><td><code>COUNT(*)  e  SUM(valor)</code></td><td>quantas linhas e quanto dinheiro</td><td>“30 linhas, R$ 25.462,00”</td></tr>
   </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as linhas de <code>cobranca</code> que <strong>não têm correspondente</strong> em <code>execucao</code> (mesmo atendimento e mesmo procedimento).</li><li>Quantas são, e qual o valor total cobrado nelas?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, listar as cobranças sem correspondente em <code>execucao</code> (cobradas, mas não realizadas). Na segunda, contar essas linhas e somar o valor cobrado.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>“Sem correspondente” é <code>LEFT JOIN</code> com <code>IS NULL</code>: mantenha todas as cobranças e veja quais ficaram sem par.</li><li>O par tem <em>duas</em> colunas: mesmo atendimento e mesmo procedimento. As duas igualdades vão no <code>ON</code>, com <code>AND</code>.</li><li>Sem par, as colunas de <code>execucao</code> ficam vazias: teste uma delas com <code>IS NULL</code> no <code>WHERE</code>.</li><li><strong>Na primeira:</strong> id, lote, atendimento_id, procedimento_id e valor_cobrado. <strong>Na segunda:</strong> o <code>COUNT(*)</code> e a soma do valor cobrado.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Poucas linhas? Com só o atendimento no <code>ON</code>, qualquer procedimento do mesmo atendimento vira par.</li><li>Não veio nada? <code>JOIN</code> comum descarta quem não tem par.</li><li>Coluna ambígua? Ponha o apelido antes de <code>atendimento_id</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p><code>LEFT JOIN execucao e ON e.atendimento_id = c.atendimento_id AND e.procedimento_id = c.procedimento_id</code> e depois <code>WHERE e.atendimento_id IS NULL</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT c.id, c.lote, c.atendimento_id, c.procedimento_id, c.valor_cobrado
@@ -183,10 +204,18 @@ WHERE e.atendimento_id IS NULL;</pre></div>
     <tr><td><code>WITH a AS (…), b AS (…)</code></td><td>vários blocos nomeados, separados por vírgula</td><td>“acima, repetidas e fantasmas”</td></tr>
     <tr><td><code>UNION ALL</code></td><td>empilha resultados com as mesmas colunas</td><td>“as três listas numa só”</td></tr>
     <tr><td><code>GROUP BY lote</code></td><td>uma linha por lote</td><td>“erros de cada lote”</td></tr>
-    <tr><td><code>ORDER BY erros DESC  +  LIMIT</code></td><td>o campeão primeiro, só os principais</td><td>“o lote que foge do padrão”</td></tr>
+    <tr><td><code>ORDER BY erros DESC</code></td><td>o campeão primeiro</td><td>“o lote que foge do padrão”</td></tr>
   </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · WITH com vários blocos e UNION ALL</b><p>Dá para ter vários blocos num <code>WITH</code>, separados por vírgula. <code>UNION ALL</code> empilha resultados com as <strong>mesmas colunas</strong>, mantendo todas as linhas. Aqui cada bloco devolve só o <code>lote</code>.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Escreva um <code>WITH</code> com três blocos, <code>acima</code>, <code>repetidas</code> e <code>fantasmas</code>, cada um devolvendo o <code>lote</code> das linhas com aquele erro.</li><li>Empilhe os três e conte os erros <strong>por lote</strong>, do maior para o menor. Qual lote foge do padrão?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> juntar os três erros das etapas 1, 2 e 3 numa consulta só e contar os erros de cada lote, do maior para o menor.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O <code>WITH</code> aceita vários blocos separados por vírgula: <code>acima</code>, <code>repetidas</code> e <code>fantasmas</code>. Cada um é a consulta da sua etapa, devolvendo só o <code>lote</code>.</li><li>Use as versões que listam linhas com erro (na etapa 2, a das cópias), não as que contam.</li><li>O <code>UNION ALL</code> empilha os três numa lista só, e todos precisam ter as mesmas colunas. O <code>ALL</code> mantém as repetições: cada linha é um erro.</li><li>Por cima da pilha, agrupe por lote, conte e ordene pela contagem. Colunas: lote e erros.</li></ul>
+    <p><strong>Juntando:</strong> <code>WITH … SELECT lote, COUNT(*) FROM ( … UNION ALL … UNION ALL … ) t GROUP BY … ORDER BY …</code></p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Contagens baixas? <code>UNION</code> sem <code>ALL</code> apaga linhas iguais.</li><li>Não use <code>LIMIT</code>: o corretor espera todos os lotes.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Cada bloco usa a consulta da etapa correspondente, selecionando só <code>c.lote</code> (ou <code>lote</code>). No fim: <code>SELECT lote, COUNT(*) FROM (SELECT lote FROM acima UNION ALL SELECT lote FROM repetidas UNION ALL SELECT lote FROM fantasmas) t GROUP BY lote ORDER BY 2 DESC</code>. O <code>ORDER BY 2</code> quer dizer “ordene pela 2ª coluna”, a contagem.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH acima AS (
@@ -228,7 +257,14 @@ ORDER BY erros DESC;</pre></div>
     <tr><td><code>COUNT(*)  e  SUM(…)</code></td><td>tamanho e valor do lote</td><td>“100 linhas, R$ 88.045,91”</td></tr>
     <tr><td><code>SELECT verificar_caso5('…')</code></td><td>função do jogo que confere a resposta</td><td>“perguntar ao sistema se acertei”</td></tr>
   </table></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Mostre o <strong>nome do faturista</strong> responsável pelo lote encontrado.</li><li>Some o <strong>valor total</strong> cobrado nesse lote e o número de linhas.</li><li>Confira o código do lote com <code>SELECT verificar_caso5('L-0000-X');</code>.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Mostre o <strong>nome do faturista</strong> responsável pelo lote encontrado.</li><li>Conte o número de linhas desse lote e some o <strong>valor total</strong> cobrado nele, nessa ordem.</li><li>Confira o código do lote com <code>SELECT verificar_caso5('L-0000-X');</code>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> com o lote que se destacou na etapa 4, descobrir quem o assinou e, numa segunda consulta, quantas linhas e quanto dinheiro ele tem.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li><strong>Na primeira:</strong> ligue <code>cobranca</code> a <code>faturista</code> pelo <code>faturista_id</code> e filtre o código do lote, entre aspas.</li><li>O nome se repete em cada linha do lote; o <code>DISTINCT</code> mostra cada nome uma vez. Uma coluna: o nome.</li><li><strong>Na segunda:</strong> só <code>cobranca</code>, com o mesmo filtro. Duas colunas, nessa ordem: <code>COUNT(*)</code> e a soma do <code>valor_cobrado</code>.</li><li>O <code>verificar_caso5</code> recebe o <em>código do lote</em>, não o nome.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Não veio nada? Copie o código do lote igual ao da etapa 4, com hífens e letra maiúscula.</li><li>Formato igual, mas não bate? Na segunda, a contagem vem antes da soma.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p><code>JOIN faturista f ON f.id = c.faturista_id</code> e <code>WHERE c.lote = '…'</code>. Use <code>DISTINCT</code> no nome, porque o faturista aparece em cada linha do lote.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT DISTINCT f.nome
@@ -4284,10 +4320,10 @@ SELECT '✅ Caso 5 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

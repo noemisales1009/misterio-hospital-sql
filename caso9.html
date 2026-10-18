@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -109,6 +109,14 @@ erDiagram
 FROM log_acesso
 GROUP BY acao;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantos acessos o prontuário da <strong>Lia Moraes</strong> teve na semana, e quantas <strong>pessoas diferentes</strong> abriram? Uma linha só, com as duas contas: acessos e pessoas.</li><li>Liste as <strong>impressões e exportações</strong> do prontuário dela (tudo que não é <code>'visualizar'</code>): <code>momento</code>, nome de quem fez, <code>acao</code> e <code>estacao</code>, em ordem de horário.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> contar numa linha os acessos ao prontuário da Lia Moraes e as pessoas diferentes que o abriram. Na segunda, listar as impressões e exportações dele.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O log é <code>log_acesso</code>, cheio de códigos. O nome da paciente está em <code>internado</code>: junte pelo <code>internado_id</code> e filtre o nome.</li><li><code>COUNT(*)</code> conta acessos; <code>COUNT(DISTINCT usuario_id)</code> conta pessoas, porque quem abriu dez vezes conta uma. As duas no mesmo <code>SELECT</code>.</li><li><strong>Na segunda:</strong> junte também <code>usuario</code> para ter o nome. “Tudo que não é visualizar” é uma condição de diferente (<code>&lt;&gt;</code>) em <code>acao</code>. Mostre <code>momento</code>, nome, <code>acao</code> e <code>estacao</code>.</li></ul>
+    <p><strong>Juntando:</strong> <code>FROM log_acesso a JOIN internado i ON … JOIN usuario u ON … WHERE … AND …</code>.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Acessos e pessoas iguais? Faltou o <code>DISTINCT</code>.</li><li>Não veio nada? Confira o nome entre aspas simples: 'Lia Moraes'.</li><li>Vieram visualizações? Confira o filtro de <code>acao</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Junte <code>log_acesso a</code> com <code>internado i ON i.id = a.internado_id</code> e filtre <code>i.nome = 'Lia Moraes'</code>. Na segunda, junte também <code>usuario u ON u.id = a.usuario_id</code> para ter o nome e filtre <code>a.acao &lt;&gt; 'visualizar'</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT COUNT(*) AS acessos,
@@ -160,6 +168,13 @@ WHERE a.id IS NULL;</pre></div>
 FROM usuario
 LIMIT 5;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quem abriu o prontuário da Lia <strong>sem estar na equipe de cuidado</strong> dela? Mostre o <code>nome</code>, o <code>setor</code> e quantos acessos cada pessoa fez.</li><li>O relatório vai para o RH, que precisa do nome mas não do CPF inteiro. Mostre as mesmas pessoas com <code>nome</code> e o CPF mascarado no formato <code>***.456.789-**</code>: três asteriscos no lugar dos 3 primeiros dígitos, os 6 do meio com o ponto entre eles, e dois asteriscos no lugar dos 2 últimos. O primeiro ponto e o traço ficam.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> achar quem abriu o prontuário da Lia sem ser da equipe de cuidado dela, com nome, setor e número de acessos. Na segunda, as mesmas pessoas com nome e CPF mascarado.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Comece como na etapa 1: <code>log_acesso</code> com <code>internado</code> e <code>usuario</code>, filtrando a Lia.</li><li>A equipe está em <code>equipe_cuidado</code>, em pares (paciente, funcionário). Para cada acesso, <code>NOT EXISTS</code> pergunta: existe um par com este paciente <em>e</em> este funcionário? Se não, o acesso fica.</li><li>Agrupe por nome e setor e conte.</li><li><strong>Na segunda:</strong> mesmo filtro. Cole o CPF com <code>||</code>: pedaço fixo, meio recortado com <code>SUBSTRING</code> (começa na 5ª posição e tem 7 caracteres), pedaço fixo. Use <code>DISTINCT</code> para cada pessoa sair uma vez.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Ninguém, ou gente da equipe? A subconsulta precisa amarrar as duas colunas: paciente e funcionário.</li><li>Pessoa repetida na segunda? Faltou o <code>DISTINCT</code>.</li><li>CPF cortado errado? Conte a partir de 1; o ponto também conta.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Na primeira: <code>WHERE i.nome = 'Lia Moraes' AND NOT EXISTS (SELECT 1 FROM equipe_cuidado e WHERE e.internado_id = a.internado_id AND e.usuario_id = a.usuario_id)</code>, depois <code>GROUP BY u.nome, u.setor</code> e <code>COUNT(*)</code>. Com <code>LEFT JOIN</code>: <code>LEFT JOIN equipe_cuidado e ON e.internado_id = a.internado_id AND e.usuario_id = a.usuario_id</code> e <code>WHERE e.usuario_id IS NULL</code>. Na segunda, o CPF mascarado é <code>'***.' || SUBSTRING(u.cpf, 5, 7) || '-**'</code>: reaproveite a primeira consulta e troque as colunas.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT u.nome, u.setor, COUNT(*) AS acessos
@@ -220,6 +235,13 @@ WHERE a.momento BETWEEN TIMESTAMP '2026-10-22 12:40:00'
                     AND TIMESTAMP '2026-10-22 13:30:00'
 ORDER BY a.momento;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste os acessos ao prontuário da <strong>Lia Moraes</strong> feitos <strong>fora do turno</strong> de quem acessou: <code>nome</code>, <code>turno</code>, <code>momento</code> e <code>acao</code>, em ordem de horário.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> listar os acessos ao prontuário da Lia Moraes feitos fora do turno de quem acessou, com nome, turno, horário e ação.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O turno está em <code>usuario.turno</code>; a hora sai de <code>EXTRACT(HOUR FROM momento)</code>.</li><li>O exemplo da página tem um <code>CASE</code> que escolhe a regra pelo turno e devolve verdadeiro ou falso. A noite passa pela meia-noite, por isso usa <code>OR</code>: 19 ou mais, <em>ou</em> menos de 7.</li><li>Guarde isso num <code>WITH</code>, trocando o filtro de horário pelo da Lia e acrescentando <code>acao</code>. Fora dele, fique com o que deu falso, usando <code>NOT</code>.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>A noite toda saiu fora do turno? Você usou <code>AND</code> na regra da noite.</li><li>Sumiu alguém da manhã? Escreva <code>'manhã'</code> com acento; sem isso o <code>CASE</code> dá nulo.</li><li>Coluna a mais? O <code>no_turno</code> só filtra: mostre nome, turno, momento e ação.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Ponha a consulta do exemplo dentro de um <code>WITH acesso_lia AS ( … )</code>, sem o <code>ORDER BY</code>. Troque o filtro de horário pelo filtro da Lia (junte <code>internado i</code> e use <code>WHERE i.nome = 'Lia Moraes'</code>) e acrescente a coluna <code>a.acao</code>. Fora do <code>WITH</code>, filtre <code>WHERE NOT no_turno</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH acesso_lia AS (
@@ -263,6 +285,13 @@ FROM log_login
 GROUP BY dia
 ORDER BY dia;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Agrupe as tentativas da semana por <code>login</code> e <code>estacao</code> e mostre: <code>login</code>, <code>estacao</code>, <code>falhas</code> (tentativas erradas) e <code>sucessos</code> (tentativas certas). Fique só com os grupos que tiveram <strong>5 falhas ou mais</strong>.</li><li>Para esses mesmos grupos, mostre <code>login</code>, <code>estacao</code> e o horário da <strong>primeira</strong> e da <strong>última</strong> falha. Qual dos dois parece um ataque?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> agrupar as tentativas de login por login e estação, com falhas e sucessos, só para grupos com 5 falhas ou mais. Na segunda, o horário da primeira e da última falha desses grupos.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Em <code>log_login</code>, cada linha é uma tentativa, e <code>sucesso</code> é verdadeiro ou falso.</li><li>Agrupe por <code>login</code> e <code>estacao</code>. <code>COUNT(*) FILTER (WHERE …)</code> conta só o que passa na condição: um com <code>NOT sucesso</code>, outro com <code>sucesso</code>, na mesma linha.</li><li>O corte de 5 falhas é sobre uma conta do grupo, então vai no <code>HAVING</code>, com a mesma contagem filtrada.</li><li><strong>Na segunda:</strong> o <code>FILTER</code> também vale para <code>MIN</code> e <code>MAX</code>, que assim olham só as falhas.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Grupos demais? O <code>HAVING</code> está contando todas as tentativas, não só as falhas.</li><li>Horários diferentes na segunda? Faltou o <code>FILTER</code> no <code>MIN</code> e no <code>MAX</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p><code>GROUP BY login, estacao</code> e <code>HAVING COUNT(*) FILTER (WHERE NOT sucesso) &gt;= 5</code>. Na segunda: <code>MIN(momento) FILTER (WHERE NOT sucesso)</code> e <code>MAX(momento) FILTER (WHERE NOT sucesso)</code>. Outro jeito, só para a segunda: filtre <code>WHERE NOT sucesso</code> antes de agrupar e use <code>MIN</code>, <code>MAX</code> e <code>HAVING COUNT(*) &gt;= 5</code> normais.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT login, estacao,
@@ -303,6 +332,13 @@ ORDER BY a.momento
 LIMIT 1;</pre></div>
   <div class="box"><b class="l">Lembrete · juntar pelo login</b><p>Em <code>log_login</code> não existe <code>usuario_id</code>, só o <code>login</code> digitado. Para ter o nome, junte pelo texto: <code>JOIN usuario u ON u.login = l.login</code>.</p></div>
   <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Liste os logins <strong>com sucesso</strong> na estação <code>FAT-PC07</code> entre <strong>19:00 e 23:47</strong> do dia 23/10/2026: <code>login</code>, <code>nome</code> e <code>momento</code>.</li><li>Quem foi a última pessoa a entrar com sucesso no <code>FAT-PC07</code> <strong>antes do login da Jaqueline</strong> nessa estação? Busque o horário do login dela com uma subconsulta, em vez de digitar, e mostre <code>login</code>, <code>nome</code> e <code>momento</code> (uma linha só). Quem exportou o prontuário da Lia? Confira com <code>SELECT verificar_caso9('Nome Completo');</code>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> listar os logins com sucesso no <code>FAT-PC07</code> entre 19:00 e 23:47 de 23/10/2026. Na segunda, a última pessoa que entrou com sucesso ali antes do login da Jaqueline, buscando o horário dela com subconsulta.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li><code>log_login</code> não tem <code>usuario_id</code>: junte com <code>usuario</code> pelo <code>login</code> para ter o nome. Mostre login, nome e momento.</li><li>Filtre a estação, o <code>sucesso</code> e o horário com <code>BETWEEN</code> entre dois <code>TIMESTAMP</code> com data e hora.</li><li><strong>Na segunda:</strong> uma subconsulta busca o horário do login dela (o login está em <code>usuario</code>), na mesma estação, com sucesso. Fique com o que veio <em>antes</em>, do mais recente para o mais antigo, e pegue a primeira linha.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Erro <em>more than one row returned by a subquery</em>? A subconsulta precisa dos três filtros: login, estação e sucesso.</li><li>Veio a própria Jaqueline? Use <code>&lt;</code>, não <code>&lt;=</code>.</li><li>Veio a primeira pessoa da noite? Faltou o <code>DESC</code> antes do <code>LIMIT 1</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Na primeira: <code>WHERE l.estacao = 'FAT-PC07' AND l.sucesso AND l.momento BETWEEN TIMESTAMP '2026-10-23 19:00:00' AND TIMESTAMP '2026-10-23 23:47:00'</code>. Na segunda, o horário da Jaqueline vem de <code>(SELECT momento FROM log_login WHERE login = 'jaqueline.prado' AND estacao = 'FAT-PC07' AND sucesso)</code>. Use <code>l.momento &lt;</code> essa subconsulta, depois <code>ORDER BY l.momento DESC LIMIT 1</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT l.login, u.nome, l.momento
@@ -2497,10 +2533,10 @@ SELECT '✅ Caso 9 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -95,6 +95,13 @@ erDiagram
 FROM cadastro
 LIMIT 10;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantos cadastros têm <strong>espaço sobrando</strong> no começo ou no fim do nome?</li><li>Quantos nomes diferentes existem do jeito que estão gravados, e quantos depois de arrumar com <code>UPPER(TRIM(nome))</code>? Mostre os dois números numa linha só.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> contar os cadastros com espaço sobrando no começo ou no fim do nome. Na segunda, mostrar numa linha só quantos nomes diferentes existem como estão gravados e quantos depois de arrumados.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li><code>TRIM(nome)</code> é o nome sem os espaços das pontas. Se o nome gravado é <em>diferente</em> dele, tinha espaço sobrando: essa é a condição do <code>WHERE</code>, e o <code>COUNT(*)</code> conta o que passou.</li><li><strong>Na segunda:</strong> <code>COUNT(DISTINCT x)</code> conta sem repetir. Uma conta usa o nome cru; a outra, o nome arrumado com <code>UPPER(TRIM(nome))</code>.</li><li>As duas contas ficam no mesmo <code>SELECT</code>, separadas por vírgula, sem filtro: a tabela toda.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Número enorme na primeira? Você contou os nomes <em>iguais</em> à versão sem espaços; o sinal é <code>&lt;&gt;</code>.</li><li>Os dois números da segunda deram iguais? O <code>UPPER(TRIM(…))</code> tem de ficar dentro do segundo <code>COUNT(DISTINCT …)</code>.</li><li>Veio uma linha por nome? Tire o <code>GROUP BY</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Um nome tem espaço sobrando quando ele é diferente dele mesmo sem os espaços: <code>WHERE nome &lt;&gt; TRIM(nome)</code>. Para contar sem repetir, use <code>COUNT(DISTINCT …)</code>: <code>COUNT(DISTINCT nome)</code> e <code>COUNT(DISTINCT UPPER(TRIM(nome)))</code>, separados por vírgula no mesmo <code>SELECT</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT COUNT(*) AS com_espaco
@@ -123,6 +130,13 @@ FROM cadastro;</pre></div>
 FROM cadastro
 LIMIT 10;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Agrupe pelo CPF <strong>sem pontuação</strong> e mostre os CPFs que aparecem em <strong>mais de um cadastro</strong>, com quantos cadastros cada um tem.</li><li>Agora o contrário: quais nomes (arrumados com <code>UPPER(TRIM(nome))</code>) pertencem a <strong>mais de um CPF</strong>? Esses são homônimos, pessoas diferentes.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> mostrar os CPFs (sem pontuação) que aparecem em mais de um cadastro, com a quantidade. Na segunda, os nomes arrumados que pertencem a mais de um CPF, com quantos CPFs cada um tem.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Um <code>REPLACE</code> dentro do outro apaga o ponto e o traço: os dois jeitos de gravar o CPF viram o mesmo texto.</li><li>Agrupe por esse CPF limpo e conte. Para ficar só com os repetidos, filtre a contagem no <code>HAVING</code>.</li><li><strong>Na segunda:</strong> agrupe por <code>UPPER(TRIM(nome))</code> e conte os CPFs limpos <em>diferentes</em> com <code>COUNT(DISTINCT …)</code>. Mais de um CPF no mesmo nome quer dizer homônimos.</li><li>Nas duas missões, duas colunas: o valor agrupado e a contagem.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Nenhum CPF repetido? Você agrupou pelo <code>cpf</code> gravado, ainda com pontos.</li><li>Nomes demais na segunda? <code>COUNT(*)</code> conta cadastros, e quem foi cadastrado duas vezes parece homônimo.</li><li>Erro ao filtrar a contagem? Ela vai no <code>HAVING</code>, não no <code>WHERE</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>No <code>GROUP BY</code> você pode usar o apelido da coluna: <code>GROUP BY cpf_limpo</code>. Para ficar só com os grupos repetidos, <code>HAVING COUNT(*) &gt; 1</code>. Na segunda, conte CPFs diferentes dentro de cada nome: <code>COUNT(DISTINCT REPLACE(REPLACE(cpf, '.', ''), '-', ''))</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT REPLACE(REPLACE(cpf, '.', ''), '-', '') AS cpf_limpo,
@@ -155,6 +169,13 @@ ORDER BY nome_limpo;</pre></div>
   <div class="tw"><table><tr><th>convenio gravado</th><th>NULLIF(TRIM(convenio), '')</th><th>COALESCE(…, 'Particular')</th></tr><tr><td><code>'Saúde Vida'</code></td><td><code>'Saúde Vida'</code></td><td><code>'Saúde Vida'</code></td></tr><tr><td><code>''</code></td><td>NULL</td><td><code>'Particular'</code></td></tr><tr><td><code>'  '</code></td><td>NULL</td><td><code>'Particular'</code></td></tr><tr><td>NULL</td><td>NULL</td><td><code>'Particular'</code></td></tr></table></div>
   <div class="box"><b class="l">Atenção · COUNT(*) e COUNT(coluna)</b><p><code>COUNT(*)</code> conta linhas. <code>COUNT(coluna)</code> conta só as linhas em que a coluna <strong>não</strong> é nula. Isso importa no <code>LEFT JOIN</code>: quem não tem par vem com <code>NULL</code> do outro lado e precisa contar <strong>zero</strong>, não um. E o filtro da tabela da direita vai no <code>ON</code>: no <code>WHERE</code>, ele apagaria justamente as linhas sem par.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Conte os cadastros por convênio, tratando nulo, vazio e só espaços como <strong>Particular</strong>. Do maior para o menor.</li><li>Quantos cadastros cada atendente fez em <strong>outubro de 2026</strong>? Inclua quem não fez nenhum, com zero.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> contar os cadastros por convênio, com nulo, vazio e só espaços virando Particular. Na segunda, quantos cadastros cada atendente fez em outubro de 2026, incluindo quem fez zero.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Leia de dentro para fora: <code>TRIM</code> transforma “só espaços” em vazio, <code>NULLIF(…, '')</code> transforma vazio em <code>NULL</code>, e <code>COALESCE(…, 'Particular')</code> troca o <code>NULL</code>.</li><li>Dê à expressão um apelido <em>novo</em>, diferente de <code>convenio</code>, e agrupe por ele.</li><li><strong>Na segunda:</strong> comece por <code>atendente</code>, que tem todo mundo, com <code>LEFT JOIN</code> em <code>cadastro</code>. O filtro de outubro vai no <code>ON</code>.</li><li>Conte <code>cd.id</code>: quem não tem par vem com <code>NULL</code> e conta zero.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Particular em várias linhas? O apelido ficou igual ao nome da coluna, e o <code>GROUP BY</code> usou a coluna crua.</li><li>Sumiu quem não cadastrou ninguém? O filtro de data foi para o <code>WHERE</code>.</li><li>Apareceu 1 em vez de 0? Troque <code>COUNT(*)</code> por <code>COUNT(cd.id)</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: dê um apelido novo para a coluna tratada, como <code>convenio_tratado</code>, e agrupe por ele. Se o apelido for igual ao nome da coluna, o <code>GROUP BY</code> usa a coluna original, sem tratamento. Segunda: <code>FROM atendente a LEFT JOIN cadastro cd ON cd.cadastrado_por = a.id AND cd.cadastrado_em &gt;= DATE '2026-10-01' AND cd.cadastrado_em &lt; DATE '2026-11-01'</code> e <code>COUNT(cd.id)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT COALESCE(NULLIF(TRIM(convenio), ''), 'Particular') AS convenio_tratado,
@@ -191,6 +212,13 @@ ORDER BY cadastros DESC;</pre></div>
 FROM consulta
 LIMIT 10;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Mostre o <strong>total cobrado</strong> em consultas por convênio (tratado como na etapa 3), do maior para o menor.</li><li>Qual especialidade rendeu mais? Mostre a especialidade, quantas consultas teve e o total, do maior para o menor.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> somar o valor das consultas por convênio (tratado como na etapa 3), do maior para o menor. Na segunda, por especialidade: quantas consultas e o total.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O <code>valor</code> é texto, como 'R$ 1.250,00', e texto não soma. A limpeza tem ordem: tire o 'R$ ', depois o ponto do milhar, e só então troque a vírgula por ponto. Aí o <code>::numeric</code> converte.</li><li>Essa conversão inteira vai <em>dentro</em> do <code>SUM</code>.</li><li>O convênio está em <code>cadastro</code>: junte por <code>cadastro_id</code> e trate como na etapa 3, com apelido novo.</li><li><strong>Na segunda:</strong> sem <code>JOIN</code>. Agrupe por <code>especialidade</code>, com <code>COUNT(*)</code> e a soma convertida.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Erro <em>invalid input syntax for type numeric</em>? Sobrou símbolo no texto, ou a vírgula foi trocada antes de tirar o ponto.</li><li>Erro <em>function sum(text)</em>? A conversão ficou fora do <code>SUM</code>.</li><li>Particular espalhado em várias linhas? Falta o tratamento da etapa 3.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>A conversão inteira vai dentro do <code>SUM( )</code>: <code>SUM(REPLACE(REPLACE(REPLACE(c.valor, 'R$ ', ''), '.', ''), ',', '.')::numeric)</code>. O convênio está no cadastro, então junte: <code>JOIN cadastro cd ON cd.id = c.cadastro_id</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT COALESCE(NULLIF(TRIM(cd.convenio), ''), 'Particular') AS convenio_tratado,
@@ -220,6 +248,14 @@ ORDER BY total DESC;</pre></div>
   </table></div>
   <div class="box"><b class="l">Passo a passo com WITH</b><p>Monte a consulta em três blocos, um apoiado no outro. <strong>1)</strong> <code>limpo</code>: cada cadastro com o CPF sem pontuação. <strong>2)</strong> <code>original</code>: o menor <code>id</code> de cada CPF que aparece mais de uma vez. <strong>3)</strong> <code>copia</code>: os cadastros com CPF repetido que <strong>não</strong> são o original. Depois é só juntar <code>copia</code> com quem cadastrou e com as consultas.</p></div>
   <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Quantas cópias cada atendente criou?</li><li>Quantas consultas foram lançadas nas cópias, e de quanto, por atendente? Quem é o responsável? Confira com <code>SELECT verificar_caso7('Nome Completo');</code>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> contar quantas cópias de cadastro cada atendente criou. Na segunda, quantas consultas foram lançadas nessas cópias e quanto somam, por atendente.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Cópia é cadastro com CPF repetido que <em>não</em> é o original; o original é o de menor <code>id</code> daquele CPF.</li><li>Monte em degraus com <code>WITH</code>: os cadastros com CPF limpo; o menor <code>id</code> de cada CPF repetido (<code>MIN</code> e <code>HAVING</code>); e as linhas desses CPFs com <code>id</code> diferente do original.</li><li>Junte as cópias com <code>atendente</code> por <code>cadastrado_por</code>, agrupe pelo nome e conte.</li><li><strong>Na segunda:</strong> junte também com <code>consulta</code> por <code>cadastro_id</code> e some o valor convertido como na etapa 4.</li></ul>
+    <p><strong>Juntando:</strong> <code>WITH limpo AS (…), original AS (…), copia AS (…) SELECT … FROM copia JOIN …</code>.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Contas grandes demais? Os originais entraram junto: exclua o menor <code>id</code>.</li><li>Atendente com zero ou <code>NULL</code> na segunda? Use <code>JOIN</code> comum com <code>consulta</code>, não <code>LEFT JOIN</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p><code>original AS (SELECT cpf_limpo, MIN(id) AS id_original FROM limpo GROUP BY cpf_limpo HAVING COUNT(*) &gt; 1)</code> e <code>copia AS (SELECT l.* FROM limpo l JOIN original o ON o.cpf_limpo = l.cpf_limpo WHERE l.id &lt;&gt; o.id_original)</code>. Na segunda missão, junte <code>copia</code> com <code>consulta</code> e some o valor convertido como na etapa 4.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH limpo AS (
@@ -1106,10 +1142,10 @@ SELECT '✅ Caso 7 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -114,6 +114,13 @@ FROM ps_atendimento
 ORDER BY chegada
 LIMIT 10;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Mostre o atendimento da paciente <code>'Ivone Siqueira'</code>: nome, cor, chegada, início do atendimento, a espera como <strong>intervalo</strong> (<code>espera</code>) e a espera em <strong>minutos</strong>, arredondada (<code>espera_min</code>).</li><li>No mês inteiro, quantos atendimentos <strong>estouraram</strong> o tempo-alvo da própria cor? Junte com <code>ps_cor</code> e mostre a cor, o tempo-alvo e a quantidade, da cor mais urgente para a menos urgente.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> mostrar o atendimento da Ivone Siqueira com a espera como intervalo e em minutos arredondados. Na segunda, quantos atendimentos do mês estouraram o tempo-alvo da própria cor, por cor.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>A espera é <code>inicio_medico - chegada</code>, um intervalo. <code>EXTRACT(EPOCH FROM …)</code> dá os segundos; divida por 60 e arredonde com <code>ROUND</code>, sem casas.</li><li>São seis colunas: paciente, cor, chegada, início, espera e espera em minutos.</li><li><strong>Na segunda:</strong> junte <code>ps_cor</code> pela <code>cor</code>. Estourou quem esperou mais minutos que <code>tempo_alvo_min</code>: isso vai no <code>WHERE</code>.</li><li>Agrupe por cor e tempo-alvo e conte. Para ordenar por <code>c.ordem</code>, ela também entra no <code>GROUP BY</code>.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Erro dizendo que <code>espera_min</code> não existe? O <code>WHERE</code> não enxerga apelidos do <code>SELECT</code>: repita a conta.</li><li>Contagem um pouco diferente? Compare os minutos sem arredondar.</li><li>Erro de <code>GROUP BY</code> no <code>ORDER BY</code>? Ponha <code>c.ordem</code> no agrupamento.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Na primeira, é um <code>SELECT</code> com <code>WHERE paciente = 'Ivone Siqueira'</code> e duas contas: <code>inicio_medico - chegada AS espera</code> e <code>ROUND(EXTRACT(EPOCH FROM inicio_medico - chegada) / 60) AS espera_min</code>. Na segunda, faça <code>JOIN ps_cor c ON c.cor = a.cor</code>, filtre com <code>WHERE EXTRACT(EPOCH FROM a.inicio_medico - a.chegada) / 60 &gt; c.tempo_alvo_min</code> e agrupe por <code>a.cor, c.tempo_alvo_min, c.ordem</code> para poder ordenar por <code>c.ordem</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT paciente, cor, chegada, inicio_medico,
@@ -150,6 +157,13 @@ SELECT AVG(x) AS media,
        PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY x) AS p90
 FROM (VALUES (10), (12), (15), (18), (300)) AS t(x);</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para os pacientes <strong>laranja e amarelo</strong>, mostre por <strong>turno</strong> (manhã de 7h a 12h59, tarde de 13h a 18h59, noite no resto, pela hora da <code>chegada</code>): a quantidade de pacientes, a média, a mediana e o P90 da espera em minutos, os três com uma casa decimal. Ordene da maior média para a menor.</li><li>Agora repita a mesma conta <strong>sem o dia 12/09</strong> (<code>chegada::date &lt;&gt; '2026-09-12'</code>). O que acontece com a tarde?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> para laranja e amarelo, mostrar por turno da chegada: quantidade, média, mediana e P90 da espera em minutos, com 1 casa. Na segunda, o mesmo sem o dia 12/09.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Poucos casos extremos puxam a média para cima. A mediana é o valor do meio da fila ordenada; o P90, o valor que só 10% ultrapassam.</li><li>Num <code>WITH</code>, calcule o turno de cada paciente laranja ou amarelo (um <code>CASE</code> pela hora da chegada) e a espera em minutos, como na fase 1.</li><li>Fora, agrupe por turno: <code>COUNT(*)</code>, <code>AVG</code> e <code>PERCENTILE_CONT</code> (0.5 e 0.9) com <code>WITHIN GROUP (ORDER BY espera)</code>.</li><li><strong>Na segunda:</strong> some a condição do dia ao filtro de cores, dentro do <code>WITH</code>.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Erro <em>function round(double precision, integer)</em>? Converta o percentil com <code>::numeric</code> antes do <code>ROUND</code>.</li><li>Turnos estranhos? Manhã é hora 7 a 12 (até 12:59), tarde é 13 a 18, o resto é noite.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Comece com <code>WITH esperas AS (SELECT CASE WHEN EXTRACT(HOUR FROM chegada) BETWEEN 7 AND 12 THEN 'manhã' WHEN EXTRACT(HOUR FROM chegada) BETWEEN 13 AND 18 THEN 'tarde' ELSE 'noite' END AS turno, EXTRACT(EPOCH FROM inicio_medico - chegada) / 60 AS espera FROM ps_atendimento WHERE cor IN ('laranja', 'amarelo'))</code>. Depois, <code>SELECT turno, COUNT(*), ROUND(AVG(espera), 1), …</code> com <code>GROUP BY turno</code>. Na segunda missão, é só acrescentar a condição do dia 12 no <code>WHERE</code> de dentro do <code>WITH</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH esperas AS (
@@ -210,6 +224,13 @@ FROM ps_atendimento
 WHERE chegada &gt;= '2026-09-19 22:00' AND chegada &lt; '2026-09-20 03:00'
 ORDER BY chegada;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para os pacientes laranja e amarelo que chegaram <strong>à noite</strong>, calcule o <strong>P90 da espera</strong> de cada noite (com uma casa decimal), divida as noites em 4 grupos com <code>NTILE(4)</code> do maior P90 para o menor (desempate pela data) e mostre só as noites do <strong>grupo 1</strong>: a data da noite e o P90, em ordem de data.</li><li>Junte essas noites com a escala (<code>ps_escala</code>, turno <code>'noite'</code>) e conte em quantas delas cada profissional estava de plantão. Mostre nome, função e a contagem, da maior para a menor (desempate pelo nome).</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> achar o P90 de cada noite (laranja e amarelo), dividir as noites em 4 grupos com <code>NTILE(4)</code> e mostrar o grupo das piores. Na segunda, em quantas delas cada profissional estava de plantão.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Subtraindo 7 horas da chegada e ficando com a data (<code>::date</code>), tudo entre 19h e 6h59 cai no dia em que a noite começou.</li><li>Em degraus de <code>WITH</code>: os graves da noite (19 ou mais, <em>ou</em> menos de 7) com data e espera; o P90 por noite, com 1 casa; e o <code>NTILE(4)</code> do maior P90 para o menor, desempate pela data. Fique com o grupo 1.</li><li><strong>Na segunda:</strong> junte com <code>ps_escala</code> (data e turno da noite) e <code>ps_profissional</code>; conte por nome e função.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Entraram outras cores? O <code>OR</code> das horas precisa de parênteses.</li><li>Contagens altas na segunda? Faltou o turno <code>'noite'</code> na ligação com a escala.</li><li>Grupo 1 diferente? Confira o <code>DESC</code> e o desempate dentro do <code>OVER</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Faça em três degraus de <code>WITH</code>: <code>graves_noite</code> (a data da noite e a espera de cada paciente), <code>por_noite</code> (<code>GROUP BY noite</code> com o P90) e <code>com_grupo</code> (o <code>NTILE(4) OVER (ORDER BY p90 DESC, noite) AS grupo</code>). No fim, <code>WHERE grupo = 1</code>. Na segunda, use os mesmos três degraus e troque o <code>SELECT</code> final por um <code>JOIN ps_escala e ON e.data = g.noite AND e.turno = 'noite'</code> e um <code>JOIN ps_profissional</code>, com <code>GROUP BY</code> nome e função.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH graves_noite AS (
@@ -279,6 +300,13 @@ FROM generate_series('2026-09-19 19:00'::timestamp,
                      '2026-09-20 06:00'::timestamp,
                      INTERVAL '1 hour') AS h(hora);</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Monte a grade das 24 horas do dia (0 a 23) e, para cada hora, conte quantos pacientes <strong>vermelho, laranja ou amarelo</strong> que <strong>chegaram</strong> naquela hora, ao longo do mês, estouraram o tempo-alvo. Mostre a hora e a contagem, inclusive as horas com zero, em ordem de hora.</li><li>Agora a noite da denúncia, de hora em hora, das <strong>19:00 de 19/09 às 06:00 de 20/09</strong>: em cada horário cheio, quantos pacientes vermelho, laranja ou amarelo estavam <strong>esperando</strong> (já tinham chegado e ainda não tinham sido atendidos)? Mostre o horário e a contagem.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> contar, em cada uma das 24 horas, quantos vermelho, laranja ou amarelo chegaram e estouraram o alvo, inclusive horas com zero. Na segunda, quantos esperavam a cada hora da noite de 19 para 20/09.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Hora sem caso some no <code>GROUP BY</code>. <code>generate_series(0, 23)</code> fabrica as 24 horas, e o <code>LEFT JOIN</code> pendura os dados nelas.</li><li>Prepare num <code>WITH</code> os estouros das três cores (condição da fase 1), com a hora da chegada, e ligue à grade pela hora.</li><li>Conte uma coluna dos dados, que é <code>NULL</code> na hora vazia.</li><li><strong>Na segunda:</strong> a grade é de horários, de hora em hora (<code>INTERVAL '1 hour'</code>). Esperando é quem já chegou e não foi atendido; isso e as cores vão no <code>ON</code>.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Horas vazias com 1? Você usou <code>COUNT(*)</code>.</li><li>Sumiram os zeros? A condição foi para o <code>WHERE</code>; ela vai no <code>ON</code>.</li><li>Entrou gente já atendida? Confira <code>chegada &lt;=</code> e <code>inicio_medico &gt;</code> o horário.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Na primeira, prepare os estouros num <code>WITH estourados AS (SELECT a.id, EXTRACT(HOUR FROM a.chegada) AS hora FROM … WHERE …)</code>, usando a mesma condição de estouro da fase 1, e faça <code>FROM generate_series(0, 23) AS h(hora) LEFT JOIN estourados e ON e.hora = h.hora</code>, com <code>COUNT(e.id)</code>. Na segunda, a pessoa está esperando no horário <code>h.hora</code> se <code>a.chegada &lt;= h.hora AND a.inicio_medico &gt; h.hora</code>: essas duas condições e a das cores vão todas no <code>ON</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH estourados AS (
@@ -327,6 +355,13 @@ JOIN ps_profissional p ON p.id = r.alterado_por
 JOIN ps_atendimento a ON a.id = r.atendimento_id
 ORDER BY r.momento;</pre></div>
   <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Para cada profissional que <strong>subiu</strong> a cor de algum paciente, mostre: o nome, quantas subidas fez, quantas têm <strong>justificativa</strong> preenchida, quantos desses pacientes tiveram <strong>alta</strong> e quantos <strong>furaram a fila</strong>. Ordene de quem mais furou para quem menos.</li><li>Confirme com o caso da denúncia: quem chegou <strong>depois</strong> da Dona Ivone e foi atendido <strong>antes</strong> dela? Mostre paciente, queixa, cor, chegada, início do atendimento e, quando houver, quem reclassificou, a cor antiga e a justificativa (use <code>LEFT JOIN</code> no log).</li><li>Quem furou a fila? Confira com <code>SELECT verificar_caso11('Nome Completo');</code>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> para cada profissional que subiu a cor de alguém: subidas, quantas com justificativa, quantas altas e quantos furaram a fila. Na segunda, quem chegou depois da Dona Ivone e foi atendido antes dela.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>A urgência está em <code>ps_cor.ordem</code>. Junte <code>ps_cor</code> duas vezes, com apelidos diferentes, para a cor antiga e a nova: subiu quando a ordem nova é menor.</li><li>Guarde as subidas num <code>WITH</code>. <code>COUNT(justificativa)</code> conta só as preenchidas; um <code>FILTER</code> conta as altas.</li><li>Furou a fila se <em>existe</em> outro paciente que chegou antes, foi atendido depois e era pelo menos tão urgente quanto a cor nova: um <code>EXISTS</code> dentro do <code>FILTER</code>.</li><li><strong>Na segunda:</strong> junte <code>ps_atendimento</code> com ela mesma para comparar cada um com a Ivone.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Justificativas iguais às subidas? Conte a coluna, não <code>*</code>.</li><li>Entraram descidas? Falta o filtro: ordem nova menor que a antiga.</li><li>Sumiu alguém na segunda? Use <code>LEFT JOIN</code> no log e no profissional: nem todos foram reclassificados.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Na primeira, monte um <code>WITH subidas AS (…)</code> com as colunas do log, mais <code>a.chegada</code>, <code>a.inicio_medico</code>, <code>a.desfecho</code> e <code>cn.ordem AS ordem_nova</code>, filtrando <code>cn.ordem &lt; ca.ordem</code>. Depois, <code>JOIN ps_profissional</code> e use <code>COUNT(*)</code>, <code>COUNT(s.justificativa)</code>, <code>COUNT(*) FILTER (WHERE s.desfecho = 'alta')</code> e <code>COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM ps_atendimento b JOIN ps_cor cb ON cb.cor = b.cor WHERE …))</code>. Na segunda, junte <code>ps_atendimento</code> com ela mesma: <code>JOIN ps_atendimento iv ON iv.paciente = 'Ivone Siqueira'</code>, e filtre <code>a.chegada &gt; iv.chegada AND a.inicio_medico &lt; iv.inicio_medico</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH subidas AS (
@@ -1933,10 +1968,10 @@ SELECT '✅ Caso 11 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

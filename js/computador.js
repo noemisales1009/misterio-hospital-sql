@@ -207,6 +207,7 @@
     if ((m = /violates check constraint "([^"]+)"/.exec(msg))) return "O valor não passou na regra CHECK \"" + m[1] + "\". Confira se está dentro do que a tabela permite.";
     if (/violates foreign key constraint/.test(msg)) return "Chave estrangeira: o número usado não existe na outra tabela (ao inserir), ou ainda é usado por outra tabela (ao apagar).";
     if (/cannot drop .* because other objects depend on it/.test(msg)) return "Outras tabelas ou views dependem dela. Apague primeiro quem depende.";
+    if ((m = /column "([^"]+)" of relation "([^"]+)" already exists/.exec(msg))) return "A coluna \"" + m[1] + "\" já existe em \"" + m[2] + "\": ela já foi criada antes. Não precisa criar de novo, e não apague a tabela por causa disso.";
     if ((m = /relation "([^"]+)" already exists/.exec(msg))) return "\"" + m[1] + "\" já existe. Para recomeçar, apague com DROP antes.";
     return null;
   }
@@ -348,6 +349,28 @@
       gravar(K_CODIGO, r);
     }
 
+    // ---------------- tira-dúvidas: no 3º erro seguido da fase, abre a explicação calma que fica logo abaixo
+    var errosSeguidos = 0, duvidaAberta = false;
+    function contaErro() {
+      errosSeguidos++;
+      if (errosSeguidos < 3 || duvidaAberta) return;
+      var duvida = sec.querySelector("details.duvida");
+      if (!duvida) return;
+      duvidaAberta = true;
+      duvida.open = true;
+      duvida.classList.add("chamou");
+      var aviso = el("div", "pc-veredito duvida-aviso");
+      aviso.appendChild(el("b", null, "🔎 Esta fase está difícil? "));
+      aviso.appendChild(document.createTextNode("Abri o Tira-dúvidas logo abaixo do computador, com a explicação passo a passo."));
+      aviso.appendChild(document.createElement("br"));
+      var ir = el("button", "pc-botao", "Ver o tira-dúvidas"); ir.type = "button";
+      ir.addEventListener("click", function () {
+        duvida.scrollIntoView({ behavior: SEM_ANIMACAO ? "auto" : "smooth", block: "start" });
+      });
+      aviso.appendChild(ir);
+      saida.appendChild(aviso);
+    }
+
     // ---------------- ligar
     var primeiraVez = true;
     function liga() {
@@ -449,6 +472,7 @@
         comparaveis.forEach(function (i) { if (achou === -1 && exps[i].sig === minha.sig) achou = i; });
         var aviso = el("div", "pc-veredito");
         if (achou > -1) {
+          errosSeguidos = 0;
           var feitos = marcarConferido(achou, comparaveis.length);
           var certos = comparaveis.filter(function (i) { return feitos.indexOf(i) > -1; }).length;
           aviso.classList.add("ok");
@@ -476,6 +500,7 @@
           if (minha.n === alvo.n && minha.campos === alvo.campos) dica = " O formato está igual, mas algum valor difere. Confira filtros, colunas e arredondamento.";
           aviso.appendChild(document.createTextNode(dica));
           saida.appendChild(aviso);
+          contaErro();
         }
       });
     }
@@ -494,7 +519,9 @@
           var rod = el("div", "pc-rodape", "executado em " + seg + " s");
           saida.appendChild(rod);
           guardaMinhas(sql);
-          var fim = function () { return mostraMinha(sql, res).then(function () { return veredito(res); }); };
+          // conferir o culpado (verificar_solucao, verificar_casoN) não é uma das missões da fase: não compara nem conta erro
+          var conferindo = /\bverificar_\w*\s*\(/i.test(sql);
+          var fim = function () { return mostraMinha(sql, res).then(function () { return conferindo ? null : veredito(res); }); };
           if (!MUDA_ESQUEMA.test(sql)) return fim();
           return atualizaTabelas().then(function () {
             if (/\bcreate\s+table\b/i.test(sql)) saida.appendChild(el("div", "pc-rodape", "A tabela nova já aparece no painel TABELAS, à esquerda."));
@@ -514,6 +541,7 @@
           d.appendChild(document.createTextNode(t));
           saida.appendChild(d);
         }
+        contaErro();
       });
     }
 

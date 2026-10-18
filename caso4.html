@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -102,6 +102,14 @@ erDiagram
     <tr><td><code>ORDER BY data_coleta</code></td><td>ordena do mais antigo ao mais novo</td><td>“linha do tempo dos casos”</td></tr>
   </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as culturas que atendem à definição de caso, com o <strong>paciente</strong> e a <strong>data da coleta</strong>, em ordem de data.</li><li>Quantos casos são?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> listar as culturas que contam como caso (positivas para <em>Klebsiella pneumoniae</em>, coletadas em agosto de 2026), com paciente e data da coleta, em ordem de data.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Tudo está em <code>cultura</code>. Duas colunas: <code>paciente_id</code> e <code>data_coleta</code>.</li><li>A definição de caso vira três condições: germe, resultado e período da coleta.</li><li>As datas aqui são do tipo <code>date</code>: vão entre aspas simples, no formato ano-mês-dia. “Agosto” vai do dia 1 ao 31, e o <code>BETWEEN</code> inclui as pontas.</li><li>O <code>ORDER BY</code> na data monta a linha do tempo.</li></ul>
+    <p><strong>Juntando:</strong> três condições e dois <code>AND</code> ligando; o terceiro <code>AND</code> é do <code>BETWEEN</code>.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Não veio nada? O germe precisa estar idêntico, com K maiúsculo e p minúsculo.</li><li>Veio um caso de julho ou de outra bactéria? Falta uma condição.</li><li>Erro de data? Use <code>'2026-08-01'</code>, não 01/08/2026.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Três condições, com um <code>AND</code> entre elas: <code>germe = 'Klebsiella pneumoniae'</code>, <code>resultado = 'positivo'</code> e <code>data_coleta BETWEEN '2026-08-01' AND '2026-08-31'</code>. O <code>AND</code> de dentro do <code>BETWEEN</code> faz parte dele (“entre o dia 1 e o dia 31”). Datas vão entre aspas simples.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT paciente_id, data_coleta
@@ -125,6 +133,14 @@ ORDER BY data_coleta;</pre></div>
   </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · Juntar por intervalo</b><p>O <code>ON</code> do JOIN pode ter mais de uma condição, inclusive com <code>&gt;=</code> e <code>&lt;=</code>. Para estadias em aberto, use <code>(i.data_saida IS NULL OR c.data_coleta &lt;= i.data_saida)</code>. Os parênteses são obrigatórios: sem eles o <code>OR</code> bagunça o resto.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para cada caso, mostre o <strong>setor</strong> e o <strong>leito</strong> em que o paciente estava no dia da coleta.</li><li>Quantos estavam na UTI Adulto? Algum estava em outro setor?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> para cada caso da etapa 1, mostrar o setor e o leito em que o paciente estava no dia da coleta.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Setor e leito estão em <code>internacao</code>. Um paciente pode ter várias internações, então ligar só pelo paciente não basta.</li><li>A estadia certa <em>cobre</em> a coleta: coleta no dia da entrada ou depois, e no dia da saída ou antes.</li><li>Quem segue internado tem <code>data_saida</code> vazia. Então: saída vazia <em>ou</em> coleta até a saída, entre parênteses.</li><li>Tudo isso vai no <code>ON</code>; os filtros da etapa 1 ficam no <code>WHERE</code>. Colunas: <code>paciente_id</code>, <code>data_coleta</code>, <code>setor</code> e <code>leito</code>.</li></ul>
+    <p><strong>Juntando:</strong> <code>JOIN internacao i ON (paciente) AND (coleta &gt;= entrada) AND ( … IS NULL OR … )</code></p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Paciente repetido? A estadia não está amarrada à data da coleta.</li><li>Sumiu um caso? Faltou o <code>IS NULL</code> de quem ainda está internado.</li><li>Linhas a mais? O <code>OR</code> ficou sem parênteses.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p><code>JOIN internacao i ON i.paciente_id = c.paciente_id AND c.data_coleta &gt;= i.data_entrada AND (i.data_saida IS NULL OR c.data_coleta &lt;= i.data_saida)</code>. Mantenha os filtros da etapa anterior no <code>WHERE</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT c.paciente_id, c.data_coleta, i.setor, i.leito
@@ -153,6 +169,13 @@ ORDER BY c.data_coleta;</pre></div>
   </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · Datas e CTE</b><p>Em <code>date</code>, <code>data_coleta - 7</code> é “7 dias antes”. E <code>WITH casos AS (…)</code> dá um nome a uma consulta para você usá-la como se fosse uma tabela. Fica bem mais legível do que subconsulta aninhada.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Crie uma consulta <code>casos</code> com os pacientes e as datas de coleta da etapa 1.</li><li>Junte com <code>uso_equipamento</code> nos <strong>7 dias até a coleta</strong> e conte, por aparelho, quantos casos diferentes o usaram.</li><li>Quais aparelhos foram usados pelos <strong>7</strong> casos?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> guardar os casos numa consulta <code>casos</code>, ver os aparelhos que cada um usou nos 7 dias até a coleta e contar, por aparelho, quantos casos diferentes o usaram. Ficam os usados pelos 7.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O <code>WITH casos AS ( … )</code> dá nome à consulta da etapa 1 (paciente e data da coleta), que passa a funcionar como tabela.</li><li>Ligue a <code>uso_equipamento</code> pelo paciente e pela janela: uso entre a coleta menos 7 e a coleta. Em <code>date</code>, menos 7 é voltar 7 dias.</li><li>Ligue a <code>equipamento</code> e agrupe por código e tipo. Um paciente usa o aparelho vários dias: conte com <code>COUNT(DISTINCT …)</code>.</li><li>Filtre no <code>HAVING</code> a contagem igual a 7. Colunas: código, tipo e contagem.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Contagens acima de 7? Falta o <code>DISTINCT</code>: cada dia de uso contou.</li><li>Nenhum aparelho chega a 7? Confira a janela de datas.</li><li>Erro no <code>WITH</code>? Não ponha ponto e vírgula antes do <code>SELECT</code> principal.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p><code>u.data BETWEEN c.data_coleta - 7 AND c.data_coleta</code> dentro do <code>ON</code>. Conte com <code>COUNT(DISTINCT c.paciente_id)</code> e filtre os grupos com <code>HAVING COUNT(DISTINCT c.paciente_id) = 7</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH casos AS (
@@ -187,6 +210,13 @@ ORDER BY e.codigo;</pre></div>
     <tr><td><code>IN ('BI-02', …)</code></td><td>limita a uma lista de aparelhos</td><td>“os três suspeitos”</td></tr>
   </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para <strong>BI-02</strong>, <strong>BI-07</strong> e <strong>VT-03</strong>, conte quantos pacientes <strong>usaram</strong> o aparelho em agosto, quantos desses são <strong>casos</strong> e a <strong>taxa em %</strong> (com 1 casa decimal).</li><li>Ordene da maior para a menor taxa.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> para BI-02, BI-07 e VT-03, contar os pacientes que usaram cada aparelho em agosto, quantos deles são casos e a taxa em % com 1 casa decimal, da maior para a menor.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>A base é <code>uso_equipamento</code>: todos os usuários, doentes ou não. Ligue <code>equipamento</code> e filtre agosto e os três códigos.</li><li>Aqui <code>casos</code> só precisa do paciente. O <code>LEFT JOIN</code> com ela mantém quem não adoeceu, com as colunas de <code>casos</code> vazias.</li><li>Doentes: um <code>CASE</code> devolve o paciente quando o par <code>IS NOT NULL</code>, e o <code>COUNT(DISTINCT …)</code> ignora os vazios.</li><li>Taxa: 100 vezes doentes dividido por usaram, com <code>100.0</code> e <code>ROUND(…, 1)</code>. Colunas: código, usaram, doentes e taxa.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Usaram igual a doentes? Você usou <code>JOIN</code> no lugar do <code>LEFT JOIN</code>.</li><li>Taxa zero? Divisão entre inteiros perde os decimais: use <code>100.0</code>.</li><li>Números grandes demais? Faltou <code>DISTINCT</code> ou o filtro de agosto.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Use a consulta <code>casos</code> (só os pacientes) e <code>LEFT JOIN casos c ON c.paciente_id = u.paciente_id</code>. Os doentes são <code>COUNT(DISTINCT CASE WHEN c.paciente_id IS NOT NULL THEN u.paciente_id END)</code>. A taxa é <code>ROUND(100.0 * doentes / usaram, 1)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH casos AS (
@@ -224,6 +254,14 @@ ORDER BY taxa_pct DESC;</pre></div>
     <tr><td><code>IN (…)</code></td><td>restringe aos suspeitos</td><td>“só BI-02, BI-07 e VT-03”</td></tr>
   </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para os três aparelhos, descubra qual <strong>não tem nenhum registro de limpeza em agosto</strong>.</li><li>Esse é o culpado. Confira com <code>SELECT verificar_caso4('CÓDIGO');</code>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> entre os três aparelhos suspeitos, descobrir qual não tem nenhuma limpeza registrada em agosto.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>É pergunta de “quem não tem par”: parta de <code>equipamento</code> e faça <code>LEFT JOIN</code> com <code>limpeza_equipamento</code>.</li><li>Par é uma limpeza daquele aparelho <em>em agosto</em>: o período vai no <code>ON</code>, junto com o id.</li><li>No <code>WHERE</code>, só os três códigos, com <code>IN ( … )</code>.</li><li>Agrupe por código e tipo. Sem limpeza, <code>MAX(l.data)</code> fica vazio, e o <code>HAVING</code> pega esses grupos com <code>IS NULL</code>. Colunas: código e tipo.</li></ul>
+    <p><strong>Juntando:</strong> <code>FROM equipamento e LEFT JOIN limpeza_equipamento l ON … AND … WHERE … GROUP BY … HAVING …</code></p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Não veio nada? O filtro de agosto no <code>WHERE</code> apaga as linhas sem par, justo a que você procura.</li><li>Vieram os três? Falta o <code>HAVING</code>, ou o <code>JOIN</code> não é <code>LEFT</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p><code>LEFT JOIN limpeza_equipamento l ON l.equipamento_id = e.id AND l.data BETWEEN '2026-08-01' AND '2026-08-31'</code>. Quem não tem par fica com <code>MAX(l.data)</code> vazio: <code>HAVING MAX(l.data) IS NULL</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT e.codigo, e.tipo
@@ -2619,10 +2657,10 @@ SELECT '✅ Caso 4 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -100,6 +100,13 @@ erDiagram
     <tr><td><code>subconsulta no FROM</code></td><td>desafio: resultado de uma consulta usado como tabela</td><td>“comparar dois totais lado a lado”</td></tr>
   </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Some a <strong>quantidade das saídas</strong> por item (<code>tipo = 'saida'</code>).</li><li>Some a <strong>quantidade prescrita</strong> nas receitas por item.</li><li>Compare e diga <strong>qual item</strong> tem a maior diferença, e de quanto é.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> somar, por item, o que saiu do cofre (primeira consulta) e o que foi prescrito (segunda), e comparar para achar o item com a maior diferença.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li><strong>Na primeira:</strong> as saídas estão em <code>movimento_estoque</code>. Fique só com as saídas e some a quantidade.</li><li><strong>Na segunda:</strong> o prescrito está em <code>receita</code>. Some a quantidade, sem filtro.</li><li>Nas duas, o <code>GROUP BY item_id</code> faz uma linha por item e o <code>SUM</code> soma dentro dela. Duas colunas: <code>item_id</code> e a soma.</li><li>Rode uma de cada vez; o jogo confere as duas. Depois, item por item, faça saídas menos prescrito. O nome do item está em <code>item_controlado</code>.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Saídas grandes demais? Sem <code>tipo = 'saida'</code>, as entradas também entram na soma.</li><li>Erro de <code>GROUP BY</code>? No <code>SELECT</code> só cabem o <code>item_id</code> e a soma.</li><li>Trocou o <code>item_id</code> pelo nome? O corretor espera o número.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>São duas consultas com <code>GROUP BY item_id</code>, uma em <code>movimento_estoque</code> (com <code>WHERE tipo = 'saida'</code>) e outra em <code>receita</code>. Compare os números lado a lado. Desafio extra: juntar as duas num único resultado usando subconsultas no <code>FROM</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT item_id, SUM(quantidade) AS total_saida
@@ -136,7 +143,14 @@ ORDER BY diferenca DESC;</pre></div>
     <tr><td><code>SUM(…)</code></td><td>soma o que sobrou depois do filtro</td><td>“quanto saiu sem receita”</td></tr>
     <tr><td><code>JOIN colaborador</code></td><td>troca o número pelo nome de quem retirou</td><td>“Gilson Amorim, e não o id 14”</td></tr>
   </table></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as saídas de <strong>morfina</strong> (<code>item_id = 1</code>) que não têm receita, com o nome de quem retirou e o motivo.</li><li>Some a quantidade. Isso explica os 47? Quanto <strong>sobra</strong>?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as saídas de <strong>morfina</strong> (<code>item_id = 1</code>) que não têm receita, mostrando o id da saída, a data, a hora, o nome de quem retirou, a quantidade e o motivo, nessa ordem.</li><li>Some a quantidade. Isso explica os 47? Quanto <strong>sobra</strong>?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, listar as saídas de morfina sem receita, com quem retirou e o motivo. Na segunda, somar essas quantidades e ver quanto dos 47 sobra.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>“Sem receita” é <code>receita_id</code> vazio. Vazio em SQL é <code>NULL</code>, e se testa com <code>IS NULL</code>.</li><li>São três filtros: tipo saída, morfina (<code>item_id = 1</code>) e sem receita.</li><li><strong>Na primeira:</strong> ligue <code>colaborador</code> pelo <code>colaborador_id</code>. Colunas, nessa ordem: id, data, hora, nome, quantidade e motivo.</li><li><strong>Na segunda:</strong> os mesmos filtros, sem <code>JOIN</code>, e uma coluna só: a soma da quantidade. Depois, faça 47 menos essa soma.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Não veio nada? <code>= NULL</code> nunca dá verdadeiro; use <code>IS NULL</code>.</li><li>Vieram entradas no cofre? Elas também não têm receita: falta o filtro do tipo.</li><li>Formato igual, mas não bate? Confira a ordem das colunas.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Filtre <code>tipo = 'saida'</code>, <code>item_id = 1</code> e <code>receita_id IS NULL</code>. Para ver o nome, faça <code>JOIN colaborador</code> pelo <code>colaborador_id</code>. Nunca use <code>= NULL</code>: o certo é <code>IS NULL</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT m.id, m.data, m.hora, c.nome, m.quantidade, m.motivo
@@ -163,6 +177,14 @@ WHERE tipo = 'saida' AND item_id = 1 AND receita_id IS NULL;</pre></div>
     <tr><td><code>GROUP BY c.nome</code></td><td>uma linha por pessoa</td><td>“o balanço de cada colaborador”</td></tr>
   </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para a morfina, ache as saídas em que a quantidade retirada é <strong>maior</strong> que a da receita.</li><li>Agrupe por colaborador: quantas ocorrências e quanto <strong>excesso</strong> (retirado − prescrito) cada um acumulou? A soma bate com os 38?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> achar as saídas de morfina em que a pessoa tirou mais do que a receita mandava e, por colaborador, contar as vezes e somar o excesso.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Para ter a <code>quantidade</code> da saída e a da receita na mesma linha, ligue <code>movimento_estoque</code> a <code>receita</code> pelo <code>receita_id</code>. Ligue também <code>colaborador</code>, para ter o nome.</li><li>Filtros: morfina, e quantidade retirada maior que a prescrita (<code>&gt;</code> entre as duas colunas).</li><li>O excesso de cada saída é retirado menos prescrito. Agrupe pelo nome.</li><li>Colunas, nessa ordem: nome, ocorrências (<code>COUNT(*)</code>) e soma do excesso. O total de todos deve dar 38.</li></ul>
+    <p><strong>Juntando:</strong> <code>SELECT nome, COUNT(*), SUM(… - …) FROM … JOIN … JOIN … WHERE … GROUP BY …</code></p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Coluna ambígua? <code>quantidade</code> existe nas duas tabelas: use <code>m.quantidade</code> e <code>r.quantidade</code>.</li><li>Excesso alto demais? Você somou a retirada inteira, e não a diferença.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p><code>JOIN receita r ON r.id = m.receita_id</code> e <code>WHERE m.quantidade &gt; r.quantidade</code>. O excesso é <code>m.quantidade - r.quantidade</code>. Use <code>COUNT(*)</code> e <code>SUM(...)</code> com <code>GROUP BY c.nome</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT c.nome, COUNT(*) AS ocorrencias,
@@ -187,7 +209,15 @@ ORDER BY excesso DESC;</pre></div>
     <tr><td><code>AS situacao</code></td><td>dá nome à coluna criada</td><td>“situação do excesso”</td></tr>
     <tr><td><code>GROUP BY nome, situacao</code></td><td>agrupa pela pessoa e pela etiqueta ao mesmo tempo</td><td>“Edson: sem justificativa, 28”</td></tr>
   </table></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Repita a etapa 3, mas separe também por <strong>situação</strong>: <code>justificado</code> quando o motivo é <code>quebra de ampola</code>, e <code>sem justificativa</code> nos demais casos.</li><li>Quem sobra com excesso sem justificativa, e de quanto?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Repita a etapa 3, mas separe também por <strong>situação</strong>: <code>justificado</code> quando o motivo é <code>quebra de ampola</code>, e <code>sem justificativa</code> nos demais casos. Mostre o nome, a situação e o excesso, nessa ordem (sem a contagem da etapa 3).</li><li>Quem sobra com excesso sem justificativa, e de quanto?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> refazer a etapa 3 separando o excesso em <code>justificado</code> (motivo <code>quebra de ampola</code>) e <code>sem justificativa</code> (outros motivos), e ver quem sobra sem justificativa.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Os <code>JOIN</code> e os filtros da etapa 3 continuam.</li><li>O <code>CASE</code> cria uma coluna a partir de uma condição: “se o motivo é quebra de ampola, justificado; senão, sem justificativa”. O <code>ELSE</code> é o “senão”, e o <code>AS</code> dá o nome.</li><li>Agora o grupo é a pessoa <em>e</em> a etiqueta, então o <code>GROUP BY</code> leva as duas.</li><li>Três colunas, nessa ordem: nome, situação e excesso somado. A contagem da etapa 3 sai.</li></ul>
+    <p><strong>Juntando:</strong> <code>SELECT nome, CASE WHEN … THEN … ELSE … END AS situacao, SUM(…) … GROUP BY nome, situacao</code></p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Erro de <code>GROUP BY</code>? A etiqueta também precisa estar nele.</li><li>As etiquetas são conferidas: escreva <code>justificado</code> e <code>sem justificativa</code> exatamente assim.</li><li>Uma coluna a mais? Tire o <code>COUNT(*)</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>No <code>SELECT</code>: <code>CASE WHEN m.motivo = 'quebra de ampola' THEN 'justificado' ELSE 'sem justificativa' END AS situacao</code>. Repita <code>c.nome, situacao</code> no <code>GROUP BY</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT c.nome,
@@ -215,7 +245,15 @@ ORDER BY excesso DESC;</pre></div>
     <tr><td><code>COUNT(DISTINCT data)</code></td><td>conta noites diferentes, não ocorrências</td><td>“em 8 noites”</td></tr>
     <tr><td><code>HAVING … &gt;= 5</code></td><td>filtra os grupos depois da contagem</td><td>“5 noites ou mais”</td></tr>
   </table></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Entre as saídas de morfina com excesso <strong>sem justificativa</strong>, feitas de <strong>madrugada</strong>, conte em quantas <strong>noites diferentes</strong> cada pessoa fez isso.</li><li>Fique só com quem fez em <strong>5 noites ou mais</strong>. Esse é o culpado. Confira com <code>SELECT verificar_caso3('Nome Completo');</code>.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Entre as saídas de morfina com excesso <strong>sem justificativa</strong>, feitas de <strong>madrugada</strong>, conte em quantas <strong>noites diferentes</strong> cada pessoa fez isso. Mostre o nome, o número de noites e o excesso somado, nessa ordem.</li><li>Fique só com quem fez em <strong>5 noites ou mais</strong>. Esse é o culpado. Confira com <code>SELECT verificar_caso3('Nome Completo');</code>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> entre as saídas de morfina com excesso sem justificativa feitas de madrugada, contar as noites diferentes de cada pessoa e ficar com quem chegou a 5 ou mais.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Parta da etapa 3: os mesmos <code>JOIN</code>, a morfina e o “retirou mais que o prescrito”.</li><li>Sem justificativa: motivo diferente (<code>&lt;&gt;</code>) de <code>'quebra de ampola'</code>.</li><li>A madrugada atravessa a meia-noite: hora de 2200 para cima <em>ou</em> até 459. Esse <code>OR</code> vai entre parênteses.</li><li>Agrupe pelo nome, conte noites com <code>COUNT(DISTINCT …)</code> na data e filtre no <code>HAVING</code>. Colunas, nessa ordem: nome, noites e soma do excesso.</li></ul>
+    <p><strong>Juntando:</strong> <code>… WHERE … AND motivo &lt;&gt; … AND ( … OR … ) GROUP BY … HAVING …</code></p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Não veio nada? Com <code>AND</code> na madrugada, nenhuma hora serve.</li><li>Gente demais? O <code>OR</code> sem parênteses “vaza” para os outros filtros.</li><li>Noites a mais? Faltou o <code>DISTINCT</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Filtre o motivo com <code>m.motivo &lt;&gt; 'quebra de ampola'</code> e a hora com <code>(m.hora &gt;= 2200 OR m.hora &lt;= 459)</code>. Agrupe por nome e use <code>HAVING COUNT(DISTINCT m.data) &gt;= 5</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT c.nome, COUNT(DISTINCT m.data) AS noites,
@@ -1541,10 +1579,10 @@ SELECT '✅ Caso 3 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

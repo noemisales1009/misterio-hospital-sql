@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -124,6 +124,14 @@ VALUES ('Teste', '2000-01-01', -5);</pre></div>
     <li>Prove a regra: tente cadastrar outro leito com o código <code>UTI-01</code>. O banco precisa recusar.</li>
     <li>Aperte <strong>Conferir meu banco</strong>, logo abaixo do computador.</li>
   </ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> rodar o passo 3 (pacientes) e criar por conta própria a tabela de leitos; cadastrar 3 leitos e provar que o banco recusa código repetido.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>No <code>CREATE TABLE</code>, cada coluna é: nome, tipo e regras, separada das outras por vírgula.</li><li>Traduza: texto é <code>text</code>; verdadeiro/falso, <code>boolean</code>; chave primária, <code>PRIMARY KEY</code>; obrigatório, <code>NOT NULL</code>; verdadeiro por padrão, <code>DEFAULT true</code>.</li><li>No <code>INSERT</code>, liste só <code>codigo</code> e <code>setor</code>: sem <code>ativo</code>, o banco usa o padrão. Os três leitos cabem num <code>VALUES</code> só.</li><li>Depois, cadastre <code>UTI-01</code> de novo. Aqui o erro é o resultado certo.</li></ul>
+    <p><strong>Juntando:</strong> o <code>enf_paciente</code> é o molde: <code>CREATE TABLE … (coluna tipo regras, …)</code>. No fim, aperte <strong>Conferir meu banco</strong>.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>“enf_leito já existe”? Apague com <code>DROP TABLE enf_leito;</code> e refaça.</li><li>O Conferir reclama de <code>ativo</code>? Faltou <code>NOT NULL</code> ou <code>DEFAULT true</code>.</li><li>Erro de escrita? Texto vai entre aspas simples, e a última coluna não leva vírgula.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Copie o <code>CREATE TABLE</code> do paciente e adapte. Chave primária de texto: <code>codigo text PRIMARY KEY</code>. Obrigatório com valor padrão: <code>ativo boolean NOT NULL DEFAULT true</code>. Para cadastrar vários de uma vez, separe as linhas do <code>VALUES</code> por vírgula.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>CREATE TABLE enf_leito (
@@ -231,9 +239,16 @@ CREATE TABLE a_b (
     <li>Crie <code>enf_medicamento</code>: <code>id</code> gerado pelo banco (chave primária), <code>nome</code> (texto, obrigatório e <strong>único</strong>) e <code>unidade</code> (texto, obrigatório).</li>
     <li>Crie a tabela de ligação <code>enf_prescricao</code>: <code>paciente_id</code> (aponta para <code>enf_paciente</code>, com <strong>ON DELETE CASCADE</strong>), <code>medicamento_id</code> (aponta para <code>enf_medicamento</code>) e <code>dose</code> (<code>numeric(7,2)</code>, obrigatória, maior que zero). A chave primária é o par <code>paciente_id, medicamento_id</code>.</li>
     <li>Cadastre 2 medicamentos (por exemplo, Dipirona em mg e Heparina em UI) e prescreva pelo menos 2 (paciente, medicamento).</li>
-    <li>Liste quem <strong>ainda está internado</strong> (sem data de saída), com o setor do leito e o remédio prescrito. Quem não tem prescrição também precisa aparecer.</li>
+    <li>Liste quem <strong>ainda está internado</strong> (sem data de saída), mostrando o nome, o leito, o setor do leito, o remédio prescrito e a dose, nessa ordem. Quem não tem prescrição também precisa aparecer.</li>
     <li>Aperte <strong>Conferir meu banco</strong>.</li>
   </ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> rodar as internações do passo 1, criar remédios e prescrições e listar os ainda internados, com setor e remédio, inclusive quem não tem remédio.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li><code>REFERENCES</code> aponta para outra tabela: só entram números que existem lá. Por isso, remédio antes de prescrição.</li><li>Na prescrição, as duas colunas que apontam têm <code>REFERENCES</code>; só a do paciente leva <code>ON DELETE CASCADE</code>. A dose leva <code>CHECK</code>, e a chave do par segue o molde do passo 4.</li><li>Para prescrever, o <code>INSERT … SELECT</code> do passo 1 acha os ids pelo nome.</li><li><strong>Na lista:</strong> parta das internações sem saída. Paciente e leito: <code>JOIN</code>. Prescrição e remédio podem faltar: <code>LEFT JOIN</code>, como na fase D do Caso 1. Mostre nome, leito, setor, remédio e dose, nessa ordem.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>“A tabela enf_medicamento não existe”? Crie o remédio antes.</li><li>Sumiu quem não tem remédio? Use <code>LEFT JOIN</code> na prescrição e no remédio.</li><li>Colunas não batem? As cinco, nesta ordem: paciente, leito, setor, remédio, dose.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Na consulta final, parta de <code>enf_internacao</code> com <code>WHERE saida IS NULL</code>, ligue paciente e leito com <code>JOIN</code> e use <code>LEFT JOIN</code> para a prescrição e o medicamento: assim quem não tem remédio não some (você viu isso no Caso 1, fase D).</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>CREATE TABLE enf_medicamento (
@@ -352,6 +367,14 @@ DROP TABLE enf_paciente;</pre></div>
     <li>Crie a view <code>enf_internados</code> com <code>nome</code>, <code>leito</code>, <code>setor</code> e <code>entrada</code> de quem <strong>ainda está internado</strong>, e consulte com <code>SELECT * FROM enf_internados</code>.</li>
     <li>Aperte <strong>Conferir meu banco</strong>.</li>
   </ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> criar a coluna telefone e preencher a de um paciente, um índice nas internações e uma view de quem ainda está internado.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li><strong>Telefone:</strong> não recrie a tabela; <code>ALTER TABLE … ADD COLUMN</code> acrescenta a coluna, vazia. Preencha com <code>UPDATE</code> e um <code>WHERE</code> que escolhe o paciente.</li><li><strong>Índice:</strong> o índice remissivo do banco. Diga o nome exato da missão, a tabela e, entre parênteses, a coluna.</li><li><strong>View:</strong> uma consulta com nome. Escreva o <code>SELECT</code> dos internados (<code>nome</code>, <code>leito</code>, <code>setor</code>, <code>entrada</code>), teste, e só então ponha <code>CREATE VIEW enf_internados AS</code> na frente.</li></ul>
+    <p><strong>Juntando:</strong> a view se consulta como tabela, com <code>SELECT * FROM</code>. No fim, aperte <strong>Conferir meu banco</strong>.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>“enf_paciente já existe” ao repetir o <code>ALTER TABLE</code>? Quem já existe é a coluna <code>telefone</code>. Não apague nada.</li><li>A view mostra gente demais? Falta filtrar quem não tem saída.</li><li>O Conferir não acha o índice? Confira o nome e a coluna <code>paciente_id</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>A view é o <code>SELECT</code> da fase 2 (internação + paciente + leito, com <code>saida IS NULL</code>), só que escrito depois de <code>CREATE VIEW enf_internados AS</code>. O índice é <code>CREATE INDEX nome ON tabela (coluna)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>ALTER TABLE enf_paciente ADD COLUMN telefone text;
@@ -474,10 +497,10 @@ SELECT * FROM enf_internados;</pre></div>
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

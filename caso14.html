@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -170,6 +170,13 @@ ROLLBACK;</pre></div>
   <div class="box"><b class="l">O que você deve ter visto</b><p>A conta 346 tinha bruto de 6.854,00 e desconto de 2.741,60. Você só mandou somar 100 no bruto, mas o <code>RETURNING</code> mostra o desconto em <strong>2.781,60</strong>: ele subiu R$ 40 sozinho, exatamente 40% dos 100 que você lançou. Você não escreveu nada sobre desconto. Alguma coisa dentro do banco escreveu. Guarde isso: as próximas fases explicam.</p></div>
   <div class="box"><b class="l">Atenção</b><p>Se você rodar um <code>INSERT</code>, <code>UPDATE</code> ou <code>DELETE</code> <strong>sem</strong> <code>ROLLBACK</code> no final (ou com <code>COMMIT</code>), a mudança fica gravada no banco deste computador, e os números das missões podem sair diferentes dos que aparecem em “Para conferir”. Clique em <strong>Reiniciar banco</strong> para voltar tudo ao ponto de partida. No Supabase, rode o <code>caso14.sql</code> de novo.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>A política diz que desconto passa no máximo de 10% do bruto. Quantas contas têm <code>desconto</code> <strong>acima</strong> de 10% do <code>valor_bruto</code>, de quantos pacientes diferentes, e quanto dá a soma desses descontos?</li><li>Agora quebre essas mesmas contas por <code>paciente_id</code>: quantas contas e quanto de desconto cada paciente teve. Ordene pelo <code>paciente_id</code>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, contar as contas com desconto acima de 10% do bruto, de quantos pacientes, e somar esses descontos. Na segunda, quebrar essas contas por paciente.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>A fase ensina a escrever no banco (<code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>) entre <code>BEGIN</code> e <code>ROLLBACK</code>, que desfaz tudo. A missão em si só lê: é um <code>SELECT</code>.</li><li>“Acima de 10% do bruto” compara duas colunas da mesma linha: <code>desconto</code> e <code>valor_bruto</code> vezes 0.10.</li><li><strong>Na primeira:</strong> numa linha, conte as contas, conte os pacientes sem repetir e some o desconto. <strong>Na segunda:</strong> a mesma condição, com <code>GROUP BY paciente_id</code>, em ordem de paciente.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Números estranhos depois dos testes? Algum <code>UPDATE</code> ficou gravado sem <code>ROLLBACK</code>: clique em Reiniciar banco.</li><li>Pacientes igual a contas? Faltou o <code>DISTINCT</code> dentro do <code>COUNT</code>.</li><li>Erro de sintaxe na conta? Decimal no SQL usa ponto, não vírgula.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>“Acima de 10% do bruto” vira <code>WHERE desconto &gt; valor_bruto * 0.10</code>. Na primeira, use <code>COUNT(*)</code>, <code>COUNT(DISTINCT paciente_id)</code> e <code>SUM(desconto)</code>. Na segunda, a mesma condição com <code>GROUP BY paciente_id</code> e <code>ORDER BY paciente_id</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT COUNT(*) AS contas,
@@ -230,6 +237,13 @@ WHERE desconto_depois &lt;&gt; desconto_antes
 ORDER BY momento
 LIMIT 30;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para cada <code>usuario_db</code> da auditoria, mostre quantas alterações ele fez no total e quantas deixaram o desconto <strong>acima de 10%</strong> do bruto (compare <code>desconto_depois</code> com <code>valor_bruto_depois</code>). Ordene do login com mais alterações para o com menos.</li><li>Pegue só as alterações que deixaram o desconto acima de 10%. Calcule o percentual do desconto sobre o bruto, arredondado sem casas (<code>round(100 * desconto_depois / valor_bruto_depois)</code>), e agrupe por esse percentual, mostrando quantas alterações e o primeiro momento em que cada percentual apareceu.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, contar por login do banco as alterações da auditoria e quantas deixaram o desconto acima de 10% do bruto. Na segunda, agrupar só essas pelo percentual de desconto, com quantas e a primeira vez.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>A <code>ctp_auditoria</code> é a câmera do faturamento: um gatilho (função que o banco roda sozinho) grava o antes e o depois de cada <code>UPDATE</code>.</li><li>A política vale para como a conta ficou: compare <code>desconto_depois</code> com <code>valor_bruto_depois</code>, como na fase 1.</li><li><strong>Na primeira:</strong> agrupe por <code>usuario_db</code>; <code>COUNT(*)</code> conta tudo, e o mesmo <code>COUNT(*)</code> com <code>FILTER</code> conta só o que cumpre a condição.</li><li><strong>Na segunda:</strong> a condição vai no <code>WHERE</code>. Calcule o percentual com a fórmula da missão, dê um apelido, agrupe por ele e pegue o menor <code>momento</code>.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>As duas contagens saíram iguais? A condição foi para o <code>WHERE</code>; na primeira, ela fica só no <code>FILTER</code>.</li><li>Percentual com casas decimais? Use o <code>round</code> como na missão, sem segundo número.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: <code>COUNT(*)</code> e <code>COUNT(*) FILTER (WHERE desconto_depois &gt; valor_bruto_depois * 0.10)</code> com <code>GROUP BY usuario_db</code>. Segunda: <code>WHERE desconto_depois &gt; valor_bruto_depois * 0.10</code>, o <code>round(…)</code> no <code>SELECT</code> com um apelido, e <code>GROUP BY</code> nesse apelido, com <code>COUNT(*)</code> e <code>MIN(momento)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT usuario_db,
@@ -283,6 +297,13 @@ SELECT tgname, tgrelid::regclass AS tabela, tgenabled, tgisinternal
 FROM pg_trigger
 WHERE tgrelid = 'ctp_conta'::regclass;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste os gatilhos da tabela <code>ctp_conta</code> em <code>information_schema.triggers</code> (filtre por <code>event_object_table</code>): mostre <code>trigger_name</code>, <code>event_manipulation</code>, <code>action_timing</code> e <code>action_statement</code>, ordenando pelo nome e pelo evento.</li><li>Leia o código das funções que esses gatilhos chamam: em <code>pg_proc</code>, mostre <code>proname</code> e <code>prosrc</code> das funções cujo nome começa com <code>ctp_fn</code>, em ordem de nome.</li><li>A função suspeita tem uma lista de números de paciente escrita dentro dela. Use essa lista para contar as contas desses pacientes com desconto maior que zero e somar esses descontos.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, listar os gatilhos de <code>ctp_conta</code>. Na segunda, ler o código das funções. Na terceira, usar a lista de pacientes da função suspeita para contar as contas com desconto e somar os descontos.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Gatilho é uma regra escondida que roda sozinha quando a tabela muda. Um <code>BEFORE</code> pode trocar valores antes de gravar; um <code>AFTER</code> só registra.</li><li><strong>Na primeira:</strong> <code>information_schema.triggers</code> lista os gatilhos, uma linha por evento; filtre a tabela em <code>event_object_table</code>.</li><li><strong>Na segunda:</strong> <code>pg_proc</code> tem o nome (<code>proname</code>) e o código (<code>prosrc</code>) de cada função; “começa com” é <code>LIKE</code> com <code>%</code> no fim. A suspeita é a que muda o <code>NEW.desconto</code> para alguns pacientes.</li><li><strong>Na terceira:</strong> copie a lista dela para um <code>IN (…)</code> em <code>ctp_conta</code>, com desconto maior que zero; conte e some.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Nada na primeira? O nome da tabela vai entre aspas simples, em minúsculas.</li><li>Soma diferente na terceira? Copie a lista inteira e mantenha o filtro do desconto.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: <code>WHERE event_object_table = 'ctp_conta' ORDER BY trigger_name, event_manipulation</code>. Segunda: <code>FROM pg_proc WHERE proname LIKE 'ctp_fn%' ORDER BY proname</code>. Terceira: copie a lista do <code>IF NEW.paciente_id IN (…)</code> para um <code>WHERE paciente_id IN (…) AND desconto &gt; 0</code>, com <code>COUNT(*)</code> e <code>SUM(desconto)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT trigger_name, event_manipulation, action_timing, action_statement
@@ -318,6 +339,13 @@ SELECT momento, usuario_db, maquina, comando, objeto, tabela, chamado
 FROM ctp_ddl_log
 ORDER BY momento;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>No log de DDL, encontre a criação das duas funções e dos dois gatilhos da fase 3 (<code>ctp_fn_auditoria</code>, <code>ctp_trg_auditoria</code>, <code>ctp_fn_ajuste_centavos</code>, <code>ctp_trg_ajuste_centavos</code>). Mostre <code>momento</code>, <code>usuario_db</code>, <code>comando</code>, <code>objeto</code>, <code>maquina</code> e <code>chamado</code>, em ordem de momento.</li><li>Liste todas as mudanças de estrutura feitas <strong>fora do horário comercial</strong> (antes das 7h ou a partir das 19h), com a descrição e o aprovador do chamado (use <code>LEFT JOIN</code> com <code>ctp_chamado</code>). Mostre momento, login, máquina, objeto, chamado, descrição e aprovador, em ordem de momento.</li><li>O login usado no gatilho suspeito é de uma pessoa só? Veja a linha dele em <code>ctp_usuario_db</code> (login, tipo e descrição).</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, achar no log de estrutura a criação das duas funções e dos dois gatilhos. Na segunda, listar as mudanças fora do horário comercial, com o chamado. Na terceira, ver se o login do gatilho suspeito é de uma pessoa só.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Criar gatilho muda a estrutura (DDL), não os dados. Isso fica em <code>ctp_ddl_log</code>: quem, quando, de qual máquina e com qual chamado.</li><li><strong>Na primeira:</strong> filtre <code>objeto</code> pelos quatro nomes da missão, com <code>IN</code>.</li><li><strong>Na segunda:</strong> pegue a hora do <code>momento</code> com <code>EXTRACT</code>: antes das 7 ou a partir das 19. Descrição e aprovador vêm de <code>ctp_chamado</code>, com <code>LEFT JOIN</code>.</li><li><strong>Na terceira:</strong> procure em <code>ctp_usuario_db</code> o login que criou o gatilho suspeito.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Sumiram mudanças? Com <code>JOIN</code> comum, as sem chamado desaparecem.</li><li>Nada veio? Nenhuma hora é menor que 7 e maior que 19 ao mesmo tempo: é <code>OR</code>.</li><li>Faltou a das 19h? “A partir das 19” inclui as 19: <code>&gt;=</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: <code>WHERE objeto IN ('ctp_fn_auditoria', 'ctp_trg_auditoria', 'ctp_fn_ajuste_centavos', 'ctp_trg_ajuste_centavos')</code>. Segunda: <code>FROM ctp_ddl_log d LEFT JOIN ctp_chamado c ON c.codigo = d.chamado WHERE EXTRACT(HOUR FROM d.momento) &lt; 7 OR EXTRACT(HOUR FROM d.momento) &gt;= 19</code>. Terceira: <code>WHERE login = 'admin_sistemas'</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT momento, usuario_db, comando, objeto, maquina, chamado
@@ -380,6 +408,13 @@ COMMIT;
 SELECT COUNT(*) AS contas_fora_da_politica FROM ctp_conta WHERE desconto &gt; valor_bruto * 0.10;</pre></div>
   <div class="box"><b class="l">Atenção</b><p>Esse último bloco muda o banco de verdade: depois dele, a fase 1 vai achar 0 contas fora da política, a fase 3 não vai mais encontrar o gatilho suspeito, e a auditoria ganha 22 linhas novas. É o resultado esperado de um conserto. Para voltar ao ponto de partida, clique em <strong>Reiniciar banco</strong> (no Supabase, rode o <code>caso14.sql</code> de novo).</p></div>
   <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Quem são os sete pacientes da lista do gatilho? Mostre o <code>id</code> e o <code>nome</code> deles, em ordem de <code>id</code>. Repare nos sobrenomes.</li><li>Agora identifique o culpado: quem estava usando a máquina das duas mudanças sem chamado no momento exato em que elas foram feitas? Junte <code>ctp_ddl_log</code> com <code>ctp_sessao_estacao</code> pela máquina, com o momento do comando entre o <code>inicio</code> e o <code>fim</code> da sessão. Confira com <code>SELECT verificar_caso14('Nome Completo');</code>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, mostrar id e nome dos sete pacientes da lista do gatilho. Na segunda, descobrir quem usava a máquina das duas mudanças sem chamado no instante em que foram feitas.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li><strong>Na primeira:</strong> a lista é a que você copiou do gatilho na fase 3, agora num <code>IN (…)</code> sobre o <code>id</code> de <code>ctp_paciente</code>. Repare nos sobrenomes.</li><li><strong>Na segunda:</strong> o login era compartilhado e não diz quem foi. A máquina e a hora dizem: <code>ctp_sessao_estacao</code> guarda quem usou cada máquina, de <code>inicio</code> a <code>fim</code>.</li><li>Ligue o log à sessão com duas condições no <code>ON</code>: mesma máquina e momento entre início e fim. Fique com as mudanças sem chamado e mostre pessoa, máquina, início, fim e <code>via</code>.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Sessão repetida? Os dois comandos caíram na mesma; use <code>DISTINCT</code>.</li><li>Gente de outro horário? Falta a condição do momento entre <code>inicio</code> e <code>fim</code>.</li><li>Ninguém? Para achar vazio é <code>IS NULL</code>; <code>= NULL</code> nunca é verdadeiro.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: a lista de números é a mesma que você copiou do gatilho na fase 3. Use-a num <code>WHERE id IN (…)</code> em <code>ctp_paciente</code>. Segunda: <code>FROM ctp_ddl_log d JOIN ctp_sessao_estacao s ON s.maquina = d.maquina AND d.momento BETWEEN s.inicio AND s.fim</code>, filtrando <code>d.chamado IS NULL</code>. Mostre a pessoa, a máquina, o início, o fim e o <code>via</code> da sessão.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT id, nome
@@ -2146,10 +2181,10 @@ SELECT '✅ Caso 14 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

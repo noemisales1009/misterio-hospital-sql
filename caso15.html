@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -118,6 +118,13 @@ GROUP BY crm_texto
 ORDER BY vezes DESC, crm_texto
 LIMIT 20;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantas receitas têm o <code>crm_texto</code> no formato oficial e quantas não têm? Use <code>~ '^CRM-[A-Z]{2} \d{6}$'</code> como uma coluna (ela dá <code>true</code> ou <code>false</code>) e agrupe por ela.</li><li>Agora só as receitas <strong>fora</strong> do formato (<code>!~</code>): quantas cada atendente cadastrou? Mostre o <code>nome</code> da atendente e a contagem, da maior para a menor.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, contar as receitas com o CRM no formato oficial e as fora dele. Na segunda, quantas receitas fora do formato cada atendente cadastrou.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Expressão regular (regex) é um molde de texto. O <code>~</code> pergunta “cabe no molde?” e responde <code>true</code> ou <code>false</code>.</li><li>No molde da missão: <code>^</code> é o começo, <code>[A-Z]{2}</code> são duas letras maiúsculas, <code>\d{6}</code> seis dígitos, <code>$</code> o fim. Com <code>^</code> e <code>$</code>, o texto inteiro precisa caber.</li><li><strong>Na primeira:</strong> a comparação vira uma coluna do <code>SELECT</code>; dê um apelido, agrupe por ele e conte.</li><li><strong>Na segunda:</strong> <code>!~</code> é “não cabe”. Use-o no <code>WHERE</code>, junte <code>rx_atendente</code> pela matrícula (<code>cadastrada_por</code>) e agrupe pelo nome.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Tudo <code>false</code>? Copie o molde exato: espaço entre sigla e números, barra invertida no <code>\d</code>.</li><li>Usou <code>LIKE</code>? Ele não entende <code>[A-Z]</code> nem <code>\d</code>.</li><li>Erro de <code>GROUP BY</code>? O nome da atendente precisa estar nele.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: a comparação <code>crm_texto ~ '…'</code> vira uma coluna de verdadeiro/falso. Coloque-a no <code>SELECT</code> com um apelido (por exemplo <code>formato_oficial</code>), agrupe por esse apelido e conte com <code>COUNT(*)</code>. Segunda: <code>JOIN rx_atendente a ON a.matricula = r.cadastrada_por</code>, <code>WHERE r.crm_texto !~ '^CRM-[A-Z]{2} \d{6}$'</code> e <code>GROUP BY a.nome</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT crm_texto ~ '^CRM-[A-Z]{2} \d{6}$' AS formato_oficial,
@@ -154,6 +161,13 @@ FROM rx_receita
 WHERE regexp_replace(crm_texto, '\D', '', 'g') = '126845'
 ORDER BY crm_texto;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Ligue cada receita ao médico pelo número limpo (<code>m.crm_numero = regexp_replace(r.crm_texto, '\D', '', 'g')</code>). Para cada médico encontrado, mostre o <code>nome</code>, a <code>situacao</code>, quantas receitas ele tem e de <strong>quantos jeitos diferentes</strong> o CRM dele foi digitado (<code>COUNT(DISTINCT r.crm_texto)</code>). Ordene pelos jeitos diferentes, do maior para o menor.</li><li>Agora o contrário: quais números limpos <strong>não acharam médico nenhum</strong>? Use <code>LEFT JOIN</code> e <code>m.id IS NULL</code>. Mostre o número, quantos dígitos ele tem (<code>length</code>) e quantas receitas.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, ligar cada receita ao médico pelo CRM limpo e mostrar, por médico, nome, situação, receitas e jeitos de digitar. Na segunda, achar os números limpos sem médico.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O <code>crm_texto</code> vem bagunçado; <code>crm_numero</code>, só com números. Para ligar, apague o que não é dígito.</li><li><code>regexp_replace</code> troca o que casa com o molde por outro texto. O molde <code>\D</code> é “não dígito”, o texto novo é vazio, e o <code>'g'</code> manda trocar todos. Isso vai direto no <code>ON</code>.</li><li><strong>Na primeira:</strong> agrupe por nome e situação; <code>COUNT(DISTINCT …)</code> do texto original conta os jeitos.</li><li><strong>Na segunda:</strong> com <code>LEFT JOIN</code>, a receita sem médico fica com o médico vazio; filtre isso e agrupe pelo número limpo e pelo tamanho dele.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Quase nada ligou? Faltou o <code>'g'</code>: sem ele, só o primeiro caractere sai.</li><li>Veio receita com médico na segunda? O <code>m.id IS NULL</code> vai no <code>WHERE</code>.</li><li>Erro de <code>GROUP BY</code>? Agrupe pelos apelidos do número e dos dígitos.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: <code>FROM rx_receita r JOIN rx_medico m ON m.crm_numero = regexp_replace(r.crm_texto, '\D', '', 'g')</code>, com <code>GROUP BY m.nome, m.situacao</code>. Segunda: troque por <code>LEFT JOIN</code>, filtre <code>WHERE m.id IS NULL</code> e agrupe por <code>regexp_replace(r.crm_texto, '\D', '', 'g')</code> (dê o apelido <code>numero</code>) e pelo <code>length</code> dele.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT m.nome, m.situacao,
@@ -197,6 +211,13 @@ FROM rx_receita
 ORDER BY id
 LIMIT 12;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para as receitas cujo número não achou médico na fase anterior (<code>45871</code> e <code>093417</code>), mostre o <code>crm_texto</code>, o <strong>número</strong> e o <strong>sufixo</strong> separados por <code>regexp_match</code>, e quantas receitas têm cada jeito de digitar.</li><li>Agora monte a chave certa para todas as receitas: o número, mais <code>'-P'</code> quando o sufixo for <code>P</code> (<code>partes[1] || CASE WHEN partes[2] = 'P' THEN '-P' ELSE '' END</code>). Ligue essa chave a <code>rx_medico.crm_numero</code> e liste as receitas que <strong>ainda</strong> ficaram sem médico: <code>id</code>, <code>cadastrada_em</code>, <code>medicamento</code> e <code>crm_texto</code>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, separar número e sufixo dos CRMs sem médico e contar cada jeito de digitar. Na segunda, montar a chave certa e listar as receitas ainda sem médico.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>A limpeza da fase 2 apagou o P do registro provisório.</li><li>Compacte: tire o que não é letra nem número (<code>[^A-Za-z0-9]</code>; o <code>^</code> nos colchetes é “nenhum destes”) e passe para maiúsculas.</li><li><code>regexp_match</code> com dois grupos entre parênteses (os dígitos e um P opcional) devolve uma lista: <code>partes[1]</code> é o número, <code>partes[2]</code> o sufixo, guardados num <code>WITH</code>.</li><li><strong>Na primeira:</strong> filtre os dois números da missão e agrupe por texto, número e sufixo. <strong>Na segunda:</strong> outro passo do <code>WITH</code> cria a chave com o <code>CASE</code> da missão; depois, <code>LEFT JOIN</code> com <code>rx_medico</code> e fique com quem não achou par.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Sufixo sempre vazio? Faltou compactar antes.</li><li>Sumiu o <code>093417</code>? É texto: entre aspas, com o zero.</li><li>Erro: <code>partes</code> não existe? Crie o apelido no <code>WITH</code> e use fora.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Use um <code>WITH</code> para não repetir a conta: <code>WITH t AS (SELECT r.*, regexp_match(upper(regexp_replace(r.crm_texto, '[^A-Za-z0-9]', '', 'g')), '(\d+)(P?)') AS partes FROM rx_receita r)</code>. Na primeira, filtre <code>WHERE partes[1] IN ('45871', '093417')</code> e agrupe por <code>crm_texto, partes[1], partes[2]</code>. Na segunda, crie um segundo passo no <code>WITH</code> com a coluna <code>chave</code>, depois <code>LEFT JOIN rx_medico m ON m.crm_numero = c.chave WHERE m.id IS NULL</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH t AS (
@@ -246,6 +267,13 @@ SELECT COUNT(*) FILTER (WHERE texto_receita ~ ' {2}')                       AS n
        COUNT(*) FILTER (WHERE position('comprimido' in texto_receita) &gt; 0)   AS tem_comprimido
 FROM rx_receita;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste todas as palavras que começam com <code>compr</code> nos textos das receitas, em minúsculas, e quantas vezes cada uma aparece. Uma delas está escrita errado.</li><li>Pegue só as receitas com a palavra errada e agrupe pelo <strong>carimbo</strong> (o 4º pedaço do texto, com <code>split_part</code>). Mostre o carimbo e quantas receitas.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, listar as palavras que começam com <code>compr</code> nos textos, em minúsculas, e quantas vezes cada uma aparece. Na segunda, agrupar pelo carimbo as receitas com a palavra escrita errado.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Quem falsifica copia um modelo e repete seus defeitos no <code>texto_receita</code>.</li><li><code>regexp_matches</code> (plural), com <code>'g'</code>, devolve todos os pedaços que casam, um por linha; o <code>'i'</code> ignora maiúsculas. O molde é <code>compr</code> mais <code>\w*</code>, “o resto da palavra”.</li><li>Como devolve várias linhas, vai no <code>FROM</code>, ao lado da tabela, com apelido. A palavra está na posição 1 da lista; passe para minúsculas, agrupe e conte.</li><li><strong>Na segunda:</strong> filtre com <code>~</code> a palavra errada que você achou. O carimbo é o 4º pedaço do texto, separado por <code>' | '</code>; <code>split_part</code> o entrega.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Palavra repetida, uma com maiúscula? Faltou o <code>lower</code>.</li><li>Carimbo com o texto inteiro? O separador é espaço, barra vertical e espaço.</li><li>Carimbos “iguais” em linhas separadas? Olhe os espaços.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Primeira: <code>regexp_matches(texto_receita, 'compr\w*', 'gi')</code> vai no <code>FROM</code>, ao lado da tabela, com um apelido (por exemplo <code>m</code>). Ele devolve cada palavra encontrada, e <code>m[1]</code> é a palavra. Use <code>lower(m[1])</code> para juntar maiúsculas e minúsculas, agrupe e conte. Segunda: <code>WHERE texto_receita ~ 'comprimdo'</code> e <code>GROUP BY split_part(texto_receita, ' | ', 4)</code>. Olhe com atenção os espaços de cada carimbo.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT lower(m[1]) AS palavra, COUNT(*) AS vezes
@@ -273,6 +301,13 @@ ORDER BY receitas DESC;</pre></div>
   </table></div>
   <div class="box novo"><b class="l">Juntando tudo · uma linha por atendente</b><p>Com vários <code>COUNT(*) FILTER (…)</code> no mesmo <code>SELECT</code>, cada atendente ganha uma linha com uma coluna para cada sinal. Quem tem um sinal só, provavelmente errou por acaso. Quem tem os três, em todas as receitas, deixou a assinatura.</p></div>
   <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Para cada atendente, mostre o <code>nome</code>, o <code>turno</code> e três contagens: receitas com <strong>CRM inválido</strong> (<code>m.id IS NULL OR m.situacao &lt;&gt; 'ativo'</code>, usando a chave da fase 3), receitas com <code>comprimdo</code> e receitas com <strong>espaço duplo no carimbo</strong>.</li><li>Liste as receitas que têm <strong>os três sinais ao mesmo tempo</strong>: <code>id</code>, <code>cadastrada_em</code>, o nome de quem cadastrou, o <code>medicamento</code> e a <code>lista</code> dele (de <code>rx_medicamento</code>).</li><li>Junte as pistas e confira: <code>SELECT verificar_caso15('Nome Completo');</code></li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> na primeira, por atendente: nome, turno e três contagens (CRM inválido, <code>comprimdo</code>, espaço duplo no carimbo). Na segunda, as receitas com os três sinais juntos, com medicamento e lista.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Um sinal sozinho pode ser acaso; os três na mesma receita são uma assinatura.</li><li>Reaproveite os dois passos do <code>WITH</code> da fase 3. Junte <code>rx_atendente</code> pela matrícula e <code>rx_medico</code> pela chave, com <code>LEFT JOIN</code>: receita sem médico também é inválida.</li><li>Os sinais: a condição de CRM da missão (com <code>OR</code>), a palavra errada com <code>~</code> e dois espaços seguidos no carimbo (o 4º pedaço, via <code>split_part</code>).</li><li><strong>Na primeira:</strong> agrupe por nome e turno; cada sinal é um <code>COUNT(*) FILTER</code>. <strong>Na segunda:</strong> os três no <code>WHERE</code>, com <code>AND</code>, e um <code>JOIN</code> com <code>rx_medicamento</code> pelo nome.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>CRM inválido contou de menos? Com <code>JOIN</code> comum, a receita sem médico some.</li><li>Receita sem os três sinais na segunda? Ponha o <code>OR</code> do CRM entre parênteses.</li><li>Espaço duplo demais? Procure só no carimbo.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Reaproveite o <code>WITH t AS (…), c AS (…)</code> da fase 3. Depois: <code>FROM c JOIN rx_atendente a ON a.matricula = c.cadastrada_por LEFT JOIN rx_medico m ON m.crm_numero = c.chave</code>. Os três sinais: <code>(m.id IS NULL OR m.situacao &lt;&gt; 'ativo')</code>, <code>c.texto_receita ~ 'comprimdo'</code> e <code>split_part(c.texto_receita, ' | ', 4) ~ ' {2}'</code>. Na primeira, cada um vai num <code>COUNT(*) FILTER (WHERE …)</code>; na segunda, os três vão juntos no <code>WHERE</code> com <code>AND</code>, e entra mais um <code>JOIN rx_medicamento md ON md.nome = c.medicamento</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH t AS (
@@ -999,10 +1034,10 @@ SELECT '✅ Caso 15 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

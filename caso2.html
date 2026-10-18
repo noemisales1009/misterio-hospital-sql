@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -99,6 +99,14 @@ erDiagram
     <tr><td><code>AND</code></td><td>todas as condições ao mesmo tempo</td><td>“dia 14 e alterou e de madrugada”</td></tr>
   </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste todas as linhas de <code>acesso_prontuario</code> em que a <strong>data</strong> é 14/08/2026, a <strong>ação</strong> é <code>alterou</code> e a <strong>hora</strong> está entre 02h00 e 03h59.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> listar as alterações de prontuário de 14/08/2026 entre 02h00 e 03h59, com todas as colunas de <code>acesso_prontuario</code>.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Tudo vem de uma tabela só. A missão quer as linhas inteiras: <code>SELECT *</code>.</li><li>Cada pista vira uma condição no <code>WHERE</code>: uma para a data, uma para a ação e uma para a hora.</li><li>Data e hora aqui são números, sem aspas: a data no formato AAAAMMDD e a hora em HHMM (02h00 vira 200, 03h59 vira 359).</li><li>O <code>BETWEEN</code> quer dizer “entre um e outro”, contando as pontas. A ação é texto: vai entre aspas simples, igual à tabela.</li></ul>
+    <p><strong>Juntando:</strong> <code>data … AND acao … AND hora BETWEEN … AND …</code>. O <code>AND</code> de dentro do <code>BETWEEN</code> faz parte dele; só os outros dois ligam as condições.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Deu erro ou não veio nada? Data e hora com barras ou dois-pontos não funcionam aqui.</li><li>Vieram visualizações e impressões? Falta a condição da ação.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Três condições, com um <code>AND</code> entre elas: <code>data = 20260814</code>, <code>acao = 'alterou'</code> e <code>hora BETWEEN 200 AND 359</code>. Repare que o <code>AND</code> de dentro do <code>BETWEEN</code> faz parte dele (“entre 200 e 359”) e não liga condições. Por isso a consulta tem três <code>AND</code>, mas só dois deles ligam as condições.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT *
@@ -121,6 +129,13 @@ WHERE data = 20260814
     <tr><td><code>WHERE pr.setor = 'UTI Adulto'</code></td><td>filtra depois de ligar as tabelas</td><td>“só prontuários da UTI Adulto”</td></tr>
   </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Repita a consulta da etapa 1, mas mostre a <strong>hora</strong>, o <strong>nome</strong> e o <strong>cargo</strong> do funcionário e o <strong>código</strong> e o <strong>setor</strong> do prontuário.</li><li>Fique só com os prontuários da <strong>UTI Adulto</strong>. Quantas pessoas aparecem?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> repetir a etapa 1 mostrando quem logou e qual prontuário foi alterado, só para os prontuários da UTI Adulto.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Nome e cargo estão em <code>funcionario</code>; código e setor do paciente, em <code>prontuario</code>. A <code>acesso_prontuario</code> é a ponte: guarda o id de cada um.</li><li>Por isso são dois <code>JOIN</code> em cadeia, cada um com um <code>ON</code> que casa um id com o outro.</li><li>Dê apelidos curtos e escreva <code>apelido.coluna</code>, para o banco saber de onde vem cada coluna.</li><li>Os três filtros da etapa 1 continuam. Acrescente um quarto: o setor <em>do prontuário</em>.</li><li>Cinco colunas, nessa ordem: hora, nome, cargo, código e setor do prontuário.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Erro de coluna ambígua? <code>id</code> e <code>setor</code> existem em mais de uma tabela: ponha o apelido na frente.</li><li>Veio gente de outro setor, ou ninguém? O filtro deve ser no setor do prontuário, não no do funcionário.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Dois <code>JOIN</code> seguidos: um com <code>funcionario f ON f.id = a.funcionario_id</code> e outro com <code>prontuario pr ON pr.id = a.prontuario_id</code>. Depois acrescente <code>pr.setor = 'UTI Adulto'</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT a.hora, f.nome, f.cargo, pr.codigo, pr.setor
@@ -145,7 +160,15 @@ WHERE a.data = 20260814
     <tr><td><code>( a AND b )</code></td><td>parênteses mantêm as duas condições juntas dentro do NOT</td><td>“noturno e na UTI, junto”</td></tr>
     <tr><td><code>folga</code></td><td>valor da coluna turno quando a pessoa não trabalha</td><td>“de folga naquele dia”</td></tr>
   </table></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Ligue <code>plantao</code> à consulta anterior pelo funcionário <strong>e</strong> pela data, e mostre o <code>turno</code> e o <code>setor</code> do plantão.</li><li>Filtre para ficar só com quem <strong>não</strong> estava no plantão noturno da UTI Adulto. De quem é a senha usada?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Ligue <code>plantao</code> à consulta anterior pelo funcionário <strong>e</strong> pela data. Mostre só o nome do funcionário, o <code>turno</code> e o <code>setor</code> do plantão, nessa ordem.</li><li>Filtre para ficar só com quem <strong>não</strong> estava no plantão noturno da UTI Adulto. De quem é a senha usada?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> ligar a escala (<code>plantao</code>) à consulta da etapa 2 e ficar só com quem não estava no plantão noturno da UTI Adulto. Assim você descobre de quem é a senha.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>A escala tem uma linha por funcionário e por dia. Por isso o <code>ON</code> leva duas condições: mesmo funcionário <em>e</em> mesma data do acesso.</li><li>Os outros dois <code>JOIN</code> e os filtros da etapa 2 continuam.</li><li>“Plantão certo” são duas coisas juntas: turno noturno e setor UTI Adulto, ambos de <code>plantao</code>. O <code>NOT ( … )</code> nega o par inteiro.</li><li>Três colunas, nessa ordem: nome, turno e setor do plantão.</li></ul>
+    <p><strong>Juntando:</strong> <code>… JOIN plantao pl ON … AND … WHERE (filtros da etapa 2) AND NOT ( … AND … )</code></p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>A mesma pessoa veio várias vezes? Falta a data no <code>ON</code> do plantão.</li><li>Sem os parênteses, o <code>NOT</code> nega só a primeira condição.</li><li>Formato não bate? Tire hora, cargo e código do <code>SELECT</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>O JOIN leva duas condições: <code>pl.funcionario_id = f.id AND pl.data = a.data</code>. Para negar as duas ao mesmo tempo, use parênteses: <code>NOT (pl.turno = 'noturno' AND pl.setor = 'UTI Adulto')</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT f.nome, pl.turno, pl.setor
@@ -171,7 +194,14 @@ WHERE a.data = 20260814
     <tr><td><code>IS NULL</code></td><td>filtra quem ficou sem par</td><td>“entrou na porta sem ter plantão ali”</td></tr>
     <tr><td><code>BETWEEN 150 AND 220</code></td><td>faixa de horas em número (01h50 a 02h20)</td><td>“entre 01h50 e 02h20”</td></tr>
   </table></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Em <code>porta_log</code>, ache as entradas no local <code>UTI Adulto</code> em 14/08/2026 entre <strong>01h50 e 02h20</strong>.</li><li>Mantenha só quem <strong>não</strong> tinha plantão noturno na UTI Adulto naquela data. Quantas pessoas sobram e quais são?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Em <code>porta_log</code>, ache as entradas no local <code>UTI Adulto</code> em 14/08/2026 entre <strong>01h50 e 02h20</strong>.</li><li>Mantenha só quem <strong>não</strong> tinha plantão noturno na UTI Adulto naquela data, mostrando o id, o nome e o cargo do funcionário e a hora da entrada, nessa ordem. Quantas pessoas sobram e quais são?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> achar quem entrou pela porta da UTI Adulto em 14/08/2026, entre 01h50 e 02h20, sem ter plantão noturno ali nessa data.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>As entradas estão em <code>porta_log</code>; nome e cargo, em <code>funcionario</code>.</li><li>É pergunta de “quem não tem par”. O <code>LEFT JOIN</code> com <code>plantao</code> mantém todas as entradas e deixa vazias (<code>NULL</code>) as colunas do plantão de quem ficou sem par.</li><li>Par é um plantão do mesmo funcionário, na mesma data, noturno e na UTI Adulto: as quatro condições vão no <code>ON</code>.</li><li>No <code>WHERE</code>: local, data e faixa de hora da porta, mais uma coluna do plantão <code>IS NULL</code>.</li><li>Mostre id, nome, cargo e hora. Anote os ids para a etapa 5.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Não veio ninguém? Turno e setor do plantão no <code>WHERE</code> apagam as linhas sem par. Leve-os para o <code>ON</code>.</li><li>Gente demais? Falta o <code>IS NULL</code> ou um filtro da porta. Lembre: 01h50 é 150.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Faça <code>LEFT JOIN plantao</code> e coloque as condições do plantão (data, <code>turno = 'noturno'</code>, <code>setor = 'UTI Adulto'</code>) <strong>no ON</strong>, não no WHERE. Quem ficar com <code>pl.funcionario_id IS NULL</code> não tinha esse plantão.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT f.id, f.nome, f.cargo, l.hora
@@ -200,6 +230,14 @@ WHERE l.local = 'UTI Adulto'
     <tr><td><code>IN (41, 55, 58)</code></td><td>restringe a lista de pessoas</td><td>“só as três suspeitas”</td></tr>
   </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Entre as três (use os ids que você achou), conte em quantas <strong>noites diferentes</strong> de agosto cada uma entrou na porta da UTI Adulto entre <strong>01h00 e 04h00</strong> sem ter plantão noturno ali.</li><li>Fique só com quem fez isso em <strong>3 noites ou mais</strong>. Esse é o culpado. Confira com <code>SELECT verificar_caso2('Nome Completo');</code>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> entre as três pessoas da etapa 4, contar em quantas noites diferentes de agosto cada uma entrou na UTI Adulto de madrugada sem plantão noturno ali, e ficar com quem fez isso em 3 noites ou mais.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Parta da etapa 4: o mesmo <code>LEFT JOIN</code> e o mesmo <code>IS NULL</code>. Troque a faixa para 01h00 a 04h00 e tire o filtro do dia 14.</li><li>Restrinja às três pessoas com <code>IN ( … )</code> e os ids que você anotou.</li><li>Agrupe pelo nome. Conte <em>noites</em>, não entradas: <code>COUNT(DISTINCT …)</code> na data conta cada dia uma vez.</li><li>Filtro sobre contagem vai no <code>HAVING</code>. Duas colunas: nome e noites.</li></ul>
+    <p><strong>Juntando:</strong> <code>SELECT nome, COUNT(DISTINCT …) FROM … WHERE … GROUP BY … HAVING …</code></p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Noites demais? <code>COUNT(*)</code> conta entradas, e alguém pode entrar duas vezes na mesma noite.</li><li>Ninguém passou de 1 noite? O filtro do dia 14 ficou na consulta.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Reaproveite o <code>LEFT JOIN … IS NULL</code> da etapa 4, troque a janela para <code>hora BETWEEN 100 AND 400</code>, tire o filtro de data, agrupe por nome e use <code>HAVING COUNT(DISTINCT l.data) &gt;= 3</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT f.nome, COUNT(DISTINCT l.data) AS noites
@@ -4745,10 +4783,10 @@ SELECT '✅ Caso 2 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

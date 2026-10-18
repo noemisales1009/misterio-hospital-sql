@@ -1223,3 +1223,11 @@ body.gav-desliza .wrap{transform:translateX(calc(var(--gav-shift,0px) * -1))}
 /* a fonte mono (JetBrains Mono) junta "->" em seta e "!=" em um símbolo só; quem aprende SQL precisa ver os caracteres de verdade */
 html{font-variant-ligatures:no-contextual}
 code,pre,textarea,kbd{font-variant-ligatures:none}
+
+/* tira-dúvidas: explicação calma da fase, logo abaixo do computador e antes da dica; abre sozinho no 3º erro seguido */
+details.duvida{border-color:var(--scrub);background:var(--scrub-soft);scroll-margin-top:140px}
+details.duvida>summary{color:var(--scrub)}
+details.duvida.chamou{box-shadow:0 0 0 3px var(--clue)}
+.pc-veredito.duvida-aviso{border:1px solid #5cc4a6;background:rgba(92,196,166,.12);color:#c8f7e1}
+.pc-veredito.duvida-aviso .pc-botao{margin-top:8px}
+details.duvida code{background:var(--paper)}

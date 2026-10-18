@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -126,6 +126,14 @@ erDiagram
   <div class="code"><pre data-sql>SELECT COUNT(*) FROM relatorio_ocorrencia;</pre></div>
   <div class="code"><pre data-sql>SELECT data, tipo, setor FROM relatorio_ocorrencia LIMIT 5;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><p>Descubra <strong>quantas pessoas</strong> existem na tabela <code>pessoa</code>.</p></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> descobrir quantas pessoas existem na tabela <code>pessoa</code>. A resposta é um número só.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Toda consulta diz <strong>o que</strong> você quer ver (<code>SELECT</code>) e <strong>de onde</strong> (<code>FROM</code>).</li><li>De onde? Da tabela <code>pessoa</code>: cada pessoa da cidade é uma linha dela.</li><li>O que? Você não quer ler as fichas, quer saber <em>quantas</em> são. Quem conta linhas é o <code>COUNT(*)</code>.</li><li>O exemplo que conta os relatórios já tem esse formato; só muda a tabela.</li></ul>
+    <p><strong>Juntando:</strong> primeiro o <code>SELECT</code>, depois o <code>FROM</code>, e ponto e vírgula no fim: <code>SELECT … FROM …;</code></p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Veio o mesmo número do exemplo? Você ainda está contando <code>relatorio_ocorrencia</code>.</li><li>Veio uma lista de fichas? Com <code>SELECT *</code> você vê as linhas; para ter só o total, peça a contagem.</li><li>“A tabela não existe”? O nome é <code>pessoa</code>, no singular e minúsculo.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Use o mesmo <code>COUNT(*)</code> do exemplo, só trocando o nome da tabela.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div><div class="code"><pre data-sql>SELECT COUNT(*) FROM pessoa;</pre></div><p>Deve dar 655. Viu? Ninguém consegue ler 655 fichas no olho. Por isso precisamos dos filtros da próxima fase.</p></div></details>
   <div class="done-row"><input type="checkbox" id="ok1"><label for="ok1">Fase 1 concluída</label></div>
@@ -159,6 +167,14 @@ WHERE tipo = 'furto';</pre></div>
   <div class="code"><pre data-sql>SELECT * FROM relatorio_ocorrencia
 WHERE tipo = 'furto' AND setor = 'Farmácia';</pre></div>
   <div class="missao"><b class="l">Sua missão</b><p>Ache o relatório da ocorrência. Você lembra: foi uma <mark>sabotagem</mark>, em <mark>10/03/2026</mark>, na <mark>Sala de Vacinas</mark>. Leia a descrição com atenção: ela fala de duas testemunhas.</p></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> achar o relatório do crime na tabela <code>relatorio_ocorrencia</code> e ler a descrição dele, que fala das duas testemunhas.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Você quer a ficha inteira, para ler a <code>descricao</code>: use <code>SELECT *</code>.</li><li>O <code>WHERE</code> é um filtro: só passam as linhas que cumprem a condição. Cada lembrança do crime vira uma condição:</li><li>10/03/2026 → coluna <code>data</code>. Aqui a data é um número AAAAMMDD (ano, mês, dia), sem aspas nem barras</li><li>sabotagem → coluna <code>tipo</code></li><li>Sala de Vacinas → coluna <code>setor</code>. Texto vai entre aspas simples</li></ul>
+    <p><strong>Juntando:</strong> o <code>AND</code> quer dizer “e também”: a linha precisa cumprir todas. Ele fica <em>entre</em> as condições: <code>condição 1 AND condição 2 AND condição 3</code>.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Veio mais de um relatório? Falta uma das três condições.</li><li>Não veio nada? Escreva o texto igual ao da tabela: minúsculo em <code>'sabotagem'</code>, com acentos e aspas simples.</li><li>Erro perto de <code>AND</code>? Sobrou um no fim, ou faltou um entre duas condições.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Você precisa de três condições: uma para <code>data</code>, uma para <code>tipo</code> e uma para <code>setor</code>. Escreva uma depois da outra, com um <code>AND</code> entre elas: <code>condição AND condição AND condição</code>. São três condições e dois <code>AND</code>. Se aparecerem vários resultados, falta alguma condição.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div><div class="code"><pre data-sql>SELECT * FROM relatorio_ocorrencia
 WHERE data = 20260310
@@ -201,6 +217,14 @@ ORDER BY numero_endereco DESC
 LIMIT 3;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><p>Encontre as duas testemunhas e anote o <strong>id</strong> de cada uma:</p>
     <ul class="list"><li>Testemunha 1: mora na <strong>última casa</strong> (maior número) da Rua das Acácias.</li><li>Testemunha 2: chama-se <strong>Lorena</strong> e mora na Avenida dos Ipês.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> anotar o <code>id</code> das duas testemunhas: quem mora no maior número da Rua das Acácias e a Lorena da Avenida dos Ipês.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Uma consulta por testemunha, em <code>pessoa</code>, com <code>SELECT *</code>: a ficha já traz o <code>id</code>.</li><li><strong>Testemunha 1:</strong> filtre <code>rua_endereco</code>, ordene <code>numero_endereco</code> do maior para o menor (<code>ORDER BY</code> com <code>DESC</code>) e fique com a primeira linha (<code>LIMIT</code>).</li><li><strong>Testemunha 2:</strong> o <code>LIKE</code> compara com um padrão, e o <code>%</code> vale por “qualquer coisa”: Lorena seguido de <code>%</code> acha qualquer sobrenome. Há mais de uma Lorena; junte a rua com <code>AND</code>.</li></ul>
+    <p><strong>Juntando:</strong> a ordem é fixa: <code>… WHERE … ORDER BY … LIMIT …</code>. Primeiro filtra, depois ordena, por último corta.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Testemunha 1 com número pequeno? Faltou o <code>DESC</code>.</li><li>Várias Lorenas? Faltou a rua. Nenhuma? Com <code>%</code> é <code>LIKE</code>, não <code>=</code>.</li><li>Nada nas duas? Escreva a rua igual à tabela, entre aspas simples e com acentos.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Testemunha 1: filtre pela rua, ordene <code>numero_endereco</code> com <code>DESC</code> e pegue só 1 com <code>LIMIT 1</code>.</p><p>Testemunha 2: use <code>nome LIKE 'Lorena%'</code> junto com a rua. Cuidado: existe mais de uma Lorena na cidade.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT * FROM pessoa
@@ -243,6 +267,14 @@ FROM pessoa p
 JOIN depoimento d ON d.pessoa_id = p.id
 WHERE p.id IN (11111, 22222);  -- troque pelos ids das testemunhas</pre></div>
   <div class="missao"><b class="l">Sua missão</b><p>Leia os depoimentos das duas testemunhas. Marque com marca-texto mental cada pista: academia, número de sócio, plano, placa e a data em que a Lorena viu o suspeito.</p></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> ler o depoimento das duas testemunhas, com o nome de cada uma ao lado do que ela disse, e anotar as pistas.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O nome está em <code>pessoa</code>; o que foi dito, em <code>depoimento</code> (coluna <code>transcricao</code>), que só tem o <code>pessoa_id</code>.</li><li>O <code>JOIN</code> cola as duas tabelas lado a lado. O <code>ON</code> diz o que bate: o <code>pessoa_id</code> do depoimento é o <code>id</code> da pessoa.</li><li>Com apelidos (<code>pessoa p</code>), diga de onde vem cada coluna: <code>p.nome</code>.</li><li>Mostre o nome e a transcrição, nessa ordem. No <code>WHERE</code>, o <code>IN</code> aceita a lista com os dois ids da Fase 3.</li></ul>
+    <p><strong>Juntando:</strong> o <code>JOIN … ON …</code> vem entre o <code>FROM</code> e o <code>WHERE</code>: <code>SELECT … FROM … JOIN … ON … WHERE …</code>.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Uma montanha de depoimentos? Faltou o <code>WHERE</code>.</li><li>Faltou alguém? Use o <code>id</code> da pessoa, não o número da casa.</li><li>Colunas não batem? Deixe só o nome e a transcrição.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Use o último exemplo trocando os números pelos ids que você achou na Fase 3. Se não anotou, dá pra filtrar pelo nome: <code>WHERE p.nome IN ('Nome 1', 'Nome 2')</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div><div class="code"><pre data-sql>SELECT p.nome, d.transcricao
 FROM pessoa p
@@ -272,6 +304,14 @@ WHERE (p.rua_endereco = 'Rua das Acácias' AND p.numero_endereco = (SELECT MAX(n
   </table></div>
   <p>As tabelas são <code>academia_membro</code> (os sócios) e <code>academia_checkin</code> (as entradas na catraca). Elas se ligam por <code>academia_checkin.membro_id = academia_membro.id</code>.</p>
   <div class="missao"><b class="l">Sua missão</b><p>Liste os sócios que batem com as três pistas, mostrando <code>id</code>, <code>nome</code>, <code>plano</code> e <code>pessoa_id</code> de cada um (o <code>pessoa_id</code> vai servir na próxima fase). Vão sobrar alguns suspeitos. Quantos?</p></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> listar os sócios que batem com as três pistas, mostrando <code>id</code>, <code>nome</code>, <code>plano</code> e <code>pessoa_id</code>, e contar quantos sobram.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Sócios: <code>academia_membro</code>. Entradas na catraca, com a <code>data</code>: <code>academia_checkin</code>. O <code>ON</code> liga o <code>membro_id</code> do check-in ao <code>id</code> do sócio.</li><li>Cada pista vira uma condição no <code>WHERE</code>:</li><li>número de sócio começa com 48Z → <code>LIKE</code> no <code>id</code> do sócio, com <code>%</code> no fim</li><li>plano ouro → <code>=</code> na coluna <code>plano</code>, com aspas simples</li><li>estava lá em 09/03/2026 → <code>=</code> na <code>data</code> do check-in, como AAAAMMDD</li></ul>
+    <p><strong>Juntando:</strong> ligue as condições com <code>AND</code>; as quatro colunas são do sócio, na ordem da missão. O “quantos?” é o número de linhas.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Muita gente? Falta uma condição. Ninguém? O <code>LIKE</code> precisa do <code>%</code>, e <code>'ouro'</code> é minúsculo.</li><li>“A coluna ouro não existe”? Faltaram as aspas simples em volta do texto.</li><li>Colunas não batem? Mostre só <code>id</code>, <code>nome</code>, <code>plano</code> e <code>pessoa_id</code>, nessa ordem.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><div class="code"><pre data-sql>SELECT m.id, m.nome, m.plano, m.pessoa_id
 FROM academia_membro m
 JOIN academia_checkin c ON c.membro_id = m.id
@@ -304,6 +344,14 @@ flowchart LR
 </pre>
   <div class="missao"><b class="l">Sua missão</b><p>Pegue a consulta da Fase 5 e acrescente mais dois <code>JOIN</code>s para chegar na placa. Filtre a placa que contém <mark>H42W</mark>. Mostre o nome da pessoa, o id de sócio e a placa (<code>p.nome</code>, <code>m.id</code> e <code>h.placa</code>). Quando achar o nome, confirme no Supabase:</p>
   <div class="code"><pre data-sql>SELECT verificar_solucao('Nome Completo Aqui');</pre></div></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> estender a consulta da Fase 5 até a placa do carro, achar o culpado e confirmar o nome com <code>verificar_solucao</code>.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>A placa está em <code>habilitacao</code>. O caminho: check-in → sócio → pessoa → habilitação.</li><li>Cada elo é um <code>JOIN</code> com seu <code>ON</code>, ligando o <code>pessoa_id</code> do sócio ao <code>id</code> da pessoa e o <code>habilitacao_id</code> da pessoa ao <code>id</code> da habilitação.</li><li>Mantenha os três filtros e some a placa: ela <em>contém</em> H42W, então <code>%</code> dos dois lados.</li><li>No <code>SELECT</code>, só <code>p.nome</code>, <code>m.id</code> e <code>h.placa</code>, nessa ordem.</li></ul>
+    <p><strong>Juntando:</strong> um <code>JOIN … ON …</code> por elo, um embaixo do outro, todos antes do <code>WHERE</code>.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>“Essa coluna existe em mais de uma tabela”? Use o apelido: <code>m.id</code>, não <code>id</code>.</li><li>Ninguém? Confira os dois <code>%</code> e se cada <code>ON</code> liga as colunas certas.</li><li>A função disse que não? Copie o nome completo, com acentos.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Acrescente embaixo dos outros JOINs:</p><div class="code"><pre data-sql>JOIN pessoa p ON p.id = m.pessoa_id
 JOIN habilitacao h ON h.id = p.habilitacao_id</pre></div><p>E no <code>WHERE</code>: <code>AND h.placa LIKE '%H42W%'</code>. O <code>%</code> dos dois lados porque o H42W está “no meio” da placa. Por fim, troque as colunas do <code>SELECT</code> por <code>p.nome, m.id, h.placa</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div><div class="code"><pre data-sql>SELECT p.nome, m.id, h.placa
@@ -341,7 +389,15 @@ ORDER BY presencas DESC;</pre></div>
 FROM evento_checkin
 GROUP BY pessoa_id
 HAVING COUNT(*) > 2;</pre></div>
-  <div class="missao"><b class="l">Missão final</b><p>Use o depoimento do culpado para achar a pessoa que pagou pela sabotagem. Desafio extra do jogo original: tente resolver com no máximo <strong>2 consultas</strong>.</p></div>
+  <div class="missao"><b class="l">Missão final</b><p>Use o depoimento do culpado para achar a pessoa que pagou pela sabotagem. Mostre o nome, quantas vezes ela foi ao congresso e a renda anual dela, nessa ordem (o depoimento diz que ela tem muito dinheiro). Desafio extra do jogo original: tente resolver com no máximo <strong>2 consultas</strong>.</p></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> usar as pistas do depoimento do culpado para achar a mulher que pagou pela sabotagem.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Releia o depoimento do culpado (consulta da Fase 4). Cada pista vai para a sua tabela:</li><li>aparência e carro → <code>habilitacao</code>; a altura é uma faixa: <code>BETWEEN</code></li><li>congresso em dezembro de 2025 → <code>evento_checkin</code>: nome do evento e datas do mês</li><li>“muito dinheiro” → só para conferir: a <code>renda</code>, ligada à pessoa pelo <code>cpf</code></li><li>“3 vezes” é contagem: <code>GROUP BY</code> faz um monte por pessoa, <code>COUNT(*)</code> conta, <code>HAVING</code> filtra os montes.</li><li>Mostre nome, contagem e renda anual, nessa ordem.</li></ul>
+    <p><strong>Juntando:</strong> <code>… WHERE … GROUP BY … HAVING …</code>: o <code>WHERE</code> filtra linhas antes de agrupar; o <code>HAVING</code>, grupos depois.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Erro com <code>COUNT</code> no <code>WHERE</code>? Contagem se filtra no <code>HAVING</code>.</li><li>“Toda coluna do SELECT precisa estar no GROUP BY”? Agrupe pelo nome e pela renda.</li><li>Ninguém? A tabela guarda <code>'ruivo'</code>, não “ruiva”; e o evento leva acentos.</li></ul>
+  </div></details>
   <details><summary>Dica 1 · as pistas viram filtros</summary><div><div class="tw"><table>
     <tr><th>Pista</th><th>Tabela</th><th>SQL</th></tr>
     <tr><td>mulher</td><td>habilitacao</td><td><code>genero = 'feminino'</code></td></tr>
@@ -351,12 +407,13 @@ HAVING COUNT(*) > 2;</pre></div>
     <tr><td>congresso em dez/2025</td><td>evento_checkin</td><td><code>data BETWEEN 20251201 AND 20251231</code></td></tr>
     <tr><td>foi 3 vezes</td><td>evento_checkin</td><td><code>HAVING COUNT(*) = 3</code></td></tr>
   </table></div></div></details>
-  <details><summary>Dica 2 · o esqueleto</summary><div><div class="code"><pre data-sql>SELECT p.nome, COUNT(*) AS vezes
+  <details><summary>Dica 2 · o esqueleto</summary><div><div class="code"><pre data-sql>SELECT p.nome, COUNT(*) AS vezes, r.renda_anual
 FROM pessoa p
 JOIN habilitacao h ON h.id = p.habilitacao_id
 JOIN evento_checkin e ON e.pessoa_id = p.id
+JOIN renda r ON r.cpf = p.cpf
 WHERE ...            -- filtros de habilitacao e do evento
-GROUP BY p.nome
+GROUP BY p.nome, r.renda_anual
 HAVING COUNT(*) = 3;</pre></div></div></details>
   <details class="sol"><summary>Ver solução</summary><div><div class="code"><pre data-sql>SELECT p.nome, COUNT(*) AS vezes, r.renda_anual
 FROM pessoa p
@@ -449,6 +506,14 @@ WHERE p.nome LIKE 'Lorena%'
       <li>Apague uma pista que se mostrou falsa.</li>
       <li>Desafio: use <code>INSERT … SELECT</code> para salvar o depoimento da testemunha 1.</li>
     </ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> criar a tabela <code>caderno</code>, anotar pistas, marcar as conferidas e apagar uma falsa. No desafio, salvar o depoimento da testemunha 1 com uma busca.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Cada tarefa tem seu comando:</li><li>criar → <code>CREATE TABLE</code>, copiando o do passo 1</li><li>anotar → <code>INSERT</code>, com os valores na ordem das colunas; o que tem padrão, o banco preenche</li><li>marcar → <code>UPDATE … SET …</code>; apagar → <code>DELETE</code>. Os dois com <code>WHERE</code>, que diz <em>qual</em> linha</li><li><strong>No desafio:</strong> um <code>SELECT</code> entra no lugar do <code>VALUES</code>. Copie o passo 5 e troque o filtro pelo da testemunha 1 (pode ser o id dela).</li></ul>
+    <p><strong>Juntando:</strong> o <code>SELECT</code> do desafio precisa devolver as colunas na mesma quantidade e ordem da lista do <code>INSERT</code>.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Mudou ou apagou tudo? Faltou o <code>WHERE</code>, e não tem desfazer.</li><li>“caderno já existe”? Ele continua guardado. Pule o <code>CREATE TABLE</code>.</li><li>“A coluna pista é obrigatória”? Toda anotação precisa de <code>pista</code>.</li></ul>
+  </div></details>
   <details><summary>Dica para o desafio</summary><div><p>Copie o exemplo do passo 5 e troque o <code>WHERE</code> pelo filtro da testemunha 1: a última casa da Rua das Acácias (lembra da subconsulta com <code>MAX</code> na Fase 4?).</p></div></details>
   <details class="sol"><summary>Ver solução do desafio</summary><div><div class="code"><pre data-sql>INSERT INTO caderno (fase, pista, suspeito)
 SELECT 4, d.transcricao, p.nome
@@ -484,6 +549,14 @@ ORDER BY tipo;</pre></div>
 SELECT MIN(altura_cm), MAX(altura_cm)
 FROM habilitacao;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantos <strong>setores diferentes</strong> aparecem nos relatórios de ocorrência?</li><li>Qual a <strong>menor</strong> e a <strong>maior</strong> renda anual da cidade?</li><li>Qual a <strong>renda média</strong> anual, arredondada sem casas decimais?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> três números. Na primeira, quantos setores diferentes há nos relatórios. Na segunda, a menor e a maior renda anual. Na terceira, a renda média, sem casas decimais.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Uma consulta por pergunta; cada uma devolve uma linha só.</li><li><strong>Na primeira:</strong> o mesmo setor aparece em muitos relatórios. Contar linhas daria o total de relatórios; você quer <em>valores diferentes</em>: é o <code>DISTINCT</code>, dentro do <code>COUNT</code>.</li><li><strong>Na segunda:</strong> tabela <code>renda</code>, coluna <code>renda_anual</code>. <code>MIN</code> e <code>MAX</code> vão no mesmo <code>SELECT</code>, separados por vírgula, a menor primeiro.</li><li><strong>Na terceira:</strong> o <code>AVG</code> dá a média cheia de decimais; o <code>ROUND</code> arredonda para inteiro quando você não diz as casas.</li></ul>
+    <p><strong>Juntando:</strong> parênteses são caixinhas: primeiro o de dentro, depois a função de fora.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Número enorme na primeira? Você contou relatórios. Faltou o <code>DISTINCT</code>.</li><li>Formato diferente na segunda? As duas na mesma consulta, a menor antes.</li><li>“Algum valor difere” na terceira? Use a tabela <code>renda</code> e arredonde.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Para o item 1, junte <code>COUNT</code> com <code>DISTINCT</code> dentro do parêntese. Para o item 3, coloque o <code>AVG</code> dentro do <code>ROUND</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT COUNT(DISTINCT setor) FROM relatorio_ocorrencia;</pre></div>
@@ -515,7 +588,15 @@ LIMIT 5;</pre></div>
   <div class="code"><pre data-sql>-- renda acima da média
 SELECT COUNT(*) FROM renda
 WHERE renda_anual &gt; (SELECT AVG(renda_anual) FROM renda);</pre></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantas pessoas ganham <strong>acima da média</strong> de renda?</li><li>Qual o <strong>nome</strong> da pessoa de maior renda anual?</li><li>Quantas pessoas que têm um carro da marca <strong>Tesla</strong> foram ao evento <strong>Show no Parque</strong>? Resolva só com <code>IN</code> e subconsultas.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantas pessoas ganham <strong>acima da média</strong> de renda?</li><li>Qual o <strong>nome</strong> da pessoa de maior renda anual? Mostre o nome e a renda anual dela.</li><li>Quantas pessoas que têm um carro da marca <strong>Tesla</strong> foram ao evento <strong>Show no Parque</strong>? Resolva só com <code>IN</code> e subconsultas.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> três perguntas. Na primeira, quantos ganham acima da média. Na segunda, quem tem a maior renda. Na terceira, quantos donos de Tesla foram ao Show no Parque.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Subconsulta é uma pergunta entre parênteses dentro de outra; a de dentro roda primeiro.</li><li><strong>Na primeira:</strong> a de dentro dá a média; a de fora conta, em <code>renda</code>, quem ganha mais (<code>&gt;</code>).</li><li><strong>Na segunda:</strong> a de dentro acha a maior renda; ligue <code>pessoa</code> a <code>renda</code> pelo <code>cpf</code> e mostre nome e renda, nessa ordem.</li><li><strong>Na terceira:</strong> conte em <code>pessoa</code> com dois <code>IN</code>: o <code>habilitacao_id</code> nas habilitações Tesla <em>e</em> o <code>id</code> em quem foi ao show.</li></ul>
+    <p><strong>Juntando:</strong> <code>&gt; (SELECT …)</code> compara com um valor; <code>IN (SELECT …)</code> procura numa lista.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Erro com <code>AVG</code> direto no <code>WHERE</code>? Ponha a conta numa subconsulta.</li><li>Colunas não batem na segunda? Mostre nome e renda.</li><li>Número errado na terceira? Confira os pares: <code>habilitacao_id</code> com <code>id</code> da habilitação; <code>id</code> da pessoa com <code>pessoa_id</code> do evento.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Item 2: a subconsulta <code>(SELECT MAX(renda_anual) FROM renda)</code> devolve o valor. Use-o no <code>WHERE</code> de uma consulta que liga <code>pessoa</code> e <code>renda</code> pelo CPF. Item 3: use dois <code>IN</code> ligados por <code>AND</code>, um para a habilitação e outro para o evento.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT COUNT(*) FROM renda
@@ -556,6 +637,14 @@ SELECT
 FROM habilitacao
 GROUP BY grupo;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Separe a renda em três faixas: <strong>baixa</strong> (menos de 50000), <strong>média</strong> (de 50000 até 199999) e <strong>alta</strong> (200000 ou mais). Conte quantas pessoas há em cada faixa.</li><li>Classifique as ocorrências em <strong>grave</strong> (sabotagem, invasão, furto, fraude) e <strong>leve</strong> (as demais). Conte quantas há de cada.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> dar uma etiqueta a cada linha e contar quantas há de cada: renda baixa, média ou alta; ocorrência grave ou leve.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O <code>CASE</code> cria uma coluna de etiquetas: cada <code>WHEN … THEN …</code> é uma regra, o <code>ELSE</code> pega o resto, o <code>END</code> fecha.</li><li>As regras são lidas de cima para baixo, e vale a <em>primeira</em> verdadeira. Comece pela baixa; aí a regra da média só precisa do limite de cima.</li><li><strong>Na primeira</strong>, tabela <code>renda</code>. <strong>Na segunda</strong>, <code>relatorio_ocorrencia</code>, com um <code>IN</code> dos quatro tipos graves.</li><li>Dê nome ao <code>CASE</code> com <code>AS</code> e agrupe por esse nome.</li></ul>
+    <p><strong>Juntando:</strong> <code>SELECT CASE … END AS …, COUNT(*) FROM … GROUP BY …</code>: etiqueta primeiro, contagem depois.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>“Algum valor difere”? Escreva etiquetas e tipos como na missão, com acento: <code>'média'</code>, <code>'invasão'</code>.</li><li>A baixa sumiu? Uma regra larga em cima engole as de baixo.</li><li>Erro de <code>GROUP BY</code>? Agrupe pelo nome do <code>CASE</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Use <code>CASE</code> no <code>SELECT</code>, dê um nome com <code>AS</code> e repita esse nome no <code>GROUP BY</code>. As condições são testadas de cima para baixo, então coloque a menor faixa primeiro. No item 2, <code>tipo IN ('sabotagem', …)</code> resolve a condição.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT
@@ -601,6 +690,14 @@ LEFT JOIN academia_checkin c ON c.membro_id = m.id
 WHERE c.membro_id IS NULL
 LIMIT 5;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantos sócios da academia <strong>nunca entraram</strong> (não têm nenhum check-in)?</li><li>Desses, quantos há em <strong>cada plano</strong>?</li><li>Liste o <strong>nome</strong> dos sócios do plano <strong>ouro</strong> que nunca entraram, em ordem alfabética.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> achar os sócios que nunca passaram na catraca: quantos são, quantos por plano e os nomes do plano ouro, em ordem alfabética.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O <code>JOIN</code> comum só mostra quem tem par; o sócio sem check-in, que você procura, some.</li><li>O <code>LEFT JOIN</code> mantém <em>todos</em> da tabela da esquerda (a do <code>FROM</code>). Parta de <code>academia_membro</code> e ligue os check-ins.</li><li>Sem par, as colunas do check-in ficam vazias (<code>NULL</code>): filtre uma delas com <code>IS NULL</code>.</li><li><strong>Na primeira</strong>, conte. <strong>Na segunda</strong>, plano e contagem, agrupando por plano. <strong>Na terceira</strong>, filtre o ouro e mostre o nome, ordenado.</li></ul>
+    <p><strong>Juntando:</strong> a base das três é a mesma: <code>FROM … LEFT JOIN … ON … WHERE … IS NULL</code>.</p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Ninguém? Vazio se testa com <code>IS NULL</code>, nunca <code>= NULL</code>.</li><li>Contagem 0? Você contou uma coluna vazia do check-in. Use <code>COUNT(*)</code>.</li><li>Gente demais? Faltou o <code>IS NULL</code>, ou a esquerda não é a dos sócios.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Parta de <code>academia_membro</code> (a esquerda) e faça <code>LEFT JOIN</code> com <code>academia_checkin</code>. Quem nunca entrou fica com <code>c.membro_id IS NULL</code>. Conte com <code>COUNT(*)</code> e, no item 2, agrupe por <code>m.plano</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT COUNT(*)
@@ -5146,10 +5243,10 @@ SELECT '✅ Jogo instalado! Volte para o guia e comece a Fase 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

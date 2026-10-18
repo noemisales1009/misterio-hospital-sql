@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -89,6 +89,13 @@ erDiagram
     <tr><td><code>ORDER BY … DESC</code></td><td>maior primeiro</td><td>“a pior geladeira no topo”</td></tr>
   </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Conte, por geladeira, as leituras com temperatura acima de 8 ou abaixo de 2. Mostre o código e o setor, da que mais teve para a que menos teve.</li><li>Quais geladeiras ficaram sempre dentro da faixa?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> contar, por geladeira, as leituras fora da faixa (acima de 8 ou abaixo de 2), com código e setor, da que mais teve para a que menos teve.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>As temperaturas estão em <code>leitura</code>; código e setor, em <code>geladeira</code>. Ligue pelo id da geladeira.</li><li>Basta uma das duas condições ser verdade: isso é <code>OR</code>, não <code>AND</code>.</li><li>Agrupe por código e setor e conte com <code>COUNT(*)</code>. Ordene pela contagem com <code>DESC</code>. Colunas: código, setor e contagem.</li><li>A geladeira que nunca saiu da faixa não tem linha para contar, então não aparece. Assim você responde a segunda pergunta.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Não veio nada? Com <code>AND</code>, nenhuma temperatura é maior que 8 e menor que 2 ao mesmo tempo.</li><li>Todas as geladeiras, com contagens enormes? Falta o <code>WHERE</code> da faixa.</li><li>Erro de <code>GROUP BY</code>? O setor também precisa estar nele.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p><code>WHERE l.temperatura &gt; 8 OR l.temperatura &lt; 2</code>, <code>JOIN geladeira g</code> e <code>GROUP BY g.codigo, g.setor</code>. As que nunca saíram da faixa simplesmente não aparecem.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT g.codigo, g.setor, COUNT(*) AS leituras_fora
@@ -114,6 +121,14 @@ ORDER BY leituras_fora DESC;</pre></div>
   <div class="box novo"><b class="l">Ferramenta nova · Função de janela: LAG</b><p><code>LAG(temperatura) OVER (PARTITION BY geladeira_id ORDER BY momento)</code> devolve a temperatura da leitura anterior <em>da mesma geladeira</em>. O <code>PARTITION BY</code> separa os grupos e o <code>ORDER BY</code> define a ordem. A função não reduz linhas, ela só acrescenta uma coluna. E não dá para filtrar por ela no <code>WHERE</code> direto: embrulhe numa subconsulta.</p></div>
   <div class="tw"><table><tr><th>momento</th><th>temperatura</th><th>anterior (LAG)</th><th>início de excursão?</th></tr><tr><td>02:00</td><td>4,8</td><td>4,6</td><td>não</td></tr><tr><td>02:30</td><td>8,4</td><td>4,8</td><td><strong>sim</strong></td></tr><tr><td>03:00</td><td>10,1</td><td>8,4</td><td>não, já estava fora</td></tr></table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para cada leitura, traga também a temperatura <strong>anterior</strong> da mesma geladeira.</li><li>Mostre só os <strong>inícios de excursão</strong>: leitura acima de 8 com a anterior em 8 ou menos. Quantos são e em quais geladeiras?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> trazer, em cada leitura, a temperatura anterior da mesma geladeira e mostrar só os inícios de excursão: acima de 8 com a anterior em 8 ou menos.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O <code>LAG(temperatura)</code> traz o valor da linha de cima. No <code>OVER ( … )</code>, o <code>PARTITION BY</code> separa as geladeiras e o <code>ORDER BY</code> momento define a ordem.</li><li>Ele não junta linhas, só acrescenta a coluna <code>anterior</code>. Ligue <code>geladeira</code> para ter o código.</li><li>O <code>WHERE</code> não enxerga o <code>LAG</code>: use uma subconsulta no <code>FROM</code>, com apelido, e filtre por fora.</li><li>A primeira leitura não tem anterior (<code>NULL</code>): trate com <code>IS NULL OR …</code>, entre parênteses. Colunas: código, momento, temperatura e anterior.</li></ul>
+    <p><strong>Juntando:</strong> <code>SELECT … FROM ( SELECT …, LAG(…) OVER (…) AS anterior … ) t WHERE …</code></p>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>O anterior veio vazio em todas? Você filtrou acima de 8 <em>dentro</em> da subconsulta. Filtre só por fora.</li><li>Anterior de outra geladeira? Faltou o <code>PARTITION BY</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Faça a consulta com <code>LAG</code> numa subconsulta no <code>FROM</code>, apelido <code>t</code>, e filtre fora: <code>WHERE temperatura &gt; 8 AND (anterior IS NULL OR anterior &lt;= 8)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT codigo, momento, temperatura, anterior
@@ -142,7 +157,14 @@ ORDER BY momento;</pre></div>
   </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · Ilhas com ROW_NUMBER</b><p><code>ROW_NUMBER() OVER (PARTITION BY … ORDER BY …)</code> numera as linhas 1, 2, 3… Se uma sequência de leituras fora da faixa é seguida, <code>n_todas - n_fora</code> fica <strong>constante</strong>. Quando a sequência é interrompida, o valor muda: começa outra ilha.</p></div>
   <div class="tw"><table><tr><th>momento</th><th>fora?</th><th>n_todas</th><th>n_fora</th><th>n_todas − n_fora</th></tr><tr><td>02:00</td><td>não</td><td>5</td><td>—</td><td>—</td></tr><tr><td>02:30</td><td>sim</td><td>6</td><td>1</td><td><strong>5</strong></td></tr><tr><td>03:00</td><td>sim</td><td>7</td><td>2</td><td><strong>5</strong></td></tr><tr><td>…</td><td>…</td><td>…</td><td>…</td><td><strong>5</strong></td></tr><tr><td>11:00</td><td>sim</td><td>18</td><td>3</td><td><strong>15</strong> (outra ilha)</td></tr></table></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Descubra a <strong>duração</strong> de cada excursão: início, fim e tempo entre eles.</li><li>Qual geladeira teve a excursão mais longa, e de que horas a que horas?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Descubra a <strong>duração</strong> de cada excursão. Mostre o código da geladeira, o início, o fim, quantas leituras ficaram acima de 8 e a duração (o fim menos o início), nessa ordem.</li><li>Qual geladeira teve a excursão mais longa, e de que horas a que horas?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> juntar as leituras seguidas acima de 8 em excursões e medir cada uma (início, fim e duração), para achar a mais longa.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O truque das “ilhas”: numere todas as leituras de cada geladeira, por tempo, com <code>ROW_NUMBER()</code>; depois numere de novo só as acima de 8.</li><li>Em leituras quentes seguidas, os dois números sobem juntos e a diferença não muda: ela identifica a excursão.</li><li>A primeira numeração vê <em>todas</em> as leituras. Por isso são dois blocos no <code>WITH</code>: o segundo parte do primeiro, filtra e numera de novo.</li><li>Agrupe por geladeira e diferença. Início é o <code>MIN</code> do momento, fim é o <code>MAX</code>, e duração é fim menos início.</li><li>Colunas: código, início, fim, número de leituras (<code>COUNT(*)</code>) e duração.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Leituras frias no meio? Aqui “fora” é só acima de 8.</li><li>Coluna inexistente no segundo bloco? Ele precisa levar a primeira numeração junto.</li><li>Formato não bate? São cinco colunas, com a contagem antes da duração.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Dois <code>ROW_NUMBER</code>: um em todas as leituras e outro só nas que têm <code>temperatura &gt; 8</code>, em outro bloco do <code>WITH</code>. Agrupe por <code>geladeira, n_todas - n_fora</code> e calcule <code>MAX(momento) - MIN(momento)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH numeradas AS (
@@ -180,7 +202,14 @@ ORDER BY duracao DESC;</pre></div>
     <tr><td><code>BETWEEN a - INTERVAL … AND a</code></td><td>janela de tempo antes de um instante</td><td>“na meia hora anterior”</td></tr>
     <tr><td><code>JOIN × 3</code></td><td>evento, técnico e geladeira</td><td>“quem abriu a G-03”</td></tr>
   </table></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste os eventos <code>abriu</code> da geladeira G-03 entre <strong>02:00 e 02:30</strong> do dia 14/09/2026, com o nome do técnico e o horário.</li><li>Quantas pessoas aparecem?</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste os eventos <code>abriu</code> da geladeira G-03 entre <strong>02:00 e 02:30</strong> do dia 14/09/2026, mostrando o horário, o nome do técnico e o evento, nessa ordem.</li><li>Quantas pessoas aparecem?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> listar quem abriu a porta da geladeira G-03 entre 02:00 e 02:30 de 14/09/2026, com o horário e o nome do técnico.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>A <code>evento_porta</code> guarda só ids. O nome vem de <code>tecnico</code> e o código G-03, de <code>geladeira</code>: são dois <code>JOIN</code>.</li><li>Filtros: código da geladeira, evento <code>'abriu'</code> e janela de tempo.</li><li><code>momento</code> é <code>timestamp</code> (data e hora). Um instante se escreve <code>TIMESTAMP 'ano-mês-dia hora:min:seg'</code>; um pedaço de tempo, com <code>INTERVAL</code>. As 02:30 menos 30 minutos abrem a janela, e o <code>BETWEEN</code> a fecha.</li><li>Colunas, nessa ordem: momento, nome e evento.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Não veio nada? Confira o formato ano-mês-dia dentro do <code>TIMESTAMP</code>.</li><li>Vieram eventos <code>fechou</code> ou de outras geladeiras? Falta um filtro.</li><li>Com duas colunas não bate? O corretor espera o evento em terceiro.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p><code>e.momento BETWEEN TIMESTAMP '2026-09-14 02:30:00' - INTERVAL '30 minutes' AND TIMESTAMP '2026-09-14 02:30:00'</code>, <code>e.evento = 'abriu'</code> e <code>JOIN tecnico t</code>. A conta <code>02:30 - INTERVAL '30 minutes'</code> dá 02:00: daria para escrever 02:00 direto, mas assim você treina o <code>INTERVAL</code>, que serve para qualquer janela de tempo.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT e.momento, t.nome, e.evento
@@ -206,7 +235,14 @@ ORDER BY e.momento;</pre></div>
     <tr><td><code>prox_tecnico &lt;&gt; tecnico_id</code></td><td>outra pessoa fez o próximo evento</td><td>“quem fechou não foi quem abriu”</td></tr>
   </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · Função de janela: LEAD</b><p><code>LEAD(evento) OVER (PARTITION BY geladeira_id ORDER BY momento)</code> traz o evento da <em>linha seguinte</em> da mesma geladeira. Com <code>LEAD(tecnico_id)</code> você sabe quem fez o próximo evento. Para comparar com possível vazio, use <code>IS DISTINCT FROM</code>.</p></div>
-  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para cada <code>abriu</code>, traga o <strong>próximo evento</strong> da mesma geladeira e o técnico que o fez.</li><li>Fique só com as aberturas em que o próximo evento <strong>não</strong> é um <code>fechou</code> da mesma pessoa. Quem é o culpado? Confira com <code>SELECT verificar_caso6('Nome Completo');</code>.</li></ul></div>
+  <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Para cada <code>abriu</code>, traga o <strong>próximo evento</strong> da mesma geladeira e o técnico que o fez.</li><li>Fique só com as aberturas em que o próximo evento <strong>não</strong> é um <code>fechou</code> da mesma pessoa, mostrando o horário da abertura, o código da geladeira, o nome de quem abriu, o próximo evento e o horário dele, nessa ordem. Quem é o culpado? Confira com <code>SELECT verificar_caso6('Nome Completo');</code>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> para cada abertura, olhar o próximo evento da mesma geladeira e ficar só com as aberturas em que ele não foi um <code>fechou</code> da mesma pessoa.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O <code>LEAD</code> é o irmão do <code>LAG</code>: traz a linha <em>seguinte</em>. Com <code>PARTITION BY</code> geladeira e <code>ORDER BY</code> momento, é o próximo evento daquela porta.</li><li>São três <code>LEAD</code>: o próximo evento, o técnico dele e o momento dele. O <code>WINDOW w AS ( … )</code> evita repetir a janela.</li><li>Calcule numa subconsulta, sobre <em>todos</em> os eventos, com os <code>JOIN</code>. Filtre <code>abriu</code> só por fora.</li><li>Suspeita: o próximo não é <code>fechou</code> <em>ou</em> é de outro técnico. O último evento não tem próximo; o <code>IS DISTINCT FROM</code> trata esse vazio como diferente.</li><li>Colunas: momento, código, nome de quem abriu, próximo evento e momento do próximo.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Quase todas as aberturas? O filtro de <code>abriu</code> ficou dentro da subconsulta.</li><li>Apareceu <code>fechou</code> no resultado? Faltam parênteses no <code>OR</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Numa subconsulta: <code>LEAD(e.evento) OVER w AS prox_evento</code> e <code>LEAD(e.tecnico_id) OVER w AS prox_tecnico</code>, com <code>WINDOW w AS (PARTITION BY e.geladeira_id ORDER BY e.momento)</code>. Fora: <code>WHERE evento = 'abriu' AND (prox_evento IS DISTINCT FROM 'fechou' OR prox_tecnico &lt;&gt; tecnico_id)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT momento, codigo, nome, prox_evento, prox_momento
@@ -2745,10 +2781,10 @@ SELECT '✅ Caso 6 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 

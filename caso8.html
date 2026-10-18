@@ -18,7 +18,7 @@
 <link rel="preload" href="fonts/jetbrains-mono-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <script src="js/tema.js?v=45d4af28"></script>
-<link rel="stylesheet" href="css/estilo.css?v=4ddc6168">
+<link rel="stylesheet" href="css/estilo.css?v=9d89a133">
 <link rel="expect" href="#fim-da-pagina" blocking="render">
 </head>
 <body>
@@ -94,6 +94,13 @@ FROM hora_extra
 LIMIT 10;</pre></div>
   <div class="box"><b class="l">Atenção · BETWEEN com data e hora</b><p><code>inicio</code> é <code>timestamp</code>: tem data <strong>e hora</strong>. Quando você escreve <code>'2026-09-30'</code>, o SQL entende 30/09 <strong>à meia-noite</strong>. Então <code>inicio BETWEEN '2026-09-01' AND '2026-09-30'</code> deixa de fora tudo o que começou no dia 30 depois de 00:00. O jeito seguro é o <strong>intervalo meio aberto</strong>: <code>inicio &gt;= '2026-09-01' AND inicio &lt; '2026-10-01'</code>. Pega do primeiro ao último instante de setembro, sem precisar saber quantos dias o mês tem.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Conte os plantões extras <strong>por mês</strong>. Mostre o mês como texto, com <code>TO_CHAR(inicio, 'YYYY-MM')</code>, e a quantidade, em ordem de mês.</li><li>Quantas pessoas <strong>diferentes</strong> fizeram hora extra em <strong>setembro de 2026</strong>? Filtre com o intervalo meio aberto e mostre só esse número.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> contar os plantões extras por mês, com o mês como texto 'YYYY-MM', em ordem de mês. Na segunda, quantas pessoas diferentes fizeram hora extra em setembro de 2026.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>O plantão conta no mês em que <em>começou</em>: use <code>inicio</code>, de <code>hora_extra</code>.</li><li><code>TO_CHAR(inicio, 'YYYY-MM')</code> transforma cada data no texto do mês, e os plantões do mesmo mês podem ser agrupados. Como o texto começa pelo ano, a ordem alfabética é a do calendário.</li><li><strong>Na segunda:</strong> <code>COUNT(DISTINCT profissional_id)</code> conta cada pessoa uma vez. O filtro é o intervalo meio aberto: a partir de 1º de setembro e <em>antes</em> de 1º de outubro.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Faltou gente em setembro? O <code>BETWEEN</code> até 30/09 para à meia-noite e perde a noite do dia 30.</li><li>Número grande demais na segunda? Faltou o <code>DISTINCT</code>: você contou plantões.</li><li>Meses estranhos? <code>MM</code> é mês; <code>MI</code> seria minuto.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Na primeira, dê um apelido para o mês, como <code>mes</code>, e use em <code>GROUP BY mes</code> e <code>ORDER BY mes</code>. Como o texto começa pelo ano, a ordem alfabética já é a ordem do calendário. Na segunda, <code>COUNT(DISTINCT profissional_id)</code> conta cada pessoa uma vez só, com o filtro <code>WHERE inicio &gt;= '2026-09-01' AND inicio &lt; '2026-10-01'</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT TO_CHAR(inicio, 'YYYY-MM') AS mes, COUNT(*) AS plantoes
@@ -132,6 +139,13 @@ WHERE inicio &gt;= '2026-09-01'
 FROM hora_extra
 LIMIT 10;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Em <strong>setembro de 2026</strong>, conte os plantões por dia da semana. Mostre o número do dia (<code>dow</code>), o nome em português (<code>domingo</code>, <code>segunda</code>, <code>terça</code>, <code>quarta</code>, <code>quinta</code>, <code>sexta</code>, <code>sábado</code>, assim, sem “-feira”) e a quantidade, em ordem de <code>dow</code>.</li><li>Ainda em setembro, conte os plantões pela <strong>hora de início</strong>, com <code>EXTRACT(HOUR FROM inicio)</code>. Mostre a hora e a quantidade, em ordem de hora. Que horário destoa?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> em setembro de 2026, contar os plantões por dia da semana, com o número do dia, o nome em português e a quantidade. Na segunda, contar pela hora de início.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li><code>EXTRACT(DOW FROM inicio)</code> dá o dia como número: 0 é domingo, 6 é sábado.</li><li>Um <code>CASE</code> traduz o número em nome. Escreva como a missão mostra: minúsculas, terça e sábado com acento, sem “-feira”.</li><li>Agrupe pelo número e pelo nome juntos e conte. Nas duas missões, use o filtro de setembro da etapa 1.</li><li><strong>Na segunda:</strong> a mesma ideia com <code>EXTRACT(HOUR FROM inicio)</code>: hora e quantidade.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Contagens grandes demais? Faltou o filtro de setembro: a tabela tem o ano todo.</li><li>Erro de <code>GROUP BY</code>? O nome do dia também entra no agrupamento.</li><li>Formato igual e valor diferente? Confira a grafia de 'terça' e 'sábado'.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Na primeira, o <code>CASE</code> vai no <code>SELECT</code> com os sete <code>WHEN</code> e o apelido <code>dia</code>. Agrupe pelos dois apelidos, <code>GROUP BY dow, dia</code>, e não esqueça o filtro de setembro da etapa 1 no <code>WHERE</code>. A segunda é igual, mais curta: <code>EXTRACT(HOUR FROM inicio) AS hora</code> e <code>GROUP BY hora</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT EXTRACT(DOW FROM inicio) AS dow,
@@ -179,6 +193,13 @@ ORDER BY hora;</pre></div>
 FROM hora_extra
 LIMIT 10;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Em <strong>setembro de 2026</strong>, por pessoa, mostre: <code>nome</code>, <code>horas</code> (a soma das horas extras) e <code>valor</code> (horas × <code>valor_hora</code> × 1,5, arredondado com 2 casas), nessa ordem. Só as <strong>5 pessoas com mais horas</strong>, da maior para a menor.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> em setembro de 2026, mostrar por pessoa o nome, a soma das horas extras e o valor (horas × <code>valor_hora</code> × 1,5, com 2 casas). Só as 5 com mais horas.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Junte <code>hora_extra</code> e <code>profissional</code> pelo <code>profissional_id</code> e filtre setembro como na etapa 1.</li><li><code>EXTRACT(EPOCH FROM fim - inicio)</code> dá a duração em segundos; dividindo por 3600, você tem horas com os minutos incluídos. Some por pessoa (as horas podem ficar com 1 casa).</li><li>O valor é essa soma vezes <code>valor_hora</code> vezes <code>1.5</code>, dentro de <code>ROUND(…, 2)</code>. Como <code>valor_hora</code> fica fora do <code>SUM</code>, ele entra no <code>GROUP BY</code>.</li><li>Ordene pelas horas, da maior para a menor, e corte com <code>LIMIT</code>.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Erro de <code>GROUP BY</code>? Falta <code>valor_hora</code> no agrupamento.</li><li>Meia hora a menos? Você usou <code>EXTRACT(HOUR …)</code>, que joga fora os minutos.</li><li>Pessoas erradas? O <code>ORDER BY</code> precisa ser pelas horas, com <code>DESC</code>.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>As horas: <code>SUM(EXTRACT(EPOCH FROM h.fim - h.inicio)) / 3600 AS horas</code>. O valor: a mesma soma vezes <code>p.valor_hora * 1.5</code>, tudo dentro de <code>ROUND( …, 2)</code>. Como <code>p.valor_hora</code> aparece fora do <code>SUM</code>, ele vai também no agrupamento: <code>GROUP BY p.nome, p.valor_hora</code>. No fim, <code>ORDER BY horas DESC LIMIT 5</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT p.nome,
@@ -221,6 +242,13 @@ SELECT setor, plantoes,
 FROM por_setor
 ORDER BY posicao;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Monte o ranking de <strong>setembro de 2026</strong> com <strong>todas</strong> as pessoas que fizeram hora extra. Mostre <code>nome</code>, <code>horas</code>, <code>posicao</code> (com <code>RANK</code>, quem tem mais horas é 1) e <code>pct</code>, a porcentagem das horas do mês, com 1 casa decimal. Nessa ordem.</li><li>Agora lado a lado: <code>nome</code>, <code>horas</code>, a posição com <code>RANK</code> e a posição com <code>DENSE_RANK</code>, todas as pessoas de setembro. Em que linha as duas começam a discordar?</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> montar o ranking de setembro de 2026 com todas as pessoas: nome, horas, posição com <code>RANK</code> e porcentagem das horas do mês. Na segunda, <code>RANK</code> e <code>DENSE_RANK</code> lado a lado.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Primeiro, num <code>WITH</code>, some as horas de cada pessoa em setembro, como na etapa 3, mas sem <code>LIMIT</code>.</li><li>Em cima disso, funções de janela: <code>RANK() OVER (ORDER BY horas DESC)</code> dá a posição, e <code>SUM(horas) OVER ()</code> repete o total do mês em todas as linhas. A porcentagem é 100 vezes as horas, dividido por esse total.</li><li><strong>Na segunda:</strong> troque a porcentagem por <code>DENSE_RANK()</code>. No empate, o <code>RANK</code> pula a posição seguinte; o <code>DENSE_RANK</code> não.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Erro pedindo <code>GROUP BY</code>? Faltou o <code>OVER ()</code> depois do <code>SUM</code>.</li><li>Posição 1 com menos horas? Faltou o <code>DESC</code> no <code>OVER</code>.</li><li>Valor diferente? Confira a ordem das colunas e use <code>ROUND(…, 1)</code> nas horas e na porcentagem.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>No <code>WITH</code>: <code>setembro AS (SELECT p.nome, SUM(EXTRACT(EPOCH FROM h.fim - h.inicio)) / 3600 AS horas FROM … WHERE … GROUP BY p.nome)</code>. Fora dele, <code>FROM setembro</code>, com <code>RANK() OVER (ORDER BY horas DESC) AS posicao</code> e <code>ROUND(100 * horas / SUM(horas) OVER (), 1) AS pct</code>. Na segunda, troque a <code>pct</code> por <code>DENSE_RANK() OVER (ORDER BY horas DESC)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH setembro AS (
@@ -251,7 +279,7 @@ SELECT nome,
        DENSE_RANK() OVER (ORDER BY horas DESC) AS pos_dense
 FROM setembro
 ORDER BY pos_rank;</pre></div>
-    <p>Para conferir: <strong>21</strong> pessoas. Edson é o 1º, com <strong>20.1%</strong> das horas de setembro, e Irene a 2ª, com <strong>19.1%</strong>: os dois juntos fazem quase 40% do mês. Débora Quintela e Cássio Brandt <strong>empatam</strong> com 24 horas em <strong>8º</strong>. Com <code>RANK</code>, a pessoa seguinte, Moacir Teles, é a <strong>10ª</strong>; com <code>DENSE_RANK</code>, a 9ª. É aí que as duas começam a discordar, e a diferença vai até o fim da lista. Edson e Irene estão muito acima dos outros, mas o ranking só mostra quem <em>lançou</em> mais horas, não quem trabalhou.</p>
+    <p>Para conferir: <strong>21</strong> pessoas. Leonel é o 1º, com <strong>20.1%</strong> das horas de setembro, e Irene a 2ª, com <strong>19.1%</strong>: os dois juntos fazem quase 40% do mês. Débora Quintela e Cássio Brandt <strong>empatam</strong> com 24 horas em <strong>8º</strong>. Com <code>RANK</code>, a pessoa seguinte, Moacir Teles, é a <strong>10ª</strong>; com <code>DENSE_RANK</code>, a 9ª. É aí que as duas começam a discordar, e a diferença vai até o fim da lista. Leonel e Irene estão muito acima dos outros, mas o ranking só mostra quem <em>lançou</em> mais horas, não quem trabalhou.</p>
   </div></details>
   <div class="done-row"><input type="checkbox" id="c8-ok4"><label for="c8-ok4">Etapa 4 concluída</label></div>
 </section>
@@ -279,6 +307,13 @@ WHERE NOT EXISTS (
 );</pre></div>
   <div class="box"><b class="l">Outro jeito · LEFT JOIN … IS NULL</b><p>Dá para chegar ao mesmo resultado com o <code>LEFT JOIN</code> do Caso 2: junte a catraca com as condições no <code>ON</code> e fique com <code>WHERE c.id IS NULL</code>. Funciona igual, mas o <code>NOT EXISTS</code> se lê quase como a frase em português: “não existe entrada”. Aqui o <code>BETWEEN</code> é seguro, porque as duas pontas são instantes exatos, com hora.</p></div>
   <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Liste os plantões de <strong>setembro de 2026</strong> em que <strong>não existe</strong> nenhuma passagem de <code>sentido = 'entrada'</code> da mesma pessoa na catraca entre <code>inicio - INTERVAL '1 hour'</code> e <code>inicio + INTERVAL '30 minutes'</code>. Mostre <code>nome</code>, <code>inicio</code> e <code>fim</code>, em ordem de início.</li><li>Por pessoa: <code>nome</code>, quantos plantões sem entrada (<code>plantoes</code>) e quantas horas eles somam (<code>horas</code>), da maior para a menor. Quem é o culpado? Confira com <code>SELECT verificar_caso8('Nome Completo');</code>.</li></ul></div>
+  <details class="duvida"><summary>🔎 Tira-dúvidas</summary><div>
+    <p><strong>O que a missão pede:</strong> listar os plantões de setembro de 2026 sem entrada da mesma pessoa na catraca entre 1 hora antes e 30 minutos depois do início. Na segunda, por pessoa: quantos plantões assim e quantas horas somam.</p>
+    <p><strong>Como pensar:</strong></p>
+    <ul class="list"><li>Parta da consulta de setembro com <code>hora_extra</code> e <code>profissional</code> e acrescente no <code>WHERE</code> um <code>NOT EXISTS (subconsulta)</code>.</li><li>A subconsulta procura na <code>catraca</code> uma passagem da <em>mesma pessoa</em>, com <code>sentido = 'entrada'</code> e <code>momento</code> entre <code>inicio - INTERVAL '1 hour'</code> e <code>inicio + INTERVAL '30 minutes'</code>.</li><li>Ela é correlacionada: é testada de novo para cada plantão. Se não acha nada, o plantão fica.</li><li><strong>Na segunda:</strong> mesmo <code>WHERE</code>, agrupado pelo nome, com <code>COUNT(*)</code> e a soma de horas da etapa 3.</li></ul>
+    <p><strong>Se travar:</strong></p>
+    <ul class="list"><li>Quase nada veio? A subconsulta não compara o <code>profissional_id</code> da catraca com o do plantão.</li><li>Plantões de menos? A subconsulta pode estar aceitando saídas: filtre <code>'entrada'</code>, sem acento.</li></ul>
+  </div></details>
   <details><summary>Dica</summary><div><p>Comece pela consulta de setembro com <code>JOIN profissional</code> e acrescente no <code>WHERE</code>: <code>AND NOT EXISTS (SELECT 1 FROM catraca c WHERE c.profissional_id = h.profissional_id AND c.sentido = 'entrada' AND c.momento BETWEEN h.inicio - INTERVAL '1 hour' AND h.inicio + INTERVAL '30 minutes')</code>. Na segunda, mantenha o mesmo <code>WHERE</code> e agrupe por <code>p.nome</code>, com <code>COUNT(*)</code> e a soma de horas da etapa 3.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT p.nome, h.inicio, h.fim
@@ -2164,10 +2199,10 @@ SELECT '✅ Caso 8 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=29d1de49"></script>
+<script src="js/catalogo.js?v=a5b12102"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
-<script src="js/computador.js?v=af7c5430"></script>
+<script src="js/computador.js?v=506b117b"></script>
 
 <script src="js/mermaid-init.js?v=f13746f5"></script>
 
