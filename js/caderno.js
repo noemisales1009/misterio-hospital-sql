@@ -2037,7 +2037,7 @@
   function muralHomeIniciar() {
     if (mural || !document.querySelector(".casos")) return;
     muralModoHome = true;
-    mural = el("div", "mural"); mural.setAttribute("aria-hidden", "true");
+    mural = el("div", "mural mural-home"); mural.setAttribute("aria-hidden", "true");
     muralEsq = el("div", "mural-lado esq"); muralDir = el("div", "mural-lado dir");
     mural.appendChild(muralEsq); mural.appendChild(muralDir);
     document.body.appendChild(mural);
@@ -2093,38 +2093,37 @@
     var quadro = document.querySelector(".quadro-home") || document.querySelector(".wrap");
     var rq = quadro ? quadro.getBoundingClientRect() : { left: 0, right: window.innerWidth };
     var sobraEsq = rq.left - 28;
-    // as fotos ficam na esquerda, em duas colunas (ou três, quando assim saem maiores); o tamanho acompanha a
-    // altura e a largura da tela, e a disposição que deixa as fotos maiores é a escolhida
-    var altura = window.innerHeight - 120;
-    var AW = Math.min(sobraEsq, 440);          // largura que as colunas podem ocupar
+    // as fotos ficam na esquerda; a galeria rola junto com a página (não precisa caber na altura da tela): as fotos ficam do tamanho
+    // que a largura da lateral deixa. Três colunas quando cada foto passa de 125px; senão, duas, maiores.
+    var AW = Math.min(sobraEsq, 520);          // largura que as colunas podem ocupar
     var medidas = function (ncol) {
-      var lin = Math.ceil(CASOS.length / ncol);
-      // com muitas fotos por coluna, o vão entre elas diminui para as fotos não ficarem minúsculas
-      var espaco = lin > 5 ? 6 : 15;
-      var fg = ncol > 2 ? 22 : 30;             // espaço para o "tortinho" de cada lado
-      var wAlt = (altura - espaco * (lin - 1) - 42 * lin) / (0.94 * lin);
-      var wLar = (AW - 16 * (ncol - 1)) / ncol - 2 * fg;
-      return { ncol: ncol, linhas: lin, vao: espaco, folga: fg, w: Math.floor(Math.max(56, Math.min(140, wAlt, wLar))) };
+      var fg = ncol > 2 ? 14 : 20;             // espaço para o "tortinho" de cada lado
+      var wLar = (AW - 14 * (ncol - 1)) / ncol - 2 * fg;
+      return { ncol: ncol, linhas: Math.ceil(CASOS.length / ncol), vao: 18, folga: fg, w: Math.floor(Math.max(56, Math.min(150, wLar))) };
     };
-    var m2 = medidas(2), m3 = medidas(3);
-    var med = CASOS.length > 10 && m3.w > m2.w ? m3 : m2;
+    var m3 = medidas(3), m2 = medidas(2);
+    var med = m3.w >= 125 ? m3 : m2;
     var linhas = med.linhas, vao = med.vao, w = med.w;
-    // arrumado: fotos alinhadas no centro da coluna, só um leve tortinho alternado, em ordem de 1 a 16
-    var giros = [-1.6, 1.3, -1.1, 1.5, -1.3, 1.1];
+    var dxMax = Math.max(0, Math.min(med.folga + 6, (((AW - 14 * (med.ncol - 1)) / med.ncol) - w) / 2 - 4));
+    var giros = [-4.6, 3.4, -2.8, 4.2, -3.6, 2.8, -4.2, 3.6, -3, 4.4];
+    var desloc = [-1, 0.7, -0.4, 1, -0.75];
     muralEsq.style.setProperty("--foto-w", w + "px");
     var cols = [];
     for (var ci = 0; ci < med.ncol; ci++) {
       var col = el("div", "mural-col fotos");
-      col.style.padding = "0 6px";
+      // a folga do "tortinho" fica dentro de cada coluna: as fotos não invadem a vizinha
+      col.style.padding = "0 " + Math.round(dxMax) + "px";
       col.style.gap = vao + "px";
       cols.push(col);
     }
+    // as fotos seguem o número do caso (1 a 16), mesmo que a ordem de jogo seja outra
     casosPorNumero().forEach(function (cs, i) {
       var cul = CULPADOS[cs.arq];
       var feito = casoCompleto(cs, r.st);
       var fig = el("figure", "mural-item mural-foto mini");
       fig.style.setProperty("--giro", giros[i % giros.length] + "deg");
-      fig.style.setProperty("--dx", "0px");
+      // o "tortinho" se repete a cada 5 fotos; cada coluna começa 2 passos adiante da vizinha
+      fig.style.setProperty("--dx", Math.round(desloc[(i % linhas + 2 * Math.floor(i / linhas)) % desloc.length] * dxMax) + "px");
       fig.appendChild(el("span", "pino pino-" + pinos[i % 4]));
       fig.appendChild(el("span", "mural-num", String(cs.n)));
       var ret = el("div", "ficha-retrato");
@@ -2254,7 +2253,7 @@
     }
     var larguraDir = limiteDir - r.right - 28;
     var lados = [
-      { no: muralEsq, w: Math.min(larguraEsq, muralModoHome ? 460 : 250), x0: 0, sobra: larguraEsq, min: muralModoHome ? 150 : 190, ref: 0 },
+      { no: muralEsq, w: Math.min(larguraEsq, muralModoHome ? 540 : 250), x0: 0, sobra: larguraEsq, min: muralModoHome ? 150 : 190, ref: 0 },
       { no: muralDir, w: Math.min(larguraDir, 250), x0: r.right, sobra: larguraDir, min: 200, ref: r.right }
     ];
     lados.forEach(function (l, k) {
@@ -2287,13 +2286,10 @@
       var p = item.querySelector(".pino").getBoundingClientRect();
       return [p.left + p.width / 2 - box.left, p.top + p.height / 2 - box.top];
     };
-    // na tela inicial o fio desce quase reto de um alfinete ao outro (só uma leve barriga para baixo),
-    // sem atravessar as fotos vizinhas; nos casos ele balança para os lados, como um barbante solto
-    var reto = lado.classList.contains("home");
     grupos.forEach(function (itens) {
       for (var i = 0; i < itens.length - 1; i++) {
         var a = ponto(itens[i]), b = ponto(itens[i + 1]);
-        var cx = (a[0] + b[0]) / 2 + (reto ? 0 : (i % 2 ? 34 : -34)), cy = (a[1] + b[1]) / 2 + (reto ? 8 : 26);
+        var cx = (a[0] + b[0]) / 2 + (i % 2 ? 34 : -34), cy = (a[1] + b[1]) / 2 + 26;
         var d = "M" + a[0].toFixed(1) + " " + a[1].toFixed(1) + " Q" + cx.toFixed(1) + " " + cy.toFixed(1) + " " + b[0].toFixed(1) + " " + b[1].toFixed(1);
         var sombra = document.createElementNS(NS, "path");
         sombra.setAttribute("d", d); sombra.setAttribute("fill", "none"); sombra.setAttribute("stroke", "rgba(0,0,0,.35)"); sombra.setAttribute("stroke-width", "3.4");
