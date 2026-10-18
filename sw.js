@@ -1,6 +1,6 @@
 // Gerado por scripts/gerar-sw.js. Não edite à mão.
 // Guarda o jogo no aparelho para funcionar sem internet.
-var VERSAO = "db8331508b";
+var VERSAO = "30716c6048";
 var CACHE = "misterio-sql-" + VERSAO;
 var ARQUIVOS = [
   "./",

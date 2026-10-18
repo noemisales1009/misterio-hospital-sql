@@ -1,20 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="fundo" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#3b9a83"/><stop offset=".55" stop-color="#1b5a4b"/><stop offset="1" stop-color="#0b2e26"/>
-    </linearGradient>
-    <radialGradient id="brilho" cx=".26" cy=".16" r=".85">
-      <stop offset="0" stop-color="#ffffff" stop-opacity=".30"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="lente" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#f2fffa"/><stop offset="1" stop-color="#bfe6d8"/>
-    </linearGradient>
-  </defs><rect width="512" height="512" rx="112" fill="url(#fundo)"/><rect width="512" height="512" rx="112" fill="url(#brilho)"/>
+    <linearGradient id="fundo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b9a83"/><stop offset=".55" stop-color="#1b5a4b"/><stop offset="1" stop-color="#0b2e26"/></linearGradient>
+    <radialGradient id="brilho" cx=".26" cy=".16" r=".85"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="bege" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3ead2"/><stop offset="1" stop-color="#cdbd92"/></linearGradient>
+    <radialGradient id="tela" cx=".5" cy=".45" r=".75"><stop offset="0" stop-color="#16382e"/><stop offset="1" stop-color="#07140f"/></radialGradient>
+    <pattern id="linhas" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="2" fill="#000" fill-opacity=".25"/></pattern>
+  </defs>
+  <g class="fundo"><rect width="512" height="512" rx="112" fill="url(#fundo)"/><rect width="512" height="512" rx="112" fill="url(#brilho)"/></g>
   <g id="arte">
-    <path d="M318 318 L416 416" stroke="#06201a" stroke-opacity=".38" stroke-width="62" stroke-linecap="round" transform="translate(7 9)"/>
-    <path d="M318 318 L416 416" stroke="#f3d64e" stroke-width="54" stroke-linecap="round"/>
-    <path d="M330 330 L404 404" stroke="#fff3a8" stroke-opacity=".7" stroke-width="12" stroke-linecap="round"/>
-    <circle cx="228" cy="226" r="132" fill="url(#lente)" stroke="#ffffff" stroke-width="34"/>
-    <path d="M228 160 V292 M162 226 H294" stroke="#c03a28" stroke-width="44" stroke-linecap="round"/>
-    <path d="M168 168 A82 82 0 0 1 226 128" fill="none" stroke="#ffffff" stroke-opacity=".75" stroke-width="12" stroke-linecap="round"/>
-  </g></svg>
+    <rect x="102" y="104" width="308" height="262" rx="30" fill="#000" fill-opacity=".35" transform="translate(8 11)"/>
+    <path d="M222 360 L290 360 L304 404 L208 404 Z" fill="#b9a878"/>
+    <rect x="168" y="398" width="176" height="30" rx="12" fill="url(#bege)"/>
+    <rect x="102" y="104" width="308" height="262" rx="30" fill="url(#bege)"/>
+    <rect x="128" y="128" width="256" height="190" rx="16" fill="url(#tela)"/>
+    <rect x="128" y="128" width="256" height="190" rx="16" fill="url(#linhas)"/>
+    <text x="150" y="244" font-family="Consolas, 'Courier New', monospace" font-weight="700" font-size="74" fill="#7dffbf">SQL&gt;</text>
+    <rect x="330" y="196" width="30" height="54" rx="3" fill="#f3d64e"/>
+    <path d="M140 140 Q200 132 260 136" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="372" cy="342" r="15" fill="#c03a28"/>
+    <path d="M372 333 V351 M363 342 H381" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+    <rect x="140" y="336" width="90" height="10" rx="5" fill="#8f7f55" fill-opacity=".6"/>
+  </g>
+</svg>
