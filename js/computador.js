@@ -27,6 +27,223 @@
   function toast(m) { if (window.MisterioNuvem) window.MisterioNuvem.toast(m); }
   function espera(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
 
+  // ------------------------------------------------------------------ tira-dúvidas em janela
+  // Cada fase traz <details class="duvida"> no HTML (funciona sozinho, sem JavaScript).
+  // Aqui ele vira um botão que abre uma janela por cima da página, com a explicação em passos.
+  var PASSOS_DUVIDA = {
+    "o que a missão pede": { ic: "🎯", curto: "Missão" },
+    "como pensar": { ic: "🧠", curto: "Pensar" },
+    "juntando": { ic: "🧩", curto: "Juntar" },
+    "se travar": { ic: "🛟", curto: "Travou?" }
+  };
+  var janela = null;
+
+  // separa o conteúdo pelos títulos em negrito ("O que a missão pede:", "Como pensar:", ...)
+  function passosDaDuvida(det) {
+    var corpo = det.querySelector(":scope > div");
+    var passos = [], atual = null;
+    if (!corpo) return passos;
+    [].forEach.call(corpo.children, function (filho) {
+      var forte = filho.tagName === "P" ? filho.firstElementChild : null;
+      if (forte && /^(STRONG|B)$/.test(forte.tagName) && filho.firstChild === forte && /:\s*$/.test(forte.textContent)) {
+        var titulo = forte.textContent.replace(/:\s*$/, "").trim();
+        var info = PASSOS_DUVIDA[titulo.toLowerCase()] || { ic: "💡", curto: titulo };
+        atual = { titulo: titulo, ic: info.ic, curto: info.curto, nos: [] };
+        passos.push(atual);
+        var resto = filho.cloneNode(true);
+        resto.removeChild(resto.firstChild);
+        var t = resto.firstChild;
+        if (t && t.nodeType === 3) {
+          t.nodeValue = t.nodeValue.replace(/^\s+/, "");
+          t.nodeValue = t.nodeValue.charAt(0).toUpperCase() + t.nodeValue.slice(1);
+        }
+        if (resto.textContent.trim()) atual.nos.push(resto);
+        return;
+      }
+      if (!atual) { atual = { titulo: "Explicação", ic: "💡", curto: "Explicação", nos: [] }; passos.push(atual); }
+      atual.nos.push(filho.cloneNode(true));
+    });
+    return passos.filter(function (p) { return p.nos.length; });
+  }
+
+  function vaiProEditor(sec) {
+    var area = sec && sec.querySelector(".pc-codigo");
+    if (!area) return;
+    area.scrollIntoView({ behavior: SEM_ANIMACAO ? "auto" : "smooth", block: "center" });
+    var toque = false;
+    try { toque = window.matchMedia("(pointer: coarse)").matches; } catch (e) {}
+    if (!toque) try { area.focus({ preventScroll: true }); } catch (e) {}
+  }
+
+  function criaJanela() {
+    var dlg = el("dialog", "duvida-janela");
+    dlg.setAttribute("aria-labelledby", "duvidaTitulo");
+    var caixa = el("div", "dj-caixa");
+    var topo = el("div", "dj-topo");
+    var alca = el("span", "dj-alca"); alca.setAttribute("aria-hidden", "true");
+    var cab = el("div", "dj-cab");
+    var tit = el("div", "dj-tit");
+    var h = el("h2", null, "🔎 Tira-dúvidas"); h.id = "duvidaTitulo";
+    var sub = el("p", "dj-sub");
+    tit.appendChild(h); tit.appendChild(sub);
+    var fechar = el("button", "dj-fechar", "✕"); fechar.type = "button"; fechar.setAttribute("aria-label", "Fechar");
+    cab.appendChild(tit); cab.appendChild(fechar);
+    var trilha = el("div", "dj-trilha");
+    topo.appendChild(alca); topo.appendChild(cab); topo.appendChild(trilha);
+    var aviso = el("p", "dj-aviso"); aviso.hidden = true;
+    var palco = el("div", "dj-palco"); palco.setAttribute("aria-live", "polite");
+    var rodape = el("div", "dj-rodape");
+    var voltar = el("button", "dj-voltar", "← Voltar"); voltar.type = "button";
+    var conta = el("span", "dj-conta");
+    var prox = el("button", "dj-prox", "Próximo →"); prox.type = "button";
+    rodape.appendChild(voltar); rodape.appendChild(conta); rodape.appendChild(prox);
+    caixa.appendChild(topo); caixa.appendChild(aviso); caixa.appendChild(palco); caixa.appendChild(rodape);
+    dlg.appendChild(caixa);
+    document.body.appendChild(dlg);
+
+    var J = { dlg: dlg, sub: sub, trilha: trilha, aviso: aviso, passos: [], i: 0, sec: null, dica: null };
+
+    J.mostra = function (i, dir) {
+      J.i = Math.max(0, Math.min(J.passos.length - 1, i));
+      var p = J.passos[J.i], ultimo = J.i === J.passos.length - 1;
+      var passo = el("div", "dj-passo");
+      if (dir && !SEM_ANIMACAO) passo.classList.add(dir > 0 ? "vem-dir" : "vem-esq");
+      var ic = el("div", "dj-ic", p.ic); ic.setAttribute("aria-hidden", "true");
+      passo.appendChild(ic);
+      passo.appendChild(el("h3", null, p.titulo));
+      var n = 0;
+      p.nos.forEach(function (no) {
+        var c = no.cloneNode(true);
+        passo.appendChild(c);
+        var itens = /^(UL|OL)$/.test(c.tagName) ? [].slice.call(c.children) : [c];
+        itens.forEach(function (it) { it.classList.add("dj-item"); it.style.setProperty("--i", n++); });
+      });
+      // no último passo, o caminho para a dica da fase
+      if (ultimo && J.dica) {
+        var mais = el("button", "dj-mais dj-item", "Ainda com dúvida? Abrir a dica da fase"); mais.type = "button";
+        mais.style.setProperty("--i", n++);
+        var dica = J.dica;
+        mais.addEventListener("click", function () {
+          J.fecha(function () {
+            dica.open = true;
+            dica.scrollIntoView({ behavior: SEM_ANIMACAO ? "auto" : "smooth", block: "center" });
+          });
+        });
+        passo.appendChild(mais);
+      }
+      palco.textContent = "";
+      palco.appendChild(passo);
+      palco.scrollTop = 0;
+      [].forEach.call(trilha.children, function (b, k) {
+        b.classList.toggle("feito", k < J.i);
+        b.classList.toggle("atual", k === J.i);
+        if (k === J.i) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+      });
+      voltar.disabled = J.i === 0;
+      conta.textContent = (J.i + 1) + " de " + J.passos.length;
+      prox.textContent = ultimo ? "Entendi, vou tentar ✓" : "Próximo →";
+      prox.classList.toggle("fim", ultimo);
+    };
+    J.ir = function (k) {
+      if (k < 0 || k >= J.passos.length || k === J.i) return;
+      J.mostra(k, k > J.i ? 1 : -1);
+    };
+    J.fecha = function (depois) {
+      if (!dlg.open) return;
+      var fim = function () {
+        dlg.classList.remove("saindo");
+        if (dlg.open) dlg.close();
+        document.documentElement.classList.remove("dj-aberta");
+        if (depois) depois();
+      };
+      if (SEM_ANIMACAO) return fim();
+      dlg.classList.add("saindo");
+      setTimeout(fim, 190);
+    };
+
+    fechar.addEventListener("click", function () { J.fecha(); });
+    voltar.addEventListener("click", function () { J.ir(J.i - 1); });
+    prox.addEventListener("click", function () {
+      if (J.i < J.passos.length - 1) return J.ir(J.i + 1);
+      var sec = J.sec;
+      J.fecha(function () { vaiProEditor(sec); });
+    });
+    dlg.addEventListener("cancel", function (e) { e.preventDefault(); J.fecha(); });
+    dlg.addEventListener("close", function () { document.documentElement.classList.remove("dj-aberta"); });
+    dlg.addEventListener("click", function (e) { if (e.target === dlg) J.fecha(); });
+    dlg.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight") { e.preventDefault(); J.ir(J.i + 1); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); J.ir(J.i - 1); }
+    });
+    // arrastar o dedo para os lados troca de passo
+    var x0 = null, y0 = 0;
+    palco.addEventListener("touchstart", function (e) { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    palco.addEventListener("touchend", function (e) {
+      if (x0 == null) return;
+      var t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+      x0 = null;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > 1.6 * Math.abs(dy)) J.ir(J.i + (dx < 0 ? 1 : -1));
+    });
+    return J;
+  }
+
+  function abreDuvida(det, opc) {
+    opc = opc || {};
+    var passos = passosDaDuvida(det);
+    if (!passos.length) { det.open = true; return; }
+    if (!janela) janela = criaJanela();
+    var J = janela;
+    J.passos = passos;
+    J.sec = det.closest("section[data-fase]");
+    var num = J.sec ? J.sec.getAttribute("data-fase") : "";
+    var nome = J.sec ? J.sec.getAttribute("data-nome") : "";
+    J.sub.textContent = [num ? "Fase " + num : "", nome || ""].filter(Boolean).join(" · ");
+    J.dica = null;
+    if (J.sec) [].some.call(J.sec.querySelectorAll("details"), function (d) {
+      var s = d.querySelector("summary");
+      if (d.classList.contains("duvida") || d.classList.contains("sol") || !s || !/^\s*Dica/i.test(s.textContent)) return false;
+      J.dica = d;
+      return true;
+    });
+    J.trilha.textContent = "";
+    passos.forEach(function (p, k) {
+      var b = el("button", "dj-etapa"); b.type = "button";
+      b.setAttribute("aria-label", "Passo " + (k + 1) + ": " + p.titulo);
+      b.appendChild(el("span", "dj-etapa-ic", p.ic));
+      b.appendChild(el("span", "dj-etapa-nome", p.curto));
+      b.addEventListener("click", function () { J.ir(k); });
+      J.trilha.appendChild(b);
+    });
+    J.aviso.hidden = !opc.auto;
+    J.aviso.textContent = opc.auto ? "Errou três vezes seguidas? Acontece com todo mundo. Vamos com calma, um passo de cada vez." : "";
+    J.mostra(0, 0);
+    J.dlg.classList.remove("saindo");
+    document.documentElement.classList.add("dj-aberta");
+    if (!J.dlg.open) {
+      if (J.dlg.showModal) J.dlg.showModal(); else J.dlg.setAttribute("open", "");
+    }
+    J.dlg.querySelector(".dj-prox").focus();
+  }
+
+  function preparaDuvidas() {
+    if (!window.HTMLDialogElement) return; // navegador sem janela: fica a caixa que abre na página
+    [].forEach.call(document.querySelectorAll("details.duvida"), function (det) {
+      var s = det.querySelector("summary");
+      if (!s || det.classList.contains("em-janela")) return;
+      det.classList.add("em-janela");
+      det.open = false;
+      s.textContent = "";
+      s.appendChild(el("span", "dj-gatilho-ic", "🔎"));
+      var txt = el("span", "dj-gatilho-txt");
+      txt.appendChild(el("b", null, "Tira-dúvidas"));
+      txt.appendChild(el("small", null, "A fase explicada passo a passo"));
+      s.appendChild(txt);
+      s.appendChild(el("span", "dj-gatilho-abrir", "Abrir"));
+      s.setAttribute("aria-haspopup", "dialog");
+      s.addEventListener("click", function (e) { e.preventDefault(); abreDuvida(det); });
+    });
+  }
+
   // ------------------------------------------------------------------ motor (um por página)
   var motor = { db: null, pronto: false, carregando: null, tabelas: [], cache: {}, avisos: [] };
   var mantem = function (s) { return s; };
@@ -349,7 +566,7 @@
       gravar(K_CODIGO, r);
     }
 
-    // ---------------- tira-dúvidas: no 3º erro seguido da fase, abre a explicação calma que fica logo abaixo
+    // ---------------- tira-dúvidas: no 3º erro seguido da fase, abre a janela com a explicação em passos
     var errosSeguidos = 0, duvidaAberta = false;
     function contaErro() {
       errosSeguidos++;
@@ -357,18 +574,26 @@
       var duvida = sec.querySelector("details.duvida");
       if (!duvida) return;
       duvidaAberta = true;
-      duvida.open = true;
       duvida.classList.add("chamou");
+      var emJanela = duvida.classList.contains("em-janela");
       var aviso = el("div", "pc-veredito duvida-aviso");
       aviso.appendChild(el("b", null, "🔎 Esta fase está difícil? "));
-      aviso.appendChild(document.createTextNode("Abri o Tira-dúvidas logo abaixo do computador, com a explicação passo a passo."));
+      aviso.appendChild(document.createTextNode(emJanela
+        ? "O Tira-dúvidas explica a fase passo a passo. Pode abrir de novo quando quiser."
+        : "Abri o Tira-dúvidas logo abaixo do computador, com a explicação passo a passo."));
       aviso.appendChild(document.createElement("br"));
-      var ir = el("button", "pc-botao", "Ver o tira-dúvidas"); ir.type = "button";
+      var ir = el("button", "pc-botao", emJanela ? "Abrir o tira-dúvidas" : "Ver o tira-dúvidas"); ir.type = "button";
       ir.addEventListener("click", function () {
-        duvida.scrollIntoView({ behavior: SEM_ANIMACAO ? "auto" : "smooth", block: "start" });
+        if (emJanela) abreDuvida(duvida);
+        else duvida.scrollIntoView({ behavior: SEM_ANIMACAO ? "auto" : "smooth", block: "start" });
       });
       aviso.appendChild(ir);
       saida.appendChild(aviso);
+      if (!emJanela) { duvida.open = true; return; }
+      // espera um instante para dar tempo de ver o "ainda não bate" antes da janela subir
+      setTimeout(function () {
+        if (!document.querySelector("dialog[open]")) abreDuvida(duvida, { auto: true });
+      }, SEM_ANIMACAO ? 0 : 900);
     }
 
     // ---------------- ligar
@@ -687,6 +912,7 @@
 
   // ------------------------------------------------------------------ montagem nas fases
   function monta() {
+    preparaDuvidas();
     var secoes = [].slice.call(document.querySelectorAll("section[data-fase]"));
     secoes.forEach(function (sec, i) {
       var corpo = sec.querySelector(".fase-corpo") || sec;
