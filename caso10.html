@@ -104,7 +104,7 @@ FROM portal_requisicao
 WHERE parametro LIKE '%--%'
 LIMIT 15;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantas requisições têm, no <code>parametro</code>, o padrão <code>' or </code> (um OR sempre verdadeiro) ou <code>--</code> (corta o resto do comando) ou as palavras <code>union</code> e <code>select</code> juntas? Conte o <strong>total</strong>.</li><li>Agora agrupe essas mesmas requisições por <code>ip</code> e conte quantas cada IP tem. Vai aparecer mais de um IP suspeito — guarde os dois números, a próxima fase explica qual é qual.</li></ul></div>
-  <details><summary>Dica</summary><div><p>Para a aspa dentro do padrão do <code>ILIKE</code>, escreva <code>''</code> (duas aspas simples) onde você quer UMA aspa: <code>'%'' or %'</code>. Junte as três condições com <code>OR</code>, e lembre de colocar a condição de <code>union</code>+<code>select</code> entre parênteses: <code>(parametro ILIKE '%union%' AND parametro ILIKE '%select%') OR parametro ILIKE '%'' or %' OR parametro LIKE '%--%'</code>. Na segunda missão, é a mesma condição com <code>GROUP BY ip</code>.</p></div></details>
+  <details><summary>Dica</summary><div><p>Para a aspa dentro do padrão do <code>ILIKE</code>, escreva <code>''</code> (duas aspas simples) onde você quer UMA aspa: <code>'%'' or %'</code>. Junte as três condições com um <code>OR</code> entre elas, e lembre de colocar a condição de <code>union</code>+<code>select</code> entre parênteses: <code>(parametro ILIKE '%union%' AND parametro ILIKE '%select%') OR parametro ILIKE '%'' or %' OR parametro LIKE '%--%'</code>. Na segunda missão, é a mesma condição com <code>GROUP BY ip</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT COUNT(*) AS suspeitas
 FROM portal_requisicao
@@ -168,7 +168,7 @@ ORDER BY sucessos DESC;</pre></div>
 SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
 SELECT column_name FROM information_schema.columns WHERE table_name = 'exame_resultado';</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>A partir do IP confirmado na fase anterior, liste as requisições com <code>linhas &gt; 0</code> e <code>parametro</code> contendo <code>union</code> — isso mostra a escalada, do teste mais bobo até o vazamento completo.</li><li>Quantos pacientes <strong>diferentes</strong> tiveram resultado de exame exposto? (Pista: a consulta vencedora do ataque devolveu a tabela <code>exame_resultado</code> inteira, sem filtro nenhum.)</li></ul></div>
-  <details><summary>Dica</summary><div><p>Primeira: <code>WHERE ip = '203.0.113.59' AND linhas &gt; 0 AND parametro ILIKE '%union%'</code>. Segunda: se a consulta vazou a tabela inteira sem <code>WHERE</code>, a resposta é simplesmente <code>SELECT COUNT(DISTINCT paciente_login) FROM exame_resultado;</code></p></div></details>
+  <details><summary>Dica</summary><div><p>Primeira: <code>WHERE ip = '203.0.113.59' AND linhas &gt; 0 AND parametro ILIKE '%union%'</code>. Segunda: se a consulta vazou a tabela inteira, sem <code>WHERE</code>, todo paciente que tem resultado em <code>exame_resultado</code> foi exposto. Conte os <code>paciente_login</code> diferentes dessa tabela (lembra do <code>COUNT(DISTINCT …)</code>?).</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT momento, parametro, status, linhas
 FROM portal_requisicao
@@ -192,7 +192,7 @@ LIMIT 5;
 RESET ROLE;</pre></div>
   <div class="box"><b class="l">O que você deve ter visto</b><p>Mesmo como <code>portal_web</code> — o papel do site, não o dono do banco — a consulta devolveu linhas de <strong>vários pacientes diferentes</strong>, de uma vez, sem pedir login de ninguém. O RLS está ligado (você pode confirmar na missão 2), mas a política deixa passar tudo.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Veja o que o papel <code>portal_web</code> pode fazer em cada tabela: consulte <code>information_schema.role_table_grants</code> filtrando por esse papel, mostrando a tabela e o tipo de privilégio.</li><li>Veja as políticas de RLS das três tabelas do portal em <code>pg_policies</code>: mostre a tabela, o nome da política e a condição (<code>qual</code>). Repare que a condição é igual nas três.</li></ul></div>
-  <details><summary>Dica</summary><div><p>Primeira: <code>SELECT table_name, privilege_type FROM information_schema.role_table_grants WHERE grantee = 'portal_web' ORDER BY table_name;</code>. Segunda: <code>SELECT tablename, policyname, qual FROM pg_policies WHERE tablename IN ('portal_usuario', 'exame_pedido', 'exame_resultado') ORDER BY tablename;</code></p></div></details>
+  <details><summary>Dica</summary><div><p>Primeira: em <code>information_schema.role_table_grants</code>, a coluna <code>grantee</code> diz quem recebeu a permissão, <code>table_name</code> diz em qual tabela e <code>privilege_type</code> diz qual (SELECT, INSERT…). Filtre <code>grantee = 'portal_web'</code>. Segunda: em <code>pg_policies</code>, as colunas são <code>tablename</code>, <code>policyname</code> e <code>qual</code> (a condição da política). Filtre as três tabelas do portal com <code>tablename IN (…)</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT table_name, privilege_type
 FROM information_schema.role_table_grants
@@ -1628,7 +1628,7 @@ SELECT '✅ Caso 10 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=06c5ba80"></script>
+<script src="js/catalogo.js?v=29d1de49"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
 <script src="js/computador.js?v=af7c5430"></script>

@@ -99,7 +99,7 @@ erDiagram
     <tr><td><code>AND</code></td><td>todas as condições ao mesmo tempo</td><td>“dia 14 e alterou e de madrugada”</td></tr>
   </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste todas as linhas de <code>acesso_prontuario</code> em que a <strong>data</strong> é 14/08/2026, a <strong>ação</strong> é <code>alterou</code> e a <strong>hora</strong> está entre 02h00 e 03h59.</li></ul></div>
-  <details><summary>Dica</summary><div><p>Três condições ligadas por <code>AND</code>: <code>data = 20260814</code>, <code>acao = 'alterou'</code> e <code>hora BETWEEN 200 AND 359</code>.</p></div></details>
+  <details><summary>Dica</summary><div><p>Três condições, com um <code>AND</code> entre elas: <code>data = 20260814</code>, <code>acao = 'alterou'</code> e <code>hora BETWEEN 200 AND 359</code>. Repare que o <code>AND</code> de dentro do <code>BETWEEN</code> faz parte dele (“entre 200 e 359”) e não liga condições. Por isso a consulta tem três <code>AND</code>, mas só dois deles ligam as condições.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT *
 FROM acesso_prontuario
@@ -4745,7 +4745,7 @@ SELECT '✅ Caso 2 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=06c5ba80"></script>
+<script src="js/catalogo.js?v=29d1de49"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
 <script src="js/computador.js?v=af7c5430"></script>

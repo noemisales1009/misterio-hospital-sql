@@ -118,7 +118,7 @@ GROUP BY crm_texto
 ORDER BY vezes DESC, crm_texto
 LIMIT 20;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Quantas receitas têm o <code>crm_texto</code> no formato oficial e quantas não têm? Use <code>~ '^CRM-[A-Z]{2} \d{6}$'</code> como uma coluna (ela dá <code>true</code> ou <code>false</code>) e agrupe por ela.</li><li>Agora só as receitas <strong>fora</strong> do formato (<code>!~</code>): quantas cada atendente cadastrou? Mostre o <code>nome</code> da atendente e a contagem, da maior para a menor.</li></ul></div>
-  <details><summary>Dica</summary><div><p>Primeira: <code>SELECT crm_texto ~ '^CRM-[A-Z]{2} \d{6}$' AS formato_oficial, COUNT(*) AS receitas FROM rx_receita GROUP BY formato_oficial;</code>. Segunda: <code>JOIN rx_atendente a ON a.matricula = r.cadastrada_por</code>, <code>WHERE r.crm_texto !~ '^CRM-[A-Z]{2} \d{6}$'</code> e <code>GROUP BY a.nome</code>.</p></div></details>
+  <details><summary>Dica</summary><div><p>Primeira: a comparação <code>crm_texto ~ '…'</code> vira uma coluna de verdadeiro/falso. Coloque-a no <code>SELECT</code> com um apelido (por exemplo <code>formato_oficial</code>), agrupe por esse apelido e conte com <code>COUNT(*)</code>. Segunda: <code>JOIN rx_atendente a ON a.matricula = r.cadastrada_por</code>, <code>WHERE r.crm_texto !~ '^CRM-[A-Z]{2} \d{6}$'</code> e <code>GROUP BY a.nome</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT crm_texto ~ '^CRM-[A-Z]{2} \d{6}$' AS formato_oficial,
        COUNT(*) AS receitas
@@ -246,7 +246,7 @@ SELECT COUNT(*) FILTER (WHERE texto_receita ~ ' {2}')                       AS n
        COUNT(*) FILTER (WHERE position('comprimido' in texto_receita) &gt; 0)   AS tem_comprimido
 FROM rx_receita;</pre></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste todas as palavras que começam com <code>compr</code> nos textos das receitas, em minúsculas, e quantas vezes cada uma aparece. Uma delas está escrita errado.</li><li>Pegue só as receitas com a palavra errada e agrupe pelo <strong>carimbo</strong> (o 4º pedaço do texto, com <code>split_part</code>). Mostre o carimbo e quantas receitas.</li></ul></div>
-  <details><summary>Dica</summary><div><p>Primeira: <code>SELECT lower(m[1]) AS palavra, COUNT(*) AS vezes FROM rx_receita, regexp_matches(texto_receita, 'compr\w*', 'gi') AS m GROUP BY palavra ORDER BY vezes DESC;</code>. Segunda: <code>WHERE texto_receita ~ 'comprimdo'</code> e <code>GROUP BY split_part(texto_receita, ' | ', 4)</code>. Olhe com atenção os espaços de cada carimbo.</p></div></details>
+  <details><summary>Dica</summary><div><p>Primeira: <code>regexp_matches(texto_receita, 'compr\w*', 'gi')</code> vai no <code>FROM</code>, ao lado da tabela, com um apelido (por exemplo <code>m</code>). Ele devolve cada palavra encontrada, e <code>m[1]</code> é a palavra. Use <code>lower(m[1])</code> para juntar maiúsculas e minúsculas, agrupe e conte. Segunda: <code>WHERE texto_receita ~ 'comprimdo'</code> e <code>GROUP BY split_part(texto_receita, ' | ', 4)</code>. Olhe com atenção os espaços de cada carimbo.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT lower(m[1]) AS palavra, COUNT(*) AS vezes
 FROM rx_receita, regexp_matches(texto_receita, 'compr\w*', 'gi') AS m
@@ -999,7 +999,7 @@ SELECT '✅ Caso 15 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=06c5ba80"></script>
+<script src="js/catalogo.js?v=29d1de49"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
 <script src="js/computador.js?v=af7c5430"></script>

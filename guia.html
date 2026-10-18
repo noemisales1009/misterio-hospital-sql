@@ -159,7 +159,7 @@ WHERE tipo = 'furto';</pre></div>
   <div class="code"><pre data-sql>SELECT * FROM relatorio_ocorrencia
 WHERE tipo = 'furto' AND setor = 'Farmácia';</pre></div>
   <div class="missao"><b class="l">Sua missão</b><p>Ache o relatório da ocorrência. Você lembra: foi uma <mark>sabotagem</mark>, em <mark>10/03/2026</mark>, na <mark>Sala de Vacinas</mark>. Leia a descrição com atenção: ela fala de duas testemunhas.</p></div>
-  <details><summary>Dica</summary><div><p>Você precisa de três condições ligadas por <code>AND</code>: uma para <code>data</code>, uma para <code>tipo</code> e uma para <code>setor</code>. Se aparecerem vários resultados, falta alguma condição.</p></div></details>
+  <details><summary>Dica</summary><div><p>Você precisa de três condições: uma para <code>data</code>, uma para <code>tipo</code> e uma para <code>setor</code>. Escreva uma depois da outra, com um <code>AND</code> entre elas: <code>condição AND condição AND condição</code>. São três condições e dois <code>AND</code>. Se aparecerem vários resultados, falta alguma condição.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div><div class="code"><pre data-sql>SELECT * FROM relatorio_ocorrencia
 WHERE data = 20260310
   AND tipo = 'sabotagem'
@@ -271,11 +271,11 @@ WHERE (p.rua_endereco = 'Rua das Acácias' AND p.numero_endereco = (SELECT MAX(n
     <tr><td>estava na academia em 09/03/2026</td><td><code>c.data = 20260309</code></td></tr>
   </table></div>
   <p>As tabelas são <code>academia_membro</code> (os sócios) e <code>academia_checkin</code> (as entradas na catraca). Elas se ligam por <code>academia_checkin.membro_id = academia_membro.id</code>.</p>
-  <div class="missao"><b class="l">Sua missão</b><p>Liste os sócios que batem com as três pistas. Vão sobrar alguns suspeitos. Quantos?</p></div>
-  <details><summary>Dica</summary><div><div class="code"><pre data-sql>SELECT m.id, m.nome, m.plano, c.data
+  <div class="missao"><b class="l">Sua missão</b><p>Liste os sócios que batem com as três pistas, mostrando <code>id</code>, <code>nome</code>, <code>plano</code> e <code>pessoa_id</code> de cada um (o <code>pessoa_id</code> vai servir na próxima fase). Vão sobrar alguns suspeitos. Quantos?</p></div>
+  <details><summary>Dica</summary><div><div class="code"><pre data-sql>SELECT m.id, m.nome, m.plano, m.pessoa_id
 FROM academia_membro m
 JOIN academia_checkin c ON c.membro_id = m.id
-WHERE ...  -- coloque as 3 pistas aqui, ligadas com AND</pre></div></div></details>
+WHERE ...  -- as 3 pistas aqui, com AND entre elas</pre></div></div></details>
   <details class="sol"><summary>Ver solução</summary><div><div class="code"><pre data-sql>SELECT m.id, m.nome, m.plano, m.pessoa_id
 FROM academia_membro m
 JOIN academia_checkin c ON c.membro_id = m.id
@@ -302,10 +302,10 @@ flowchart LR
   M -- pessoa_id = id --> P[pessoa]
   P -- habilitacao_id = id --> H[habilitacao]
 </pre>
-  <div class="missao"><b class="l">Sua missão</b><p>Pegue a consulta da Fase 5 e acrescente mais dois <code>JOIN</code>s para chegar na placa. Filtre a placa que contém <mark>H42W</mark>. Quando achar o nome, confirme no Supabase:</p>
+  <div class="missao"><b class="l">Sua missão</b><p>Pegue a consulta da Fase 5 e acrescente mais dois <code>JOIN</code>s para chegar na placa. Filtre a placa que contém <mark>H42W</mark>. Mostre o nome da pessoa, o id de sócio e a placa (<code>p.nome</code>, <code>m.id</code> e <code>h.placa</code>). Quando achar o nome, confirme no Supabase:</p>
   <div class="code"><pre data-sql>SELECT verificar_solucao('Nome Completo Aqui');</pre></div></div>
   <details><summary>Dica</summary><div><p>Acrescente embaixo dos outros JOINs:</p><div class="code"><pre data-sql>JOIN pessoa p ON p.id = m.pessoa_id
-JOIN habilitacao h ON h.id = p.habilitacao_id</pre></div><p>E no <code>WHERE</code>: <code>AND h.placa LIKE '%H42W%'</code>. O <code>%</code> dos dois lados porque o H42W está “no meio” da placa.</p></div></details>
+JOIN habilitacao h ON h.id = p.habilitacao_id</pre></div><p>E no <code>WHERE</code>: <code>AND h.placa LIKE '%H42W%'</code>. O <code>%</code> dos dois lados porque o H42W está “no meio” da placa. Por fim, troque as colunas do <code>SELECT</code> por <code>p.nome, m.id, h.placa</code>.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div><div class="code"><pre data-sql>SELECT p.nome, m.id, h.placa
 FROM academia_checkin c
 JOIN academia_membro m ON m.id = c.membro_id
@@ -5146,7 +5146,7 @@ SELECT '✅ Jogo instalado! Volte para o guia e comece a Fase 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=06c5ba80"></script>
+<script src="js/catalogo.js?v=29d1de49"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
 <script src="js/computador.js?v=af7c5430"></script>

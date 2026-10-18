@@ -380,7 +380,7 @@ COMMIT;
 SELECT COUNT(*) AS contas_fora_da_politica FROM ctp_conta WHERE desconto &gt; valor_bruto * 0.10;</pre></div>
   <div class="box"><b class="l">Atenção</b><p>Esse último bloco muda o banco de verdade: depois dele, a fase 1 vai achar 0 contas fora da política, a fase 3 não vai mais encontrar o gatilho suspeito, e a auditoria ganha 22 linhas novas. É o resultado esperado de um conserto. Para voltar ao ponto de partida, clique em <strong>Reiniciar banco</strong> (no Supabase, rode o <code>caso14.sql</code> de novo).</p></div>
   <div class="missao"><b class="l">Missão final</b><ul class="list"><li>Quem são os sete pacientes da lista do gatilho? Mostre o <code>id</code> e o <code>nome</code> deles, em ordem de <code>id</code>. Repare nos sobrenomes.</li><li>Agora identifique o culpado: quem estava usando a máquina das duas mudanças sem chamado no momento exato em que elas foram feitas? Junte <code>ctp_ddl_log</code> com <code>ctp_sessao_estacao</code> pela máquina, com o momento do comando entre o <code>inicio</code> e o <code>fim</code> da sessão. Confira com <code>SELECT verificar_caso14('Nome Completo');</code>.</li></ul></div>
-  <details><summary>Dica</summary><div><p>Primeira: <code>SELECT id, nome FROM ctp_paciente WHERE id IN (12, 27, 33, 48, 59, 71, 84) ORDER BY id;</code>. Segunda: <code>FROM ctp_ddl_log d JOIN ctp_sessao_estacao s ON s.maquina = d.maquina AND d.momento BETWEEN s.inicio AND s.fim</code>, filtrando <code>d.chamado IS NULL</code>. Mostre a pessoa, a máquina, o início, o fim e o <code>via</code> da sessão.</p></div></details>
+  <details><summary>Dica</summary><div><p>Primeira: a lista de números é a mesma que você copiou do gatilho na fase 3. Use-a num <code>WHERE id IN (…)</code> em <code>ctp_paciente</code>. Segunda: <code>FROM ctp_ddl_log d JOIN ctp_sessao_estacao s ON s.maquina = d.maquina AND d.momento BETWEEN s.inicio AND s.fim</code>, filtrando <code>d.chamado IS NULL</code>. Mostre a pessoa, a máquina, o início, o fim e o <code>via</code> da sessão.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT id, nome
 FROM ctp_paciente
@@ -2146,7 +2146,7 @@ SELECT '✅ Caso 14 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=06c5ba80"></script>
+<script src="js/catalogo.js?v=29d1de49"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
 <script src="js/computador.js?v=af7c5430"></script>

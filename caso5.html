@@ -187,7 +187,7 @@ WHERE e.atendimento_id IS NULL;</pre></div>
   </table></div>
   <div class="box novo"><b class="l">Ferramenta nova · WITH com vários blocos e UNION ALL</b><p>Dá para ter vários blocos num <code>WITH</code>, separados por vírgula. <code>UNION ALL</code> empilha resultados com as <strong>mesmas colunas</strong>, mantendo todas as linhas. Aqui cada bloco devolve só o <code>lote</code>.</p></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Escreva um <code>WITH</code> com três blocos, <code>acima</code>, <code>repetidas</code> e <code>fantasmas</code>, cada um devolvendo o <code>lote</code> das linhas com aquele erro.</li><li>Empilhe os três e conte os erros <strong>por lote</strong>, do maior para o menor. Qual lote foge do padrão?</li></ul></div>
-  <details><summary>Dica</summary><div><p>Cada bloco usa a consulta da etapa correspondente, selecionando só <code>c.lote</code> (ou <code>lote</code>). No fim: <code>SELECT lote, COUNT(*) FROM (SELECT lote FROM acima UNION ALL SELECT lote FROM repetidas UNION ALL SELECT lote FROM fantasmas) t GROUP BY lote ORDER BY 2 DESC</code>.</p></div></details>
+  <details><summary>Dica</summary><div><p>Cada bloco usa a consulta da etapa correspondente, selecionando só <code>c.lote</code> (ou <code>lote</code>). No fim: <code>SELECT lote, COUNT(*) FROM (SELECT lote FROM acima UNION ALL SELECT lote FROM repetidas UNION ALL SELECT lote FROM fantasmas) t GROUP BY lote ORDER BY 2 DESC</code>. O <code>ORDER BY 2</code> quer dizer “ordene pela 2ª coluna”, a contagem.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>WITH acima AS (
   SELECT c.lote
@@ -214,8 +214,7 @@ FROM (SELECT lote FROM acima
       UNION ALL SELECT lote FROM repetidas
       UNION ALL SELECT lote FROM fantasmas) t
 GROUP BY lote
-ORDER BY erros DESC
-LIMIT 5;</pre></div>
+ORDER BY erros DESC;</pre></div>
     <p>Para conferir: o lote <strong>L-0830-C</strong> tem <strong>34</strong> erros. O segundo colocado tem 4.</p></div></details>
   <div class="done-row"><input type="checkbox" id="c5-ok4"><label for="c5-ok4">Etapa 4 concluída</label></div>
 </section>
@@ -4285,7 +4284,7 @@ SELECT '✅ Caso 5 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=06c5ba80"></script>
+<script src="js/catalogo.js?v=29d1de49"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
 <script src="js/computador.js?v=af7c5430"></script>

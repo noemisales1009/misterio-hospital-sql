@@ -111,8 +111,10 @@ ORDER BY item_id;</pre></div>
 FROM receita
 GROUP BY item_id
 ORDER BY item_id;</pre></div>
-    <div class="code"><pre data-sql>-- desafio: tudo numa consulta só
-SELECT i.nome, s.total_saida, r.total_prescrito,
+    <p>Para conferir: a <strong>Morfina 10 mg/mL</strong> saiu <strong>254</strong> vezes e foi prescrita <strong>207</strong>, uma diferença de <strong>47</strong>. Os outros itens ficam entre 0 e 4.</p></div></details>
+  <details><summary>Solução do desafio extra (opcional)</summary><div>
+    <p>As duas contas numa consulta só, com subconsultas no <code>FROM</code>. É opcional: a fase não depende dele.</p>
+    <div class="code"><pre data-sql>SELECT i.nome, s.total_saida, r.total_prescrito,
        s.total_saida - r.total_prescrito AS diferenca
 FROM (SELECT item_id, SUM(quantidade) AS total_saida
       FROM movimento_estoque WHERE tipo = 'saida'
@@ -121,7 +123,7 @@ JOIN (SELECT item_id, SUM(quantidade) AS total_prescrito
       FROM receita GROUP BY item_id) r ON r.item_id = s.item_id
 JOIN item_controlado i ON i.id = s.item_id
 ORDER BY diferenca DESC;</pre></div>
-    <p>Para conferir: a <strong>Morfina 10 mg/mL</strong> saiu <strong>254</strong> vezes e foi prescrita <strong>207</strong>, uma diferença de <strong>47</strong>. Os outros itens ficam entre 0 e 4.</p></div></details>
+  </div></details>
   <div class="done-row"><input type="checkbox" id="c3-ok1"><label for="c3-ok1">Etapa 1 concluída</label></div>
 </section>
 <section class="fase" id="c3-f2" data-fase="2" data-nome="Sem receita">
@@ -1539,7 +1541,7 @@ SELECT '✅ Caso 3 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=06c5ba80"></script>
+<script src="js/catalogo.js?v=29d1de49"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
 <script src="js/computador.js?v=af7c5430"></script>

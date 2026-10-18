@@ -181,7 +181,7 @@ ORDER BY duracao DESC;</pre></div>
     <tr><td><code>JOIN × 3</code></td><td>evento, técnico e geladeira</td><td>“quem abriu a G-03”</td></tr>
   </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste os eventos <code>abriu</code> da geladeira G-03 entre <strong>02:00 e 02:30</strong> do dia 14/09/2026, com o nome do técnico e o horário.</li><li>Quantas pessoas aparecem?</li></ul></div>
-  <details><summary>Dica</summary><div><p><code>e.momento BETWEEN TIMESTAMP '2026-09-14 02:30:00' - INTERVAL '30 minutes' AND TIMESTAMP '2026-09-14 02:30:00'</code>, <code>e.evento = 'abriu'</code> e <code>JOIN tecnico t</code>.</p></div></details>
+  <details><summary>Dica</summary><div><p><code>e.momento BETWEEN TIMESTAMP '2026-09-14 02:30:00' - INTERVAL '30 minutes' AND TIMESTAMP '2026-09-14 02:30:00'</code>, <code>e.evento = 'abriu'</code> e <code>JOIN tecnico t</code>. A conta <code>02:30 - INTERVAL '30 minutes'</code> dá 02:00: daria para escrever 02:00 direto, mas assim você treina o <code>INTERVAL</code>, que serve para qualquer janela de tempo.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT e.momento, t.nome, e.evento
 FROM evento_porta e
@@ -2745,7 +2745,7 @@ SELECT '✅ Caso 6 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=06c5ba80"></script>
+<script src="js/catalogo.js?v=29d1de49"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
 <script src="js/computador.js?v=af7c5430"></script>

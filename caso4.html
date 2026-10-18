@@ -102,7 +102,7 @@ erDiagram
     <tr><td><code>ORDER BY data_coleta</code></td><td>ordena do mais antigo ao mais novo</td><td>“linha do tempo dos casos”</td></tr>
   </table></div>
   <div class="missao"><b class="l">Sua missão</b><ul class="list"><li>Liste as culturas que atendem à definição de caso, com o <strong>paciente</strong> e a <strong>data da coleta</strong>, em ordem de data.</li><li>Quantos casos são?</li></ul></div>
-  <details><summary>Dica</summary><div><p>Quatro condições com <code>AND</code>: <code>germe = 'Klebsiella pneumoniae'</code>, <code>resultado = 'positivo'</code> e <code>data_coleta BETWEEN '2026-08-01' AND '2026-08-31'</code>. Datas vão entre aspas simples.</p></div></details>
+  <details><summary>Dica</summary><div><p>Três condições, com um <code>AND</code> entre elas: <code>germe = 'Klebsiella pneumoniae'</code>, <code>resultado = 'positivo'</code> e <code>data_coleta BETWEEN '2026-08-01' AND '2026-08-31'</code>. O <code>AND</code> de dentro do <code>BETWEEN</code> faz parte dele (“entre o dia 1 e o dia 31”). Datas vão entre aspas simples.</p></div></details>
   <details class="sol"><summary>Ver solução</summary><div>
     <div class="code"><pre data-sql>SELECT paciente_id, data_coleta
 FROM cultura
@@ -2619,7 +2619,7 @@ SELECT '✅ Caso 4 instalado! Volte para o guia e comece a Etapa 1.' AS status;
 <script src="js/config.js?v=58dc78bb"></script>
 <script src="js/app.js?v=81f8a57d"></script>
 <script src="js/pwa.js?v=10765b60"></script>
-<script src="js/catalogo.js?v=06c5ba80"></script>
+<script src="js/catalogo.js?v=29d1de49"></script>
 <script src="js/caderno.js?v=7b5c7c96"></script>
 <script src="js/quadro.js?v=4af9677b"></script>
 <script src="js/computador.js?v=af7c5430"></script>
